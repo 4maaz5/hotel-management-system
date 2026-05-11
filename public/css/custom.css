@@ -1,0 +1,770 @@
+/*# sourceMappingURL=data:application/json;charset=utf8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiY3VzdG9tLmNzcyIsInNvdXJjZXMiOlsiY3VzdG9tLnNjc3MiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IiJ9 */
+
+/*# sourceMappingURL=custom.css.map */
+.avatar-upload {
+    position: relative;
+    width: 140px;
+    margin: 0 auto;
+}
+
+.avatar-preview {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 2px dashed #ced4da;
+    position: relative;
+    overflow: hidden;
+    background-color: #f8f9fa;
+}
+
+.avatar-preview #imagePreview {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.avatar-edit input {
+    display: none;
+}
+
+.top-right-alert {
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    width: auto;
+    max-width: 300px;
+}
+
+/* Base card style */
+.custom-card-height {
+    height: 180px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    /* smooth corners */
+    background-color: #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hover effect */
+.custom-card-height:hover {
+    transform: translateY(-8px) scale(1.05);
+    /* lift & zoom effect */
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #6a11cb, #2575fc);
+    /* subtle gradient on hover */
+    color: #fff;
+    /* text/icon color change */
+}
+
+/* Icon inside card */
+.custom-card-height i {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Icon hover effect */
+.custom-card-height:hover i {
+    transform: rotate(15deg) scale(1.2);
+    color: #fff;
+}
+
+/* Text inside card */
+.custom-card-height h5 {
+    transition: all 0.3s ease-in-out;
+    font-weight: 600;
+}
+
+/* Text hover effect */
+.custom-card-height:hover h5 {
+    color: #fff;
+}
+
+/* Optional: subtle background animation */
+.custom-card-height::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: rgba(255, 255, 255, 0.05);
+    transform: rotate(45deg);
+    transition: all 0.5s ease-in-out;
+    z-index: 0;
+}
+
+.custom-card-height:hover::before {
+    top: -20%;
+    left: -20%;
+}
+
+.profile-item label {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.profile-item p {
+    font-size: 1rem;
+    margin-bottom: 0;
+    color: #34395e;
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+    padding: 1rem 1.25rem;
+}
+
+.badge-lg {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+.branch-card .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+.branch-card .card {
+    border: none !important;
+    border-radius: 15px !important;
+    overflow: hidden;
+    transition: all 0.3s ease !important;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-left: 4px solid #1a73e8 !important;
+}
+
+.branch-card .card:hover {
+    transform: translateY(-8px) !important;
+    box-shadow: 0 12px 24px rgba(26, 115, 232, 0.15) !important;
+}
+
+.branch-card .card-title {
+    font-weight: 700 !important;
+    color: #1a73e8 !important;
+    font-size: 1.1rem !important;
+    /* slightly smaller */
+    margin-bottom: 0.5rem !important;
+    /* reduce spacing */
+    padding-bottom: 0.5rem;
+    /* reduce border spacing */
+    border-bottom: 1px solid #e8eaed;
+    /* thinner line */
+}
+
+
+.branch-card .card-text {
+    font-size: 0.9rem !important;
+    line-height: 1.4 !important;
+    /* tighter lines */
+    color: #5f6368 !important;
+}
+
+
+.branch-card .card-text strong {
+    color: #202124 !important;
+    font-weight: 600 !important;
+    display: inline-block;
+    min-width: 80px;
+}
+
+.branch-card .badge {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    border-radius: 20px !important;
+}
+
+.branch-card .action-buttons {
+    border-top: 1px solid #e8eaed !important;
+    /* thinner */
+    padding-top: 0.5rem !important;
+    /* less padding */
+    margin-top: 0.5rem !important;
+    /* less spacing */
+}
+
+
+.branch-card .action-buttons a {
+    font-size: 1.2rem !important;
+    padding: 0.5rem;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease !important;
+}
+
+.branch-card .action-buttons a:hover {
+    transform: scale(1.15) rotate(5deg) !important;
+}
+
+.branch-card .action-buttons .text-info:hover {
+    background-color: rgba(23, 162, 184, 0.1);
+}
+
+.branch-card .action-buttons .text-secondary:hover {
+    background-color: rgba(108, 117, 125, 0.1);
+}
+
+.branch-card .action-buttons .text-danger:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.all-branches-title {
+    font-weight: 700 !important;
+    color: #202124 !important;
+    margin-bottom: 2rem !important;
+    font-size: 2rem !important;
+    position: relative;
+    padding-bottom: 1rem;
+}
+
+.all-branches-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, #1a73e8, #4285f4);
+    border-radius: 2px;
+}
+
+.empty-state {
+    padding: 4rem 0 !important;
+}
+
+.empty-state i {
+    font-size: 4rem !important;
+    color: #dadce0 !important;
+    margin-bottom: 1.5rem !important;
+}
+
+.empty-state p {
+    color: #5f6368 !important;
+    font-size: 1.2rem !important;
+    font-weight: 500 !important;
+}
+
+.branch-card .card-body {
+    padding: 1rem 1rem !important;
+}
+
+.branch-email {
+    color: #1a73e8 !important;
+    text-decoration: none !important;
+}
+
+#employeeCardsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3.0rem;
+}
+
+.employee-card {
+    flex: 0 0 20%;
+    /* 5 cards per row (100% ÷ 5) */
+    max-width: 20%;
+}
+
+@media (max-width: 1200px) {
+    .employee-card {
+        flex: 0 0 25%;
+        /* 4 per row on smaller screens */
+        max-width: 25%;
+    }
+}
+
+@media (max-width: 992px) {
+    .employee-card {
+        flex: 0 0 33.33%;
+        /* 3 per row on medium screens */
+        max-width: 33.33%;
+    }
+}
+
+@media (max-width: 768px) {
+    .employee-card {
+        flex: 0 0 50%;
+        /* 2 per row on small screens */
+        max-width: 50%;
+    }
+}
+
+@media (max-width: 576px) {
+    .employee-card {
+        flex: 0 0 100%;
+        /* 1 per row on extra small screens */
+        max-width: 100%;
+    }
+}
+
+#attendanceCardsContainer {
+    gap: 20px;
+    /* space between cards */
+}
+
+.attendance-card-wrapper {
+    flex: 0 0 calc(20% - 16px);
+    /* 5 cards per row accounting for 20px gap */
+    margin-bottom: 20px;
+}
+
+@media (max-width: 1200px) {
+    .attendance-card-wrapper {
+        flex: 0 0 24%;
+        /* 4 cards per row */
+    }
+}
+
+@media (max-width: 992px) {
+    .attendance-card-wrapper {
+        flex: 0 0 32%;
+        /* 3 cards per row */
+    }
+}
+
+@media (max-width: 768px) {
+    .attendance-card-wrapper {
+        flex: 0 0 48%;
+        /* 2 cards per row */
+    }
+}
+
+@media (max-width: 576px) {
+    .attendance-card-wrapper {
+        flex: 0 0 100%;
+        /* 1 card per row */
+    }
+}
+
+.attendance-card {
+    transition: transform 0.2s;
+}
+
+.attendance-card:hover {
+    transform: translateY(-5px);
+}
+
+.leave-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 cards per row */
+    gap: 20px;
+    /* spacing between both rows & columns */
+}
+
+.overtime-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 20px;
+}
+
+@media (min-width: 576px) {
+    .overtime-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 768px) {
+    .overtime-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
+    .overtime-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+.absent-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+}
+
+.absent-card {
+    width: 100%;
+}
+
+.payroll-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    padding: 10px;
+}
+
+.payroll-card {
+    width: 100%;
+}
+
+.salary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    padding: 10px;
+}
+
+.salary-card {
+    width: 100%;
+}
+
+.transactions-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 cards per row */
+    gap: 20px;
+    /* spacing between rows AND columns */
+    padding: 10px;
+    /* optional container padding */
+}
+
+.transaction-card {
+    width: 100%;
+}
+
+.income-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 cards per row */
+    gap: 20px;
+    /* spacing between rows and columns */
+    padding: 10px;
+}
+
+.income-card {
+    width: 100%;
+}
+
+.budgets-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 cards per row */
+    gap: 20px;
+    /* spacing between rows and columns */
+    padding: 10px;
+}
+
+.card-item {
+    width: 100%;
+}
+
+.expenses-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 cards per row */
+    gap: 20px;
+    /* spacing between rows and columns */
+    padding: 10px;
+}
+
+.card-item {
+    width: 100%;
+}
+
+.employee-docs-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 cards per row */
+    gap: 20px;
+    /* spacing between rows and columns */
+    padding: 10px;
+}
+
+.card-item {
+    width: 100%;
+}
+
+.company-docs-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 cards per row */
+    gap: 20px;
+    /* space between rows and columns */
+}
+
+.company-docs-grid .card {
+    width: 100%;
+    /* make sure each card fills its grid column */
+}
+
+.departments-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 cards per row */
+    gap: 20px;
+    /* space between cards */
+}
+
+.departments-grid .card {
+    width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .departments-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 992px) {
+    .departments-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .departments-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .departments-grid {
+        grid-template-columns: repeat(1, 1fr);
+    }
+}
+
+.notifications-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 cards per row */
+    gap: 20px;
+    /* spacing between rows and columns */
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .notifications-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 992px) {
+    .notifications-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .notifications-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .notifications-grid {
+        grid-template-columns: repeat(1, 1fr);
+    }
+}
+
+.notifications-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 cards per row */
+    gap: 20px;
+    /* spacing between rows and columns */
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .notifications-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 992px) {
+    .notifications-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .notifications-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .notifications-grid {
+        grid-template-columns: repeat(1, 1fr);
+    }
+}
+
+.employee-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 cards per row */
+    gap: 15px;
+    /* space between cards */
+}
+
+.avatar-circle {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.table> :not(caption)>*>* {
+    padding: 0.75rem;
+}
+
+.card {
+    border: none;
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.ck-editor__editable {
+    min-height: 300px;
+    /* Adjust the height here */
+}
+
+.letter-content table {
+    width: 100%;
+    /* optional: full width */
+    border-collapse: collapse;
+}
+
+.letter-content table,
+.letter-content th,
+.letter-content td {
+    border: 1px solid #333;
+    /* dark border */
+}
+
+.letter-content th,
+.letter-content td {
+    padding: 5px;
+    /* spacing inside cells */
+}
+
+/* CKEditor table styling */
+.ckeditor-content table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ckeditor-content table,
+.ckeditor-content th,
+.ckeditor-content td {
+    border: 1px solid #000;
+}
+
+.ckeditor-content th,
+.ckeditor-content td {
+    padding: 8px;
+    text-align: left;
+}
+
+/* Hijri input to match Bootstrap form-control */
+.hijri-input {
+    display: block;
+    width: 100%;
+    height: calc(1.5em + 0.75rem + 2px);
+    /* same as Bootstrap 4 form-control height */
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    cursor: pointer;
+    /* indicates it's clickable */
+}
+
+.hijri-input {
+    height: 42px;
+    /* set to whatever you like */
+}
+
+
+/* Focus style like Bootstrap */
+.hijri-input:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+}
+
+/* Hijri picker dropdown */
+.hijri-picker {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 10px;
+    display: none;
+    z-index: 1000;
+    width: 250px;
+
+    /* optional max */
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, .1);
+}
+
+/* Month and year selects */
+.hijri-picker select {
+    width: 100%;
+    margin-bottom: 5px;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+/* Calendar table */
+.hijri-picker table {
+    border-collapse: collapse;
+    width: 100%;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.hijri-picker th {
+    background-color: #f8f9fa;
+    font-weight: 500;
+    padding: 5px 0;
+}
+
+.hijri-picker td {
+    padding: 6px 0;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+.hijri-picker td:hover {
+    background-color: #e9ecef;
+}

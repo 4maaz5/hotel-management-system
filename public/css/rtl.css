@@ -1,0 +1,230 @@
+/* Desktop (768px and above) */
+/* @media (min-width: 768px) {
+    .main-sidebar {
+        right: 0;
+        left: auto;
+    }
+
+    .main-content {
+        margin-right: 250px;
+        margin-left: 0;
+    }
+
+    .sidebar-menu li a {
+        text-align: right;
+    }
+
+    .sidebar-menu li a i {
+        margin-left: 8px;
+        margin-right: 0;
+    }
+
+
+    .sidebar-menu .dropdown-menu {
+        right: 100%;
+        left: auto;
+    }
+
+    .navbar {
+        flex-direction: row-reverse;
+        margin-right: 250px;
+        margin-left: -250px;
+    }
+
+    .nav-link-user {
+        margin-left: 80px;
+    }
+
+    #notifDropdown {
+        margin-left: 20px;
+        margin-right: 10px;
+    }
+
+    .feather {
+        display: none !important;
+    }
+
+    .settingSidebar {
+        margin-top: -90px;
+    }
+
+    .main-sidebar .sidebar-menu li a span {
+        padding: 10px;
+    }
+} */
+
+
+
+/* Prevent horizontal scroll */
+body,
+html {
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* Desktop (768px and above) */
+@media (min-width: 768px) {
+    .main-sidebar {
+        position: fixed;
+        right: 0;
+        left: auto;
+        width: 250px;
+        top: 0;
+        height: 100vh;
+    }
+
+    .main-content {
+        margin-right: 250px;
+        margin-left: 0;
+        width: calc(100% - 250px);
+    }
+
+    .sidebar-menu li a {
+        text-align: right;
+    }
+
+    .sidebar-menu li a i {
+        margin-left: 8px;
+        margin-right: 0;
+    }
+
+    .sidebar-menu .dropdown-menu {
+        right: 100%;
+        left: auto;
+    }
+
+    .navbar {
+        flex-direction: row-reverse;
+        margin-right: 250px;
+        margin-left: 0;
+        width: calc(100% - 250px);
+    }
+
+    .nav-link-user {
+        margin-left: 80px;
+        margin-right: 0;
+    }
+
+    #notifDropdown {
+        margin-left: 20px;
+        margin-right: 10px;
+    }
+
+    .feather {
+        display: none !important;
+    }
+
+    .settingSidebar {
+        margin-top: -90px;
+    }
+
+    .main-sidebar .sidebar-menu li a span {
+        padding: 10px;
+    }
+}
+
+/* Mobile only */
+@media (max-width: 767.98px) {
+
+    /* Show feather icon */
+    .feather {
+        display: inline !important;
+        cursor: pointer;
+    }
+
+    /* Sidebar hidden off-screen */
+    .main-sidebar {
+        position: fixed;
+        right: -250px;
+        left: auto;
+        width: 250px;
+        top: 0;
+        height: 100%;
+        background: #fff;
+        z-index: 1050;
+        transition: right 0.3s ease-in-out;
+    }
+
+    /* Sidebar when opened */
+    .main-sidebar.active {
+        right: 0;
+    }
+
+    /* Remove desktop margins */
+    .main-content {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+    }
+
+    .navbar {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+    }
+
+    /* Overlay */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+    }
+}
+
+.navbar-expand-lg .navbar-nav .dropdown-menu {
+    margin-right: -100px;
+}
+
+/* Additional safety for containers */
+.container,
+.container-fluid {
+    max-width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+/* Table responsiveness */
+table,
+.table-responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* .navbar-expand-lg .navbar-nav .dropdown-menu {
+    margin-right: -100px;
+} */
+
+/* Prevent horizontal scroll caused by overflow */
+body,
+html {
+    overflow-x: hidden;
+    margin-right: 145px;
+}
+
+
+#employeeCardsContainer {
+    margin-right: 120px;
+}
+
+.payroll-grid {
+    margin-right: 10px;
+}
+
+.messenger {
+    margin-right: 100px;
+}

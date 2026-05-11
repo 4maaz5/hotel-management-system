@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Model;
+
+class UnitCustomRate extends Model
+{
+    use BelongsToTenant;
+
+    protected $fillable = [
+        'tenant_id',
+        'unit_id',
+        'unit_type_id',
+        'low_weekday_rate',
+        'high_weekday_rate',
+        'daily_min_rate',
+        'monthly_rate',
+        'monthly_min_rate',
+    ];
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
+    public function unitType()
+    {
+        return $this->belongsTo(UnitType::class);
+    }
+}

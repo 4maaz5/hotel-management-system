@@ -1,0 +1,29 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('website_faq_items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('company_id')->nullable()->index();
+            $table->string('question_en');
+            $table->string('question_ar')->nullable();
+            $table->text('answer_en');
+            $table->text('answer_ar')->nullable();
+            $table->boolean('is_published')->default(true);
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('website_faq_items');
+    }
+};
+
