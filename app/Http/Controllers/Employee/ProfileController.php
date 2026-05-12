@@ -20,15 +20,16 @@ class ProfileController extends Controller
         // Super Admin → can see any employee
         if ($user->hasRole('super_admin')) {
             $employee = Employee::findOrFail($id);
-        }
-        // All other roles → only same branch
-        else {
+        } elseif ($user->branch_id) {
             $employee = Employee::where('id', $id)
                 ->where('branch_id', $user->branch_id)
                 ->firstOrFail();
+        } else {
+            $employee = Employee::where('id', $id)
+                ->whereHas('branch', fn ($q) => $q->where('company_id', $user->company_id))
+                ->firstOrFail();
         }
 
-        // Related data
         $attendances = Attendance::where('employee_id', $employee->id)->get();
         $insurances = Insurance::where('employee_id', $employee->id)->get();
         $documents = EmployeeDocument::where('employee_id', $employee->id)->get();
@@ -47,12 +48,10 @@ class ProfileController extends Controller
 
         $employee = Employee::findOrFail($request->id);
 
-        // Delete image if exists
         if ($employee->image && \Storage::disk('public')->exists($employee->image)) {
             \Storage::disk('public')->delete($employee->image);
         }
 
-        // Delete associated user if exists
         if ($employee->user_id) {
             $user = User::find($employee->user_id);
             if ($user) {
@@ -60,7 +59,6 @@ class ProfileController extends Controller
             }
         }
 
-        // Delete employee
         $employee->delete();
 
         return redirect()->route('dashboard.employee.index')->with('delete', __('messages.employee_profile_deleted_successfully'));
@@ -70,14 +68,18 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
-        // Super Admin → can see any employee
         if ($user->hasRole('super_admin')) {
             return Employee::findOrFail($id);
         }
 
-        // All other roles → only same branch
+        if ($user->branch_id) {
+            return Employee::where('id', $id)
+                ->where('branch_id', $user->branch_id)
+                ->firstOrFail();
+        }
+
         return Employee::where('id', $id)
-            ->where('branch_id', $user->branch_id)
+            ->whereHas('branch', fn ($q) => $q->where('company_id', $user->company_id))
             ->firstOrFail();
     }
 

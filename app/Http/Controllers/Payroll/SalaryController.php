@@ -75,8 +75,8 @@ class SalaryController extends Controller
                 ->latest()
                 ->paginate(10);
 
-        } else {
-            // Non-super-admin → only their branch
+        } elseif ($user->branch_id) {
+            // User has a branch → scope by that branch
             $branchId = $user->branch_id;
 
             $salaryHistory = Payroll::with('employee')
@@ -91,6 +91,23 @@ class SalaryController extends Controller
                 ->where('status', 'Paid')
                 ->whereHas('employee', function ($query) use ($branchId) {
                     $query->where('branch_id', $branchId);
+                })
+                ->latest()
+                ->paginate(10);
+        } else {
+            // Owner (no branch_id): TenantScope on Employee handles company scoping
+            $salaryHistory = Payroll::with('employee')
+                ->where('status', 'Paid')
+                ->whereHas('employee', function ($query) {
+                    // TenantScope auto-scopes Employee by company_id
+                })
+                ->latest()
+                ->paginate(10);
+
+            $salaryHistoryCards = Payroll::with('employee')
+                ->where('status', 'Paid')
+                ->whereHas('employee', function ($query) {
+                    // TenantScope auto-scopes Employee by company_id
                 })
                 ->latest()
                 ->paginate(10);
@@ -131,7 +148,7 @@ class SalaryController extends Controller
         $query = Payroll::with(['employee', 'employee.branch']);
 
         // ROLE: MANAGER → only own branch
-        if ($user->hasRole('manager')) {
+        if ($user->hasRole('manager') && $user->branch_id) {
             $query->whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id)
             );
         }
@@ -221,7 +238,7 @@ class SalaryController extends Controller
         $branches = Branch::query();
 
         // Role-based filtering
-        if ($user->hasRole('manager')) {
+        if ($user->hasRole('manager') && $user->branch_id) {
             // Manager sees only their branch
             $branches->where('id', $user->branch_id);
 
@@ -247,7 +264,7 @@ class SalaryController extends Controller
         }]);
 
         // Apply role restriction to unpaidBranches for manager
-        if ($user->hasRole('manager')) {
+        if ($user->hasRole('manager') && $user->branch_id) {
             $unpaidBranches->where('id', $user->branch_id);
         }
 

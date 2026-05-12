@@ -19,8 +19,15 @@ class CompanyController extends Controller
 {
     public function index()
     {
-        $companies = Company::all();
-        $companyCards = Company::paginate(10);
+        $user = auth()->user();
+
+        if ($user->isSuperAdmin()) {
+            $companies = Company::all();
+            $companyCards = Company::paginate(10);
+        } else {
+            $companies = Company::whereKey($user->company_id)->get();
+            $companyCards = Company::whereKey($user->company_id)->paginate(10);
+        }
 
         return view('Admin.Backend.Company.index', compact('companies', 'companyCards'));
     }

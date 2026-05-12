@@ -83,13 +83,16 @@ class OverTimeController extends Controller
             ->where('overtime_hours', '>', 0)
             ->where('overtime_status', 'Approved');
 
-        // Non-super-admin → restrict to branch
         if (! $user->hasRole('super_admin')) {
-            $branchId = $user->branch_id;
-
-            $attendancesQuery->whereHas('employee', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId);
-            });
+            if ($user->branch_id) {
+                $attendancesQuery->whereHas('employee', function ($q) use ($user) {
+                    $q->where('branch_id', $user->branch_id);
+                });
+            } else {
+                $attendancesQuery->whereHas('employee', function ($q) use ($user) {
+                    $q->where('company_id', $user->company_id);
+                });
+            }
         }
 
         // Get full attendance records

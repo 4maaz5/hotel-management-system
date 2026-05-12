@@ -178,9 +178,13 @@ class DashboardController extends Controller
         // IF USER IS MANAGER
         if ($user->hasRole('manager')) {
 
-            // Manager must see notifications of departments in his branch
-            $departmentIds = \App\Models\Department::where('branch_id', $user->branch_id)
-                ->pluck('id');
+            if ($user->branch_id) {
+                // Manager must see notifications of departments in his branch
+                $departmentIds = \App\Models\Department::where('branch_id', $user->branch_id)
+                    ->pluck('id');
+            } else {
+                $departmentIds = [];
+            }
 
             return $baseQuery
                 ->whereIn('department_id', $departmentIds)
@@ -308,7 +312,7 @@ class DashboardController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-        } elseif ($user->hasRole('manager')) {
+        } elseif ($user->hasRole('manager') && $user->branch_id) {
             // Manager should see:
 
             $notifications = \DB::table('system_notifications')
@@ -336,10 +340,15 @@ class DashboardController extends Controller
                 ->orderBy('system_notifications.created_at', 'desc')
                 ->get();
 
-        } else {
+        } elseif ($user->branch_id) {
             // Employee — only own notifications
             $notifications = \DB::table('system_notifications')
                 ->where('recipient_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+        } else {
+            // Owner (no branch_id): show all notifications
+            $notifications = \DB::table('system_notifications')
                 ->orderBy('created_at', 'desc')
                 ->get();
         }

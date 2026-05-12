@@ -10,7 +10,8 @@ class ReportController extends Controller
 {
     public function index()
     {
-        $companies = Company::all();
+        $user = auth()->user();
+        $companies = $user->isSuperAdmin() ? Company::all() : Company::whereKey($user->company_id)->get();
         $partners = CompanyPartner::with(['company', 'documents'])->get();
 
         return view('Admin.Backend.Partners.report-view', compact('companies', 'partners'));

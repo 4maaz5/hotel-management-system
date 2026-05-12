@@ -24,9 +24,12 @@ class RequestController extends Controller
         $requestsQuery = StockRequest::with('items.product', 'branch')
             ->orderBy('created_at', 'desc');
 
-        if ($user->role !== 'super_admin') {
-            // Non-super-admin: only show requests for user's branch
+        if ($user->hasRole('super_admin')) {
+            // no filter
+        } elseif ($user->branch_id) {
             $requestsQuery->where('branch_id', $user->branch_id);
+        } else {
+            $requestsQuery->whereHas('branch', fn ($q) => $q->where('company_id', $user->company_id));
         }
 
         $requests = $requestsQuery->get();

@@ -46,7 +46,9 @@ class EmployeeController extends Controller
             $employeeCards = Employee::paginate(8);
             $branches = Branch::all();
             $shifts = Shift::all();
-            $companies = Company::all();
+            $companies = $user->company_id
+                ? Company::whereKey($user->company_id)->get()
+                : collect();
             $departments = Department::all();
             $brands = Brand::all();
         }

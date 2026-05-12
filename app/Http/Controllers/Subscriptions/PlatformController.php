@@ -11,7 +11,8 @@ class PlatformController extends Controller
 {
     public function index()
     {
-        $companies = Company::all();
+        $user = auth()->user();
+        $companies = $user->isSuperAdmin() ? Company::all() : Company::whereKey($user->company_id)->get();
         $platforms = ThirdPartyPlatform::with('company')
             ->latest()
             ->get();

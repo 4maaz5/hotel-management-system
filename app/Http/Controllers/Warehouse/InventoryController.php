@@ -14,10 +14,20 @@ class InventoryController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
         $inventories = Inventory::with('warehouse', 'category', 'room')->get();
-        $warehouses = Warehouse::all();
-        $sections = Room::all();
         $products = Product::all();
+
+        if ($user->hasRole('super_admin')) {
+            $warehouses = Warehouse::all();
+            $sections = Room::all();
+        } elseif ($user->branch_id) {
+            $warehouses = Warehouse::where('branch_id', $user->branch_id)->get();
+            $sections = Room::whereHas('warehouse', fn ($q) => $q->where('branch_id', $user->branch_id))->get();
+        } else {
+            $warehouses = Warehouse::whereHas('branch.company', fn ($q) => $q->where('id', $user->company_id))->get();
+            $sections = Room::whereHas('warehouse.branch.company', fn ($q) => $q->where('id', $user->company_id))->get();
+        }
 
         return view('Admin.Backend.Inventory.index', compact('inventories', 'warehouses', 'sections', 'products'));
     }

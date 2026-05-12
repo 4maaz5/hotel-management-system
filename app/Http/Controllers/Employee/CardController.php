@@ -43,13 +43,19 @@ class CardController extends Controller
             $tableEmployees = Employee::paginate(10); // paginated for table
             $branches = Branch::all();
         } else {
-            // Non-super-admin → only their branch
             $branchId = $user->branch_id;
 
-            $employees = Employee::where('branch_id', $branchId)->get();
-            $employeeCards = Employee::where('branch_id', $branchId)->paginate(10);
-            $tableEmployees = Employee::where('branch_id', $branchId)->paginate(10);
-            $branches = Branch::where('id', $branchId)->get();
+            if ($branchId) {
+                $employees = Employee::where('branch_id', $branchId)->get();
+                $employeeCards = Employee::where('branch_id', $branchId)->paginate(10);
+                $tableEmployees = Employee::where('branch_id', $branchId)->paginate(10);
+                $branches = Branch::where('id', $branchId)->get();
+            } else {
+                $employees = Employee::all();
+                $employeeCards = Employee::paginate(10);
+                $tableEmployees = Employee::paginate(10);
+                $branches = Branch::all();
+            }
         }
 
         return view('Admin.Backend.EmployeeCard.index', compact(

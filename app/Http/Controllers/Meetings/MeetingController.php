@@ -23,21 +23,18 @@ class MeetingController extends Controller
     public function index()
     {
         $user = auth()->user();
+        $users = User::all();
 
-        if ($user->role === 'super_admin') {
-            // Super admin → see all meetings
+        if ($user->hasRole('super_admin')) {
             $meetings = Meeting::latest()->get();
         } else {
-            // Normal user → only meetings he created OR invited to
-            $meetings = Meeting::where('created_by', $user->id)
-                ->orWhereHas('participants', function ($q) use ($user) {
-                    $q->where('user_id', $user->id);
+            $meetings = Meeting::where(function ($q) use ($user) {
+                    $q->where('created_by', $user->id)
+                      ->orWhereHas('participants', fn ($p) => $p->where('user_id', $user->id));
                 })
                 ->latest()
                 ->get();
         }
-
-        $users = User::all();
 
         return view('Admin.Backend.Meetings.index', compact('meetings', 'users'));
     }
@@ -51,15 +48,17 @@ class MeetingController extends Controller
             'participants' => 'nullable|array',
         ]);
 
+        $user = auth()->user();
         $roomName = 'HRMS_'.\Str::uuid();
 
         $meeting = Meeting::create([
+            'company_id' => $user->company_id,
             'title' => $request->title,
             'room_name' => $roomName,
             'link' => 'https://meet.jit.si/'.$roomName,
             'start_time' => $request->start_time,
             'duration' => $request->duration,
-            'created_by' => auth()->id(),
+            'created_by' => $user->id,
         ]);
 
         $users = collect();

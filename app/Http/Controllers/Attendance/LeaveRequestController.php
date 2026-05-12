@@ -49,31 +49,26 @@ class LeaveRequestController extends Controller
     {
         $user = Auth::user();
 
-        // Fetch employees (super admin sees all, others only their branch)
         if ($user->hasRole('super_admin')) {
             $employees = Employee::all();
             $leaves = Leave::with('employee')->latest()->paginate(10);
             $leaveCards = Leave::with('employee')->latest()->paginate(10);
+        } elseif ($user->branch_id) {
+            $employees = Employee::where('branch_id', $user->branch_id)->get();
+            $leaves = Leave::whereHas('employee', function ($query) use ($user) {
+                $query->where('branch_id', $user->branch_id);
+            })->with('employee')->latest()->paginate(10);
+            $leaveCards = Leave::whereHas('employee', function ($query) use ($user) {
+                $query->where('branch_id', $user->branch_id);
+            })->with('employee')->latest()->paginate(10);
         } else {
-            $branchId = $user->branch_id;
-
-            // Employees in user's branch
-            $employees = Employee::where('branch_id', $branchId)->get();
-
-            // Leaves for employees in that branch
-            $leaves = Leave::whereHas('employee', function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
-            })
-                ->with('employee')
-                ->latest()
-                ->paginate(10);
-
-            $leaveCards = Leave::whereHas('employee', function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
-            })
-                ->with('employee')
-                ->latest()
-                ->paginate(10);
+            $employees = Employee::where('company_id', $user->company_id)->get();
+            $leaves = Leave::whereHas('employee', function ($query) use ($user) {
+                $query->where('company_id', $user->company_id);
+            })->with('employee')->latest()->paginate(10);
+            $leaveCards = Leave::whereHas('employee', function ($query) use ($user) {
+                $query->where('company_id', $user->company_id);
+            })->with('employee')->latest()->paginate(10);
         }
 
         return view('Admin.Backend.Leaves.index', compact(
@@ -85,6 +80,8 @@ class LeaveRequestController extends Controller
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+
         $validator = Validator::make($request->all(), [
             'employee_id' => 'required|exists:employees,id',
             'leave_type' => 'required',
@@ -101,6 +98,11 @@ class LeaveRequestController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $employee = Employee::find($request->employee_id);
+        if (!$employee || (!$user->isSuperAdmin() && $employee->company_id !== $user->company_id)) {
+            return response()->json(['errors' => ['employee_id' => ['Invalid employee.']]], 403);
+        }
+
         $leave = Leave::create($request->only([
             'employee_id',
             'leave_type',
@@ -109,7 +111,7 @@ class LeaveRequestController extends Controller
             'total_days',
             'payment_type',
             'travel_responsibility',
-            'ticket_amount', // <- add this
+            'ticket_amount',
             'status',
             'reason',
         ]));
@@ -134,6 +136,8 @@ class LeaveRequestController extends Controller
 
     public function update(Request $request)
     {
+        $user = Auth::user();
+
         $validator = Validator::make($request->all(), [
             'leave_id' => 'required|exists:leaves,id',
             'employee_id' => 'required|exists:employees,id',
@@ -150,13 +154,17 @@ class LeaveRequestController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $employee = Employee::find($request->employee_id);
+        if (!$employee || (!$user->isSuperAdmin() && $employee->company_id !== $user->company_id)) {
+            return response()->json(['errors' => ['employee_id' => ['Invalid employee.']]], 403);
+        }
+
         $leave = Leave::find($request->leave_id);
 
         if (! $leave) {
             return response()->json(['error' => 'Leave record not found.'], 404);
         }
 
-        // Update leave data
         $leave->update($request->only([
             'employee_id',
             'leave_type',
@@ -178,10 +186,18 @@ class LeaveRequestController extends Controller
 
     public function destroy($id)
     {
+        $user = Auth::user();
         $leave = Leave::find($id);
 
         if (! $leave) {
             return response()->json(['status' => 'error', 'message' => 'Leave not found.'], 404);
+        }
+
+        if (!$user->isSuperAdmin()) {
+            $employee = Employee::find($leave->employee_id);
+            if (!$employee || $employee->company_id !== $user->company_id) {
+                return response()->json(['status' => 'error', 'message' => 'Forbidden.'], 403);
+            }
         }
 
         $leave->delete();

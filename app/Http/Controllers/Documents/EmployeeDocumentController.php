@@ -59,18 +59,21 @@ class EmployeeDocumentController extends Controller
             $employeeDocs = EmployeeDocument::all();
             $employeeDocsCard = EmployeeDocument::paginate(10);
         } else {
-            // Non-super-admin → only their branch
             $branchId = $user->branch_id;
 
-            $employees = Employee::where('branch_id', $branchId)->get();
-
-            $employeeDocs = EmployeeDocument::whereHas('employee', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId);
-            })->get();
-
-            $employeeDocsCard = EmployeeDocument::whereHas('employee', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId);
-            })->paginate(10);
+            if ($branchId) {
+                $employees = Employee::where('branch_id', $branchId)->get();
+                $employeeDocs = EmployeeDocument::whereHas('employee', function ($q) use ($branchId) {
+                    $q->where('branch_id', $branchId);
+                })->get();
+                $employeeDocsCard = EmployeeDocument::whereHas('employee', function ($q) use ($branchId) {
+                    $q->where('branch_id', $branchId);
+                })->paginate(10);
+            } else {
+                $employees = Employee::all();
+                $employeeDocs = EmployeeDocument::all();
+                $employeeDocsCard = EmployeeDocument::paginate(10);
+            }
         }
 
         return view('Admin.Backend.EmployeeDocument.index', compact(
@@ -207,8 +210,8 @@ class EmployeeDocumentController extends Controller
 
         $query = EmployeeDocument::with('employee');
 
-        // Manager sees ONLY employees of their branch
-        if ($user->hasRole('manager')) {
+        // Non-super-admin: scope by branch if assigned
+        if (!$user->hasRole('super_admin') && $user->branch_id) {
             $query->whereHas('employee', function ($q) use ($user) {
                 $q->where('branch_id', $user->branch_id);
             });

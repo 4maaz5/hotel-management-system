@@ -13,8 +13,9 @@ class ContractController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
         $clients = Client::all();
-        $companies = Company::all();
+        $companies = $user->isSuperAdmin() ? Company::all() : Company::whereKey($user->company_id)->get();
         $contracts = Contract::with('client', 'company')->get();
 
         return view('Admin.Backend.Client.contract', compact('clients', 'contracts', 'companies'));

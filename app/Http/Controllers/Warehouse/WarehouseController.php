@@ -17,16 +17,16 @@ class WarehouseController extends Controller
         $user = Auth::user();
 
         if ($user->role === 'super_admin') {
-            // Super admin sees everything
             $branches = Branch::with('brand', 'company')->get();
             $warehouses = Warehouse::all();
-        } else {
-            // Non-super admin sees only own branch data
+        } elseif ($user->branch_id) {
             $branches = Branch::with('brand', 'company')
-                ->where('id', $user->branch_id)
-                ->get();
-
+                ->where('id', $user->branch_id)->get();
             $warehouses = Warehouse::where('branch_id', $user->branch_id)->get();
+        } else {
+            $branches = Branch::with('brand', 'company')
+                ->whereHas('company', fn ($q) => $q->where('id', $user->company_id))->get();
+            $warehouses = Warehouse::whereHas('branch.company', fn ($q) => $q->where('id', $user->company_id))->get();
         }
 
         return view(

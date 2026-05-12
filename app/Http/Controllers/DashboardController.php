@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Guest;
+use App\Models\Income;
 use App\Models\PaymentVoucher;
 use App\Models\Property;
 use App\Models\ReceiptVoucher;
@@ -10,6 +11,7 @@ use App\Models\Reservation;
 use App\Models\Unit;
 use App\Support\PropertyContext;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -122,5 +124,67 @@ class DashboardController extends Controller
     public function program()
     {
         return view('hr-program');
+    }
+
+    public function incomeChartData(Request $request)
+    {
+        $user = auth()->user();
+        $type = $request->query('type', 'monthly');
+
+        $query = Income::query();
+
+        if (!$user->hasRole('super_admin')) {
+            if ($user->branch_id) {
+                $query->where('branch_id', $user->branch_id);
+            } else {
+                $query->whereHas('branch', fn ($q) => $q->where('company_id', $user->company_id));
+            }
+        }
+
+        switch ($type) {
+            case 'daily':
+                $query->whereMonth('income_date', now()->month)
+                    ->whereYear('income_date', now()->year);
+                $results = $query->get()->groupBy(fn ($i) => \Carbon\Carbon::parse($i->income_date)->format('Y-m-d'));
+                $labels = collect();
+                $start = now()->startOfMonth();
+                $end = now()->endOfMonth();
+                for ($d = $start; $d->lte($end); $d->addDay()) {
+                    $labels->push($d->format('Y-m-d'));
+                }
+                break;
+
+            case 'weekly':
+                $query->whereYear('income_date', now()->year);
+                $results = $query->get()->groupBy(fn ($i) => \Carbon\Carbon::parse($i->income_date)->format('W'));
+                $labels = collect();
+                for ($w = 1; $w <= 53; $w++) {
+                    $labels->push('Week ' . $w);
+                }
+                break;
+
+            case 'yearly':
+                $query->where('income_date', '>=', now()->subYears(5)->startOfYear());
+                $results = $query->get()->groupBy(fn ($i) => \Carbon\Carbon::parse($i->income_date)->format('Y'));
+                $labels = collect(range(now()->subYears(4)->year, now()->year))->map(fn ($y) => (string) $y);
+                break;
+
+            case 'monthly':
+            default:
+                $query->whereYear('income_date', now()->year);
+                $results = $query->get()->groupBy(fn ($i) => \Carbon\Carbon::parse($i->income_date)->format('Y-m'));
+                $labels = collect();
+                for ($m = 1; $m <= 12; $m++) {
+                    $labels->push(now()->month($m)->format('Y-m'));
+                }
+                break;
+        }
+
+        $totals = $labels->map(fn ($label) => [
+            'label' => $label,
+            'total' => (float) ($results[$label] ?? collect())->sum('amount'),
+        ]);
+
+        return response()->json($totals);
     }
 }

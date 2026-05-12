@@ -31,8 +31,12 @@
                                     @php
                                         // Group permissions by module
                                         $groupedPermissions = $permissions->groupBy(function ($perm) {
-                                            $parts = explode('_', $perm->name);
-                                            return ucfirst($parts[1] ?? 'Other'); // Employee, Payroll, etc.
+                                            $name = $perm->name;
+                                            if (str_contains($name, '.')) {
+                                                return ucfirst(explode('.', $name)[0]);
+                                            }
+                                            $parts = explode('_', $name);
+                                            return ucfirst($parts[1] ?? 'Other');
                                         });
 
                                         $rolePermissions = $role->permissions->pluck('name')->toArray();

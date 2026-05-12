@@ -69,31 +69,32 @@ class MarkAttendanceController extends Controller
         $user = Auth::user();
 
         if ($user->hasRole('super_admin')) {
-            // Super admin sees all
             $attendances = Attendance::with('employee')->latest()->get();
             $attendancesCards = Attendance::with('employee')->latest()->paginate(10);
             $employees = Employee::all();
-            $branches = Branch::all(); // for filter
+            $branches = Branch::all();
+        } elseif ($user->branch_id) {
+            $attendances = Attendance::whereHas('employee', function ($query) use ($user) {
+                $query->where('branch_id', $user->branch_id);
+            })->with('employee')->latest()->get();
+
+            $attendancesCards = Attendance::whereHas('employee', function ($query) use ($user) {
+                $query->where('branch_id', $user->branch_id);
+            })->with('employee')->latest()->paginate(10);
+
+            $employees = Employee::where('branch_id', $user->branch_id)->get();
+            $branches = Branch::where('id', $user->branch_id)->get();
         } else {
-            // Non-super admin → only their branch
-            $branchId = $user->branch_id;
+            $attendances = Attendance::whereHas('employee', function ($query) use ($user) {
+                $query->where('company_id', $user->company_id);
+            })->with('employee')->latest()->get();
 
-            $attendances = Attendance::whereHas('employee', function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
-            })
-                ->with('employee')
-                ->latest()
-                ->get();
+            $attendancesCards = Attendance::whereHas('employee', function ($query) use ($user) {
+                $query->where('company_id', $user->company_id);
+            })->with('employee')->latest()->paginate(10);
 
-            $attendancesCards = Attendance::whereHas('employee', function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
-            })
-                ->with('employee')
-                ->latest()
-                ->paginate(10);
-
-            $employees = Employee::where('branch_id', $branchId)->get();
-            $branches = Branch::where('id', $branchId)->get();
+            $employees = Employee::where('company_id', $user->company_id)->get();
+            $branches = Branch::all();
         }
 
         return view('Admin.Backend.EmployeeAttendance.index', compact(
@@ -246,22 +247,19 @@ class MarkAttendanceController extends Controller
 
         // Branch-based access
         if ($user->hasRole('super_admin')) {
-            // Super admin → can filter by branch if needed
             if ($request->filled('branch_id')) {
                 $query->whereHas('employee', function ($q) use ($request) {
                     $q->where('branch_id', $request->branch_id);
                 });
             }
+        } elseif ($user->branch_id) {
+            $query->whereHas('employee', function ($q) use ($user) {
+                $q->where('branch_id', $user->branch_id);
+            });
         } else {
-            // Other roles → only their branch
-            if ($user->branch_id) {
-                $query->whereHas('employee', function ($q) use ($user) {
-                    $q->where('branch_id', $user->branch_id);
-                });
-            } else {
-                // No branch assigned → return empty view
-                return view('Admin.Backend.partials.attendance', ['attendances' => collect()]);
-            }
+            $query->whereHas('employee', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
         }
 
         // Filter by employee name
@@ -466,17 +464,18 @@ class MarkAttendanceController extends Controller
         $attendances = Attendance::with('employee');
 
         if ($user->hasRole('super_admin')) {
-            // Super admin → fetch all attendances
             $attendances = $attendances->latest()->take(10)->get();
-        } else {
-            // Manager → only their branch
-            if (! $user->branch_id) {
-                return response()->json([], 200); // avoid null branch_id
-            }
-
+        } elseif ($user->branch_id) {
             $attendances = $attendances
                 ->whereHas('employee', function ($query) use ($user) {
                     $query->where('branch_id', $user->branch_id);
+                })
+                ->latest()
+                ->get();
+        } else {
+            $attendances = $attendances
+                ->whereHas('employee', function ($query) use ($user) {
+                    $query->where('company_id', $user->company_id);
                 })
                 ->latest()
                 ->get();

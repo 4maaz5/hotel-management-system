@@ -74,19 +74,25 @@ class IncomeController extends Controller
             $incomes = Income::with(['branch', 'user'])->latest()->get();
             $incomeCards = Income::with(['branch', 'user'])->latest()->paginate(10);
         } else {
-            // Non-super admin → only their branch
             $branchId = $user->branch_id;
 
-            $branches = Branch::where('id', $branchId)->get();
-            $employees = Employee::where('branch_id', $branchId)->get();
-            $incomes = Income::with(['branch', 'user'])
-                ->where('branch_id', $branchId)
-                ->latest()
-                ->get();
-            $incomeCards = Income::with(['branch', 'user'])
-                ->where('branch_id', $branchId)
-                ->latest()
-                ->paginate(10);
+            if ($branchId) {
+                $branches = Branch::where('id', $branchId)->get();
+                $employees = Employee::where('branch_id', $branchId)->get();
+                $incomes = Income::with(['branch', 'user'])
+                    ->where('branch_id', $branchId)
+                    ->latest()
+                    ->get();
+                $incomeCards = Income::with(['branch', 'user'])
+                    ->where('branch_id', $branchId)
+                    ->latest()
+                    ->paginate(10);
+            } else {
+                $branches = Branch::all();
+                $employees = Employee::all();
+                $incomes = Income::with(['branch', 'user'])->latest()->get();
+                $incomeCards = Income::with(['branch', 'user'])->latest()->paginate(10);
+            }
         }
 
         return view('Admin.Backend.Income.index', compact(
@@ -224,12 +230,8 @@ class IncomeController extends Controller
                 $query->where('branch_id', $request->branch_id);
             }
         } else {
-            // Other roles → only their branch
             if ($user->branch_id) {
                 $query->where('branch_id', $user->branch_id);
-            } else {
-                // No branch assigned → return empty
-                return response()->json(['html' => '']);
             }
         }
 

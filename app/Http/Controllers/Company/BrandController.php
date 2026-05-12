@@ -12,9 +12,10 @@ class BrandController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
         $brands = Brand::all();
         $brandCards = Brand::paginate(10);
-        $companies = Company::all();
+        $companies = $user->isSuperAdmin() ? Company::all() : Company::whereKey($user->company_id)->get();
 
         return view('Admin.Backend.Brand.index', compact('brands', 'companies', 'brandCards'));
     }

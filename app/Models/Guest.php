@@ -12,6 +12,8 @@ class Guest extends Model
     use BelongsToStaffCurrentProperty, BelongsToTenant, HasFactory;
 
     protected $fillable = [
+        'company_id',
+        'branch_id',
         'property_id',
         'first_name',
         'second_name',

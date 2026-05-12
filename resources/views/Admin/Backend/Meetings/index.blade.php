@@ -13,12 +13,12 @@
                         <div class="card">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h4>{{ __('dashboard.meetings') }}</h4>
-                                @if (Auth::user()->hasRole('super_admin'))
+                                @can('manage_dashboard')
                                     <button type="button" class="btn btn-primary" data-toggle="modal"
                                         data-target="#createMeetingModal">
                                         {{ __('dashboard.add_meeting') }}
                                     </button>
-                                @endif
+                                @endcan
 
                             </div>
 
