@@ -17,5 +17,25 @@
             <i class="fas fa-building"></i>
             <span>Tenants</span>
         </a>
+
+        <a href="{{ route('super-admin.plans.index') }}" class="{{ request()->routeIs('super-admin.plans.*') ? 'is-active' : '' }}">
+            <i class="fas fa-credit-card"></i>
+            <span>Plans</span>
+        </a>
+
+        <a href="{{ route('super-admin.analytics.index') }}" class="{{ request()->routeIs('super-admin.analytics.*') ? 'is-active' : '' }}">
+            <i class="fas fa-chart-bar"></i>
+            <span>Analytics</span>
+        </a>
+
+        <a href="{{ route('super-admin.support.index') }}" class="{{ request()->routeIs('super-admin.support.*') ? 'is-active' : '' }}">
+            <i class="fas fa-headset"></i>
+            <span>Support</span>
+        </a>
+
+        <a href="{{ route('super-admin.activity.index') }}" class="{{ request()->routeIs('super-admin.activity.*') ? 'is-active' : '' }}">
+            <i class="fas fa-history"></i>
+            <span>Activity</span>
+        </a>
     </nav>
 </aside>

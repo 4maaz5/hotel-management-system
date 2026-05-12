@@ -16,7 +16,6 @@
             </div>
         </div>
 
-
         <div class="row g-4">
             <div class="col-lg-8">
                 <div class="card shadow-sm h-100">
@@ -28,6 +27,14 @@
                             <div class="col-md-6">
                                 <div class="text-muted small">Status</div>
                                 <div class="fw-semibold text-uppercase">{{ $tenant->status }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small">Plan</div>
+                                <div class="fw-semibold">{{ $tenant->plan?->name ?: '-' }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-muted small">Subdomain</div>
+                                <div class="fw-semibold"><code>{{ $tenant->subdomain ?: '-' }}</code></div>
                             </div>
                             <div class="col-md-6">
                                 <div class="text-muted small">Email</div>
@@ -50,6 +57,20 @@
                                 <div class="fw-semibold">{{ $tenant->properties_count }}</div>
                             </div>
                         </div>
+
+                        @if ($tenant->plan)
+                            <hr>
+                            <h6 class="mb-2">Plan Features</h6>
+                            <div class="row g-1">
+                                @forelse ($tenant->plan->features ?? [] as $feature)
+                                    <div class="col-md-6">
+                                        <small><i class="fas fa-check-circle text-success me-1"></i>{{ $tenant->plan->featureList()[$feature] ?? $feature }}</small>
+                                    </div>
+                                @empty
+                                    <div class="col-12"><small class="text-muted">No features assigned.</small></div>
+                                @endforelse
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -69,6 +90,28 @@
                         @endif
                     </div>
                 </div>
+
+                @if ($tenant->plan)
+                    <div class="card shadow-sm mt-3">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Plan Limits</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <span class="text-muted small d-block">Max Users</span>
+                                <strong>{{ $tenant->plan->maxLimit('max_users') > 0 ? $tenant->plan->maxLimit('max_users') : 'Unlimited' }}</strong>
+                            </div>
+                            <div class="mb-2">
+                                <span class="text-muted small d-block">Max Properties</span>
+                                <strong>{{ $tenant->plan->maxLimit('max_properties') > 0 ? $tenant->plan->maxLimit('max_properties') : 'Unlimited' }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-muted small d-block">Price</span>
+                                <strong>${{ $tenant->plan->formattedPrice() }} / {{ $tenant->plan->billing_period }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

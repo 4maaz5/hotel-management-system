@@ -13,17 +13,14 @@
             <a href="{{ route('super-admin.tenants.create') }}" class="btn btn-primary">New Tenant</a>
         </div>
 
-        {{-- @if (session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
-        @endif --}}
-
         <div class="card shadow-sm">
             <div class="table-responsive">
                 <table class="table align-middle mb-0">
                     <thead>
                         <tr>
                             <th>Name</th>
-                            <th>Email</th>
+                            <th>Subdomain</th>
+                            <th>Plan</th>
                             <th>Status</th>
                             <th>Users</th>
                             <th>Properties</th>
@@ -35,7 +32,8 @@
                         @forelse ($tenants as $tenant)
                             <tr>
                                 <td>{{ $tenant->name }}</td>
-                                <td>{{ $tenant->email ?: '-' }}</td>
+                                <td><code>{{ $tenant->subdomain ?: '-' }}</code></td>
+                                <td>{{ $tenant->plan?->name ?: '-' }}</td>
                                 <td><span class="badge bg-secondary text-uppercase">{{ $tenant->status }}</span></td>
                                 <td>{{ $tenant->users_count }}</td>
                                 <td>{{ $tenant->properties_count }}</td>
@@ -47,7 +45,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No tenants found.</td>
+                                <td colspan="8" class="text-center text-muted py-4">No tenants found.</td>
                             </tr>
                         @endforelse
                     </tbody>

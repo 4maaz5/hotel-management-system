@@ -27,14 +27,11 @@ class BranchController extends Controller
         $companies = collect();
 
         if ($user->hasRole('super_admin')) {
-            // Super admin sees all
             $branches = Branch::with('documents')->get();
-            // dd($branches);
             $brands = Brand::all();
             $companies = Company::all();
             $branchesCards = Branch::paginate(10);
-        } else {
-            // Non-super-admin → only their branch
+        } elseif ($user->branch_id) {
             $branches = Branch::where('id', $user->branch_id)->get();
             $branchesCards = Branch::where('id', $user->branch_id)->paginate(10);
             $brands = Brand::whereHas('branches', function ($q) use ($user) {
@@ -43,6 +40,11 @@ class BranchController extends Controller
             $companies = Company::whereHas('branches', function ($q) use ($user) {
                 $q->where('id', $user->branch_id);
             })->get();
+        } else {
+            $branches = Branch::with('documents')->get();
+            $branchesCards = Branch::paginate(10);
+            $brands = Brand::all();
+            $companies = Company::whereHas('branches')->get();
         }
 
         return view('Admin.Backend.Branch.index', compact(

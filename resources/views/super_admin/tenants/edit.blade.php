@@ -22,12 +22,31 @@
                             <input type="text" name="name" value="{{ old('name', $tenant->name) }}" class="form-control" required>
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label">Subdomain</label>
+                            <div class="input-group">
+                                <input type="text" name="subdomain" value="{{ old('subdomain', $tenant->subdomain) }}" class="form-control" placeholder="grand-hyatt" required>
+                                <span class="input-group-text">.yourplatform.com</span>
+                            </div>
+                            <div class="form-text">Only letters, numbers, and hyphens.</div>
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label">Tenant Email</label>
                             <input type="email" name="email" value="{{ old('email', $tenant->email) }}" class="form-control">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Phone</label>
                             <input type="text" name="phone" value="{{ old('phone', $tenant->phone) }}" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Subscription Plan</label>
+                            <select name="subscription_plan_id" class="form-select">
+                                <option value="">— Select Plan —</option>
+                                @foreach ($plans as $plan)
+                                    <option value="{{ $plan->id }}" @selected(old('subscription_plan_id', $tenant->subscription_plan_id) == $plan->id)>
+                                        {{ $plan->name }} (${{ $plan->formattedPrice() }}/{{ $plan->billing_period }})
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Start Date</label>

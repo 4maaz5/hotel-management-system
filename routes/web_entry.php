@@ -3,6 +3,7 @@
 use App\Http\Controllers\PublicEntryController;
 use App\Http\Controllers\Lang\LocaleController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
+use App\Http\Controllers\SuperAdmin\PlanController as SuperAdminPlanController;
 use App\Http\Controllers\SuperAdmin\TenantController as SuperAdminTenantController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,6 +13,7 @@ Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('publi
 Route::prefix('admin')->name('super-admin.')->middleware(['auth', 'super.admin'])->group(function () {
     Route::get('/', [SuperAdminDashboardController::class, 'index'])->name('dashboard');
     Route::resource('tenants', SuperAdminTenantController::class)->except('destroy');
+    Route::resource('plans', SuperAdminPlanController::class);
 });
 
 Route::get('/app', function () {

@@ -131,15 +131,13 @@
                                     {{ __('dashboard.settings') }}
                                 </a>
                             @endif --}}
-                            @auth
-                                @if (auth()->user()->hasRole('super_admin'))
-                                    <a href="{{ route('dashboard.setting.general.index') }}"
-                                        class="dropdown-item has-icon">
-                                        <i class="fas fa-cog"></i>
-                                        {{ __('dashboard.settings') }}
-                                    </a>
-                                @endif
-                            @endauth
+                            @can('manage_setting')
+                                <a href="{{ route('dashboard.setting.general.index') }}"
+                                    class="dropdown-item has-icon">
+                                    <i class="fas fa-cog"></i>
+                                    {{ __('dashboard.settings') }}
+                                </a>
+                            @endcan
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <div class="dropdown-divider"></div>

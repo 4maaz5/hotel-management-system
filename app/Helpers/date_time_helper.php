@@ -1,6 +1,15 @@
 <?php
 
 use App\Models\DateTimeSetting;
+use App\Models\Tenant;
+use App\Support\TenantContext;
+
+function currentTenant(): ?Tenant
+{
+    $id = app(TenantContext::class)->id();
+    if (! $id) return null;
+    return Tenant::with('plan')->find($id);
+}
 
 function system_settings()
 {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class TenantController extends Controller
     public function index()
     {
         $tenants = Tenant::query()
+            ->with('plan')
             ->withCount(['users', 'properties'])
             ->latest()
             ->paginate(15);
@@ -25,7 +27,8 @@ class TenantController extends Controller
 
     public function create()
     {
-        return view('super_admin.tenants.create');
+        $plans = SubscriptionPlan::active()->get();
+        return view('super_admin.tenants.create', compact('plans'));
     }
 
     public function store(Request $request)
@@ -35,15 +38,17 @@ class TenantController extends Controller
         $tenant = DB::transaction(function () use ($validated) {
             $tenant = Tenant::create([
                 'name' => $validated['name'],
+                'subdomain' => $validated['subdomain'],
                 'email' => $validated['email'] ?? $validated['owner_email'],
                 'phone' => $validated['phone'] ?? null,
                 'start_date' => $validated['start_date'],
                 'end_date' => $validated['end_date'],
-                'status' => $validated['status'],
+                'subscription_status' => $validated['status'],
+                'subscription_plan_id' => $validated['subscription_plan_id'],
             ]);
 
             $owner = User::create([
-                'tenant_id' => $tenant->id,
+                'company_id' => $tenant->id,
                 'name' => $validated['owner_name'],
                 'email' => $validated['owner_email'],
                 'password' => Hash::make($validated['owner_password']),
@@ -72,7 +77,7 @@ class TenantController extends Controller
 
     public function show(Tenant $tenant)
     {
-        $tenant->loadCount(['users', 'properties']);
+        $tenant->load(['plan', 'users', 'properties']);
         $owner = $this->ownerForTenant($tenant);
 
         return view('super_admin.tenants.show', compact('tenant', 'owner'));
@@ -80,28 +85,31 @@ class TenantController extends Controller
 
     public function edit(Tenant $tenant)
     {
+        $plans = SubscriptionPlan::active()->get();
         $owner = $this->ownerForTenant($tenant);
 
-        return view('super_admin.tenants.edit', compact('tenant', 'owner'));
+        return view('super_admin.tenants.edit', compact('tenant', 'owner', 'plans'));
     }
 
     public function update(Request $request, Tenant $tenant)
     {
         $owner = $this->ownerForTenant($tenant);
-        $validated = $this->validateTenant($request, $owner?->id);
+        $validated = $this->validateTenant($request, $tenant, $owner?->id);
 
         DB::transaction(function () use ($tenant, $owner, $validated) {
             $tenant->update([
                 'name' => $validated['name'],
+                'subdomain' => $validated['subdomain'],
                 'email' => $validated['email'] ?? $validated['owner_email'],
                 'phone' => $validated['phone'] ?? null,
                 'start_date' => $validated['start_date'],
                 'end_date' => $validated['end_date'],
-                'status' => $validated['status'],
+                'subscription_status' => $validated['status'],
+                'subscription_plan_id' => $validated['subscription_plan_id'],
             ]);
 
             $ownerUser = $owner ?: new User([
-                'tenant_id' => $tenant->id,
+                'company_id' => $tenant->id,
                 'status' => 'active',
                 'user_type' => 'owner',
                 'default_language' => 'en',
@@ -109,7 +117,7 @@ class TenantController extends Controller
             ]);
 
             $ownerUser->fill([
-                'tenant_id' => $tenant->id,
+                'company_id' => $tenant->id,
                 'name' => $validated['owner_name'],
                 'email' => $validated['owner_email'],
                 'status' => 'active',
@@ -137,19 +145,23 @@ class TenantController extends Controller
             ->with('success', 'Tenant updated successfully.');
     }
 
-    protected function validateTenant(Request $request, ?int $ownerUserId = null): array
+    protected function validateTenant(Request $request, ?Tenant $tenant = null, ?int $ownerUserId = null): array
     {
+        $tenantId = $tenant?->id ?? 'NULL';
+
         $passwordRules = $ownerUserId
             ? ['nullable', 'string', 'min:8', 'confirmed']
             : ['required', 'string', 'min:8', 'confirmed'];
 
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'subdomain' => ['required', 'string', 'max:63', 'alpha_dash', "unique:companies,subdomain,{$tenantId},id"],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'status' => ['required', 'in:active,inactive,suspended'],
+            'subscription_plan_id' => ['nullable', 'integer', 'exists:subscription_plans,id'],
             'owner_name' => ['required', 'string', 'max:255'],
             'owner_email' => ['required', 'email', 'max:255', 'unique:users,email,'.($ownerUserId ?? 'NULL').',id'],
             'owner_password' => $passwordRules,

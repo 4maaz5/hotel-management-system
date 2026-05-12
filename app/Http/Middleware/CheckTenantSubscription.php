@@ -21,7 +21,7 @@ class CheckTenantSubscription
         if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
             app(TenantContext::class)->forget();
 
-            return $next($request);
+            return redirect()->route('super-admin.dashboard');
         }
 
         $tenant = $user->tenant;
