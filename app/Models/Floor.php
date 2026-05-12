@@ -11,6 +11,8 @@ class Floor extends Model
     use BelongsToCurrentProperty, BelongsToTenant;
 
     protected $fillable = [
+        'company_id',
+        'branch_id',
         'property_id',
         'block_id',
         'name',

@@ -27,7 +27,8 @@ class LetterController extends Controller
         $nextNumber = str_pad(($lastNumber + 1), 5, '0', STR_PAD_LEFT);
 
         $generatedLetterNumber = "LTR-{$year}-{$nextNumber}";
-        $companies = Company::all();
+        $user = auth()->user();
+        $companies = $user->isSuperAdmin() ? Company::all() : Company::whereKey($user->company_id)->get();
         $branches = Branch::all();
         $employees = Employee::all();
         $letters = Letter::with('letterSetting')->get();

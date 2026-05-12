@@ -35,9 +35,8 @@
                                                         @elseif($role->name === 'Super Admin')
                                                             {{ __('dashboard.all_permissions') }}
                                                         @else
-                                                            {{-- {{ $role->permissions->pluck('name')->join(', ') }} --}}
-                                                            {{ $role->permissions->map(fn($permission) => __('permissions.' . $permission->name))->join('، ') }}
-                                                        @endif
+                                                             {{ $role->permissions->count() }} {{ __('dashboard.permissions') }}
+                                                         @endif
                                                     </td>
                                                     <td>
                                                         <a href="{{ route('dashboard.setting.role.edit', $role->id) }}"

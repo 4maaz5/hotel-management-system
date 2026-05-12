@@ -499,7 +499,7 @@
                     <ul class="dropdown-menu" style="">
 
 
-                        @if (Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('warehouse_manager'))
+                        @can('manage_warehouse')
                             <li>
                                 <a class="nav-link" href="{{ route('dashboard.warehouse.index') }}"
                                     style="margin-top:-10px;">
@@ -529,7 +529,7 @@
                                     {{ __('dashboard.inventory') }}
                                 </a>
                             </li>
-                        @endif
+                        @endcan
                         <li>
                             <a class="nav-link" href="{{ route('dashboard.requests.index') }}">
                                 {{ __('dashboard.request') }}

@@ -69,32 +69,27 @@ class PayslipController extends Controller
         $payrollCards = collect();
 
         if ($user->hasRole('super_admin')) {
-            // Super Admin → all employees and payrolls
             $employees = Employee::with('branch')->get();
             $payrolls = Payroll::with('employee')->latest()->get();
             $payrollCards = Payroll::with('employee')->latest()->paginate(10);
-
-        } else {
-            // Non-super-admin → only their branch
-            $branchId = $user->branch_id;
-
+        } elseif ($user->branch_id) {
             $employees = Employee::with('branch')
-                ->where('branch_id', $branchId)
+                ->where('branch_id', $user->branch_id)
                 ->get();
-
             $payrolls = Payroll::with('employee')
-                ->whereHas('employee', function ($query) use ($branchId) {
-                    $query->where('branch_id', $branchId);
-                })
-                ->latest()
-                ->get();
-
+                ->whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id))
+                ->latest()->get();
             $payrollCards = Payroll::with('employee')
-                ->whereHas('employee', function ($query) use ($branchId) {
-                    $query->where('branch_id', $branchId);
-                })
-                ->latest()
-                ->paginate(10);
+                ->whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id))
+                ->latest()->paginate(10);
+        } else {
+            $employees = Employee::where('company_id', $user->company_id)->get();
+            $payrolls = Payroll::with('employee')
+                ->whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
+                ->latest()->get();
+            $payrollCards = Payroll::with('employee')
+                ->whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
+                ->latest()->paginate(10);
         }
 
         return view('Admin.Backend.GeneratePayslip.payslip', compact(

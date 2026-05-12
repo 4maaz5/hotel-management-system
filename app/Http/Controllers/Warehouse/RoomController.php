@@ -14,17 +14,16 @@ class RoomController extends Controller
     {
         $user = Auth::user();
 
-        // Warehouses filtered by branch if not super_admin
-        $warehouses = $user->role === 'super_admin'
-            ? Warehouse::all()
-            : Warehouse::where('branch_id', $user->branch_id)->get();
-
-        // Rooms filtered by branch via warehouse
-        $rooms = $user->role === 'super_admin'
-            ? Room::all()
-            : Room::whereHas('warehouse', function ($q) use ($user) {
-                $q->where('branch_id', $user->branch_id);
-            })->get();
+        if ($user->role === 'super_admin') {
+            $warehouses = Warehouse::all();
+            $rooms = Room::all();
+        } elseif ($user->branch_id) {
+            $warehouses = Warehouse::where('branch_id', $user->branch_id)->get();
+            $rooms = Room::whereHas('warehouse', fn ($q) => $q->where('branch_id', $user->branch_id))->get();
+        } else {
+            $warehouses = Warehouse::whereHas('branch.company', fn ($q) => $q->where('id', $user->company_id))->get();
+            $rooms = Room::whereHas('warehouse.branch.company', fn ($q) => $q->where('id', $user->company_id))->get();
+        }
 
         return view('Admin.Backend.Room.index', compact('rooms', 'warehouses'));
     }

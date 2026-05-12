@@ -29,32 +29,25 @@ class ExpiredDocumentController extends Controller
             $expiredEmployee = EmployeeDocument::where('expiration_date', '<', $today)->count();
             $expiredCompany = CompanyDocument::where('expiration_date', '<', $today)->count();
 
-        } else {
-            // Non-super-admin → only their branch
+        } elseif ($user->branch_id) {
             $employeeDocs = EmployeeDocument::with('employee.branch')
-                ->whereHas('employee', function ($query) use ($user) {
-                    $query->where('branch_id', $user->branch_id);
-                })
-                ->get();
-
-            $companyDocs = collect(); // company documents hidden for non-super-admins
-
-            // Expiring soon for their branch only
+                ->whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id))->get();
+            $companyDocs = collect();
             $expiringSoonEmployee = EmployeeDocument::whereBetween('expiration_date', [$today, $soonDate])
-                ->whereHas('employee', function ($q) use ($user) {
-                    $q->where('branch_id', $user->branch_id);
-                })
-                ->count();
-
+                ->whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id))->count();
             $expiringSoonCompany = 0;
-
-            // Expired for their branch only
             $expiredEmployee = EmployeeDocument::where('expiration_date', '<', $today)
-                ->whereHas('employee', function ($q) use ($user) {
-                    $q->where('branch_id', $user->branch_id);
-                })
-                ->count();
-
+                ->whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id))->count();
+            $expiredCompany = 0;
+        } else {
+            $employeeDocs = EmployeeDocument::with('employee.branch')
+                ->whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))->get();
+            $companyDocs = collect();
+            $expiringSoonEmployee = EmployeeDocument::whereBetween('expiration_date', [$today, $soonDate])
+                ->whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))->count();
+            $expiringSoonCompany = 0;
+            $expiredEmployee = EmployeeDocument::where('expiration_date', '<', $today)
+                ->whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))->count();
             $expiredCompany = 0;
         }
 
@@ -76,8 +69,10 @@ class ExpiredDocumentController extends Controller
 
         // Fetch employee documents
         $employeeDocs = EmployeeDocument::with('employee.branch');
-        if ($user->hasRole('manager')) {
+        if ($user->hasRole('manager') && $user->branch_id) {
             $employeeDocs->whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id));
+        } elseif ($user->company_id) {
+            $employeeDocs->whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id));
         }
         $employeeDocs = $employeeDocs->get();
 

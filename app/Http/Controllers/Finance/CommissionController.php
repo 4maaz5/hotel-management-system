@@ -78,13 +78,17 @@ class CommissionController extends Controller
         $branches = Branch::query();
         $query = Income::with('employee', 'branch');
 
-        // Role-based restrictions
         if (! $user->hasRole('super_admin')) {
-            // Non-super admin → restrict to user's branch
-            $branchId = $user->branch_id;
-            $query->where('branch_id', $branchId);
-            $employees->where('branch_id', $branchId);
-            $branches->where('id', $branchId);
+            if ($user->branch_id) {
+                $query->where('branch_id', $user->branch_id);
+                $employees->where('branch_id', $user->branch_id);
+                $branches->where('id', $user->branch_id);
+            } else {
+                $companyBranchIds = Branch::where('company_id', $user->company_id)->pluck('id');
+                $query->whereIn('branch_id', $companyBranchIds);
+                $employees->whereIn('branch_id', $companyBranchIds);
+                $branches->whereIn('id', $companyBranchIds);
+            }
         }
 
         // Filters from request

@@ -44,7 +44,9 @@ class BranchController extends Controller
             $branches = Branch::with('documents')->get();
             $branchesCards = Branch::paginate(10);
             $brands = Brand::all();
-            $companies = Company::whereHas('branches')->get();
+            $companies = $user->company_id
+                ? Company::whereKey($user->company_id)->get()
+                : collect();
         }
 
         return view('Admin.Backend.Branch.index', compact(

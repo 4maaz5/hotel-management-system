@@ -16,17 +16,18 @@ class ExpenseController extends Controller
         $user = Auth::user();
 
         if ($user->hasRole('super_admin')) {
-            // Super admin sees all branches and expenses
             $branches = Branch::all();
             $expenses = AdministrativeExpense::all();
             $expenseCards = AdministrativeExpense::paginate(10);
+        } elseif ($user->branch_id) {
+            $branches = Branch::where('id', $user->branch_id)->get();
+            $expenses = AdministrativeExpense::where('branch_id', $user->branch_id)->get();
+            $expenseCards = AdministrativeExpense::where('branch_id', $user->branch_id)->paginate(10);
         } else {
-            // Non-super admin → only their branch
-            $branchId = $user->branch_id;
-
-            $branches = Branch::where('id', $branchId)->get();
-            $expenses = AdministrativeExpense::where('branch_id', $branchId)->get();
-            $expenseCards = AdministrativeExpense::where('branch_id', $branchId)->paginate(10);
+            $companyBranchIds = Branch::where('company_id', $user->company_id)->pluck('id');
+            $branches = Branch::whereIn('id', $companyBranchIds)->get();
+            $expenses = AdministrativeExpense::whereIn('branch_id', $companyBranchIds)->get();
+            $expenseCards = AdministrativeExpense::whereIn('branch_id', $companyBranchIds)->paginate(10);
         }
 
         return view('Admin.Backend.AdministrativeExpenses.index', compact(

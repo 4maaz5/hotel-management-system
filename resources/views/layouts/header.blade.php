@@ -21,7 +21,7 @@
         <div class="app-header__bar d-flex justify-content-between align-items-center">
             <!-- Left Side: Page Title -->
             <h1 class="app-header__title h4 mb-0 text-{{ app()->getLocale() == 'ar' ? 'end' : 'start' }} text-white">
-                {{ $property?->property_name_en ?? $property?->property_name_ar ?? __('dashboard.dashboard') }}
+                {{ $property?->property_name_en ?? $property?->property_name_ar }}
             </h1>
 
             <!-- Right Side: Search, Language, Profile -->

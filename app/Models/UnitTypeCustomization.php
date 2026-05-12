@@ -13,6 +13,7 @@ class UnitTypeCustomization extends Model
     protected $table = 'unit_type_customizations';
 
     protected $fillable = [
+        'company_id',
         'tenant_id',
         'unit_type_id',
         'name',

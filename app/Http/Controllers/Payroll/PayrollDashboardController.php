@@ -162,47 +162,39 @@ class PayrollDashboardController extends Controller
                 ->whereYear('created_at', Carbon::now()->year)
                 ->avg('net_pay');
 
-        } else {
-            // Non-super-admin → only their branch
-            $branchId = $user->branch_id;
-
+        } elseif ($user->branch_id) {
             $employees = Employee::with('branch')
-                ->where('branch_id', $branchId)
-                ->get();
-
+                ->where('branch_id', $user->branch_id)->get();
             $payrolls = Payroll::with('employee')
-                ->whereHas('employee', function ($query) use ($branchId) {
-                    $query->where('branch_id', $branchId);
-                })
-                ->latest()
-                ->get();
-
+                ->whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id))
+                ->latest()->get();
             $payrollCards = Payroll::with('employee')
-                ->whereHas('employee', function ($query) use ($branchId) {
-                    $query->where('branch_id', $branchId);
-                })
-                ->latest()
-                ->paginate(10);
-
-            $monthlySalary = Payroll::whereHas('employee', function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
-            })
+                ->whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id))
+                ->latest()->paginate(10);
+            $monthlySalary = Payroll::whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id))
                 ->whereMonth('created_at', Carbon::now()->month)
-                ->whereYear('created_at', Carbon::now()->year)
-                ->sum('net_pay');
-
-            $pendingSalary = Payroll::whereHas('employee', function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
-            })
-                ->where('status', 'pending')
-                ->sum('net_pay');
-
-            $averageSalary = Payroll::whereHas('employee', function ($query) use ($branchId) {
-                $query->where('branch_id', $branchId);
-            })
+                ->whereYear('created_at', Carbon::now()->year)->sum('net_pay');
+            $pendingSalary = Payroll::whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id))
+                ->where('status', 'pending')->sum('net_pay');
+            $averageSalary = Payroll::whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id))
                 ->whereMonth('created_at', Carbon::now()->month)
-                ->whereYear('created_at', Carbon::now()->year)
-                ->avg('net_pay');
+                ->whereYear('created_at', Carbon::now()->year)->avg('net_pay');
+        } else {
+            $employees = Employee::where('company_id', $user->company_id)->get();
+            $payrolls = Payroll::with('employee')
+                ->whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
+                ->latest()->get();
+            $payrollCards = Payroll::with('employee')
+                ->whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
+                ->latest()->paginate(10);
+            $monthlySalary = Payroll::whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
+                ->whereMonth('created_at', Carbon::now()->month)
+                ->whereYear('created_at', Carbon::now()->year)->sum('net_pay');
+            $pendingSalary = Payroll::whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
+                ->where('status', 'pending')->sum('net_pay');
+            $averageSalary = Payroll::whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
+                ->whereMonth('created_at', Carbon::now()->month)
+                ->whereYear('created_at', Carbon::now()->year)->avg('net_pay');
         }
 
         // Payroll percentage (paid vs total)
@@ -239,7 +231,7 @@ class PayrollDashboardController extends Controller
         $query = Payroll::with(['employee', 'employee.branch']);
 
         // Role-based filtering
-        if ($user->hasRole('manager')) {
+        if ($user->hasRole('manager') && $user->branch_id) {
             $query->whereHas('employee', fn ($q) => $q->where('branch_id', $user->branch_id));
         } elseif ($user->hasRole('employee')) {
             $employee = Employee::where('user_id', $user->id)->first();

@@ -2611,5 +2611,8 @@ return array (
   'choose_module'=>'Choose Module',
   'hr_description'=>'HR Description',
   'reservation_description'=>'Reservation Description',
-  
+  'no_employees_found'=>'No Employee Found',
+  'allowance'=>'Allowance',
+  'no_payroll_records_found'=>'No Payroll records found',
+    'no_permissions'=>'No Permissions',
 );

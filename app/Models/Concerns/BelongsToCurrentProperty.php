@@ -30,7 +30,7 @@ trait BelongsToCurrentProperty
 
         static::addGlobalScope(new CurrentPropertyScope);
 
-        static::creating(function (Model $model): void {
+        static::creating(function (Model $model) use ($column): void {
             if (! empty($model->{$column})) {
                 return;
             }

@@ -40,27 +40,24 @@ class BudgetController extends Controller
         $user = auth()->user();
 
         if ($user->hasRole('super_admin')) {
-            // Super admin sees all budgets
             $budgets = Budget::with('branch')->latest()->get();
             $budgetCards = Budget::with('branch')->latest()->paginate(10);
             $branches = Branch::with('company', 'brand')->get();
-        } else {
-            // Non-super admin → only their branch
-            $branchId = $user->branch_id;
-
+        } elseif ($user->branch_id) {
             $budgets = Budget::with('branch')
-                ->where('branch_id', $branchId)
-                ->latest()
-                ->get();
-
+                ->where('branch_id', $user->branch_id)->latest()->get();
             $budgetCards = Budget::with('branch')
-                ->where('branch_id', $branchId)
-                ->latest()
-                ->paginate(10);
-
+                ->where('branch_id', $user->branch_id)->latest()->paginate(10);
             $branches = Branch::with('company', 'brand')
-                ->where('id', $branchId)
-                ->get();
+                ->where('id', $user->branch_id)->get();
+        } else {
+            $companyBranchIds = Branch::where('company_id', $user->company_id)->pluck('id');
+            $budgets = Budget::with('branch')
+                ->whereIn('branch_id', $companyBranchIds)->latest()->get();
+            $budgetCards = Budget::with('branch')
+                ->whereIn('branch_id', $companyBranchIds)->latest()->paginate(10);
+            $branches = Branch::with('company', 'brand')
+                ->whereIn('id', $companyBranchIds)->get();
         }
 
         return view('Admin.Backend.Budget.index', compact(

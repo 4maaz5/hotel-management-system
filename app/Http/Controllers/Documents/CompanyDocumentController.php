@@ -21,9 +21,9 @@ class CompanyDocumentController extends Controller
             $companies = Company::all();
             $companyDocsCard = CompanyDocument::paginate(10);
         } else {
-            $companyDocs = collect(); // no access
-            $companyDocsCard = collect(); // no access
-            $companies = collect(); // no access
+            $companyDocs = collect();
+            $companyDocsCard = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
+            $companies = collect();
         }
 
         return view('Admin.Backend.CompanyDocument.index', compact('companyDocs', 'companyDocsCard', 'companies'));

@@ -46,12 +46,16 @@ class AbsentController extends Controller
         $absentQuery = Attendance::with('employee.branch')
             ->where('status', 'Absent');
 
-        // Branch restriction for non-super-admins (managers only)
         if (! $user->hasRole('super_admin')) {
-            // Manager → only employees in their branch
-            $absentQuery->whereHas('employee', function ($q) use ($user) {
-                $q->where('branch_id', $user->branch_id);
-            });
+            if ($user->branch_id) {
+                $absentQuery->whereHas('employee', function ($q) use ($user) {
+                    $q->where('branch_id', $user->branch_id);
+                });
+            } else {
+                $absentQuery->whereHas('employee', function ($q) use ($user) {
+                    $q->where('company_id', $user->company_id);
+                });
+            }
         }
 
         // Paginated list for table

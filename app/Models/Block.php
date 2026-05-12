@@ -11,6 +11,8 @@ class Block extends Model
     use BelongsToCurrentProperty, BelongsToTenant;
 
     protected $fillable = [
+        'company_id',
+        'branch_id',
         'property_id',
         'name',
         'description',

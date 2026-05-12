@@ -13,7 +13,9 @@ class Reservation extends Model
     use BelongsToCurrentProperty, BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'company_id',
         'reservation_number',
+        'branch_id',
         'property_id',
         'guest_id',
         'corporate_id',

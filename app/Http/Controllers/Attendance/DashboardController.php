@@ -134,8 +134,8 @@ class DashboardController extends Controller
             $totalAttendance = Attendance::whereDate('date', $today)->count();
 
             $employees = Employee::all();
-        } else {
-            // Non-super admin → only their branch
+        } elseif ($user->branch_id) {
+            // User has a branch → scope by that branch
             $branchId = $user->branch_id;
 
             $attendances = Attendance::whereHas('employee', function ($query) use ($branchId) {
@@ -168,6 +168,38 @@ class DashboardController extends Controller
                 ->count();
 
             $employees = Employee::where('branch_id', $branchId)->get();
+        } else {
+            // Owner (no branch_id): TenantScope on Employee handles company scoping
+            $attendances = Attendance::whereHas('employee', function ($query) {
+                // TenantScope auto-scopes Employee by company_id
+            })
+                ->with('employee')
+                ->latest()
+                ->get();
+
+            $attendancesCards = Attendance::whereHas('employee', function ($query) {
+                // TenantScope auto-scopes Employee by company_id
+            })
+                ->with('employee')
+                ->latest()
+                ->paginate(10);
+
+            $totalEmployees = Employee::count();
+
+            $presentToday = Attendance::whereDate('date', $today)
+                ->whereNotNull('check_in')
+                ->whereHas('employee', function ($query) {
+                    // TenantScope auto-scopes Employee by company_id
+                })
+                ->count();
+
+            $totalAttendance = Attendance::whereDate('date', $today)
+                ->whereHas('employee', function ($query) {
+                    // TenantScope auto-scopes Employee by company_id
+                })
+                ->count();
+
+            $employees = Employee::all();
         }
 
         // Common Calculations

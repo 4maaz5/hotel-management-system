@@ -38,17 +38,18 @@ class TransactionController extends Controller
         $user = auth()->user();
 
         if ($user->hasRole('super_admin')) {
-            // Super admin sees all branches and transactions
             $branches = Branch::all();
             $transactions = Transaction::with('branch')->get();
             $transactionCards = Transaction::with('branch')->paginate(10);
+        } elseif ($user->branch_id) {
+            $branches = Branch::where('id', $user->branch_id)->get();
+            $transactions = Transaction::with('branch')->where('branch_id', $user->branch_id)->get();
+            $transactionCards = Transaction::with('branch')->where('branch_id', $user->branch_id)->paginate(10);
         } else {
-            // Non-super admin → only their branch
-            $branchId = $user->branch_id;
-
-            $branches = Branch::where('id', $branchId)->get();
-            $transactions = Transaction::with('branch')->where('branch_id', $branchId)->get();
-            $transactionCards = Transaction::with('branch')->where('branch_id', $branchId)->paginate(10);
+            $companyBranchIds = Branch::where('company_id', $user->company_id)->pluck('id');
+            $branches = Branch::whereIn('id', $companyBranchIds)->get();
+            $transactions = Transaction::with('branch')->whereIn('branch_id', $companyBranchIds)->get();
+            $transactionCards = Transaction::with('branch')->whereIn('branch_id', $companyBranchIds)->paginate(10);
         }
 
         return view('Admin.Backend.Transaction.index', compact(

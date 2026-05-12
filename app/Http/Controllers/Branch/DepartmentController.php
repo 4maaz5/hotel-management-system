@@ -11,8 +11,17 @@ class DepartmentController extends Controller
 {
     public function index()
     {
-        $departments = Department::all();
-        $departmentCards = Department::paginate(10);
+        $user = auth()->user();
+
+        if ($user->isSuperAdmin()) {
+            $departments = Department::with('branch')->get();
+            $departmentCards = Department::with('branch')->paginate(10);
+        } else {
+            $companyBranchIds = Branch::where('company_id', $user->company_id)->pluck('id');
+            $departments = Department::with('branch')->whereIn('branch_id', $companyBranchIds)->get();
+            $departmentCards = Department::with('branch')->whereIn('branch_id', $companyBranchIds)->paginate(10);
+        }
+
         $branches = Branch::all();
 
         return view('Admin.Backend.Department.index', compact('departments', 'branches', 'departmentCards'));
@@ -20,17 +29,22 @@ class DepartmentController extends Controller
 
     public function store(Request $request)
     {
+        $user = auth()->user();
         $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'dep_name' => 'required|string|max:255',
         ]);
+
+        $branch = Branch::find($request->branch_id);
+        if (!$branch || (!$user->isSuperAdmin() && $branch->company_id !== $user->company_id)) {
+            abort(403);
+        }
 
         $department = Department::create([
             'branch_id' => $request->branch_id,
             'name' => $request->dep_name,
         ]);
 
-        // Include branch name for table display
         $branchName = $department->branch->name;
 
         return response()->json([
@@ -46,13 +60,26 @@ class DepartmentController extends Controller
 
     public function update(Request $request)
     {
+        $user = auth()->user();
         $request->validate([
             'id' => 'required|exists:departments,id',
             'branch_id' => 'required|exists:branches,id',
             'dep_name' => 'required|string|max:255',
         ]);
 
+        $branch = Branch::find($request->branch_id);
+        if (!$branch || (!$user->isSuperAdmin() && $branch->company_id !== $user->company_id)) {
+            abort(403);
+        }
+
         $department = Department::findOrFail($request->id);
+        if (!$user->isSuperAdmin() && $department->branch_id !== $request->branch_id) {
+            $oldBranch = Branch::find($department->branch_id);
+            if (!$oldBranch || $oldBranch->company_id !== $user->company_id) {
+                abort(403);
+            }
+        }
+
         $department->update([
             'name' => $request->dep_name,
             'branch_id' => $request->branch_id,
@@ -65,18 +92,27 @@ class DepartmentController extends Controller
                 'id' => $department->id,
                 'name' => $department->name,
                 'branch_id' => $department->branch_id,
-                'branch' => $department->branch->name, // important
+                'branch' => $department->branch->name,
             ],
         ]);
     }
 
     public function destroy(Request $request)
     {
+        $user = auth()->user();
         $request->validate([
             'department_id' => 'required|exists:departments,id',
         ]);
 
-        $department = Department::find($request->department_id);
+        $department = Department::findOrFail($request->department_id);
+
+        if (!$user->isSuperAdmin()) {
+            $branch = Branch::find($department->branch_id);
+            if (!$branch || $branch->company_id !== $user->company_id) {
+                abort(403);
+            }
+        }
+
         $department->delete();
 
         return response()->json([
@@ -87,7 +123,14 @@ class DepartmentController extends Controller
 
     public function filter(Request $request)
     {
+        $user = auth()->user();
+
         $query = Department::with('branch');
+
+        if (!$user->isSuperAdmin()) {
+            $companyBranchIds = Branch::where('company_id', $user->company_id)->pluck('id');
+            $query->whereIn('branch_id', $companyBranchIds);
+        }
 
         if ($request->filled('name')) {
             $query->where('name', 'like', '%'.$request->name.'%');

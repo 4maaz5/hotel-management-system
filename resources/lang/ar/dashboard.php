@@ -2609,4 +2609,5 @@ return array (
 'choose_module' => 'اختر الوحدة',
 'hr_description' => 'وصف الموارد البشرية',
 'reservation_description' => 'وصف إدارة الحجوزات',
+    'no_permissions'=>'لا توجد أذونات',
 );
