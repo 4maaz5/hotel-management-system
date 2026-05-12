@@ -47,6 +47,13 @@ use App\Http\Controllers\Settings\BackupController;
 use App\Http\Controllers\Settings\GeneralSettingController;
 use App\Http\Controllers\Settings\ShiftController;
 use App\Http\Controllers\Settings\UserController;
+use App\Http\Controllers\Auth\RegisterTenantController;
+use App\Http\Controllers\SuperAdmin\ActivityController as SuperAdminActivityController;
+use App\Http\Controllers\SuperAdmin\AnalyticsController as SuperAdminAnalyticsController;
+use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
+use App\Http\Controllers\SuperAdmin\PlanController as SuperAdminPlanController;
+use App\Http\Controllers\SuperAdmin\SupportController as SuperAdminSupportController;
+use App\Http\Controllers\SuperAdmin\TenantController as SuperAdminTenantController;
 use App\Http\Controllers\Vehicles\AccidentController;
 use App\Http\Controllers\Vehicles\DriverController;
 use App\Http\Controllers\Vehicles\VehicleController;
@@ -57,6 +64,10 @@ use App\Http\Controllers\Warehouse\RequestController;
 use App\Http\Controllers\Warehouse\RoomController;
 use App\Http\Controllers\Warehouse\WarehouseController;
 use Illuminate\Support\Facades\Route;
+
+// Public Tenant Registration (no auth, main domain only)
+Route::get('/register', [RegisterTenantController::class, 'showRegistrationForm'])->name('tenant.register.form');
+Route::post('/register', [RegisterTenantController::class, 'register'])->name('tenant.register');
 
 // Guest Routes
 Route::middleware(['guest'])->group(function () {
@@ -77,23 +88,35 @@ Route::middleware(['guest'])->group(function () {
         ->name('password.store');
 });
 
-//  Super Admin Only Routes
-Route::middleware(['role:super_admin', 'auth'])->group(function () {
-    Route::post('/setting/role/store', [RoleController::class, 'storeRole'])->name('dashboard.setting.role.store');
-    Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('dashboard.setting.role.destroy');
-    Route::get('/roles/{id}/edit', [RoleController::class, 'edit'])->name('dashboard.setting.role.edit');
-    Route::put('/roles/{id}', [RoleController::class, 'update'])->name('dashboard.setting.role.update');
-    // Settings
+//  Tenant Settings (accessible by tenant owners and super admin via permission)
+Route::middleware(['auth', 'permission:manage_setting'])->group(function () {
     Route::get('dashboard/setting/general', [GeneralSettingController::class, 'index'])->name('dashboard.setting.general.index');
     Route::post('/settings/update', [GeneralSettingController::class, 'update'])->name('settings.update');
     Route::get('dashboard/setting/role', [RoleController::class, 'index'])->name('dashboard.setting.role.index');
     Route::get('dashboard/setting/role/create', [RoleController::class, 'create'])->name('dashboard.setting.role.create');
+    Route::post('/setting/role/store', [RoleController::class, 'storeRole'])->name('dashboard.setting.role.store');
+    Route::get('/roles/{id}/edit', [RoleController::class, 'edit'])->name('dashboard.setting.role.edit');
+    Route::put('/roles/{id}', [RoleController::class, 'update'])->name('dashboard.setting.role.update');
+    Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('dashboard.setting.role.destroy');
     Route::get('dashboard/setting/user', [UserController::class, 'index'])->name('dashboard.setting.user.index');
     Route::post('dashboard/setting/user/store', [UserController::class, 'store'])->name('dashboard.setting.user.store');
     Route::put('dashboard/setting/user/update/{id}', [UserController::class, 'update'])->name('dashboard.setting.user.update');
     Route::delete('dashboard/setting/user/delete', [UserController::class, 'destroy'])->name('dashboard.setting.user.delete');
+});
+
+//  Super Admin Only Routes
+Route::middleware(['role:super_admin', 'auth'])->group(function () {
     Route::get('dashboard/setting/backup', [BackupController::class, 'index'])->name('dashboard.setting.backup.index');
 
+    // SaaS Super Admin Panel
+    Route::prefix('admin')->name('super-admin.')->group(function () {
+        Route::get('/', [SuperAdminDashboardController::class, 'index'])->name('dashboard');
+        Route::resource('tenants', SuperAdminTenantController::class)->except('destroy');
+        Route::resource('plans', SuperAdminPlanController::class)->except('show');
+        Route::get('support', [SuperAdminSupportController::class, 'index'])->name('support.index');
+        Route::get('analytics', [SuperAdminAnalyticsController::class, 'index'])->name('analytics.index');
+        Route::get('activity', [SuperAdminActivityController::class, 'index'])->name('activity.index');
+    });
 });
 
 // Permission-Based Routes

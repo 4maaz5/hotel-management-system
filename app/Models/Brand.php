@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 class Brand extends Model
 {
+    use BelongsToTenant;
     protected $fillable = [
         'company_id',
         'name',

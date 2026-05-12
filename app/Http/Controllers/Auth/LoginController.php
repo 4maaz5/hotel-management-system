@@ -32,6 +32,11 @@ class LoginController extends Controller
                     ->with('success', __('messages.login_successful'));
             }
 
+            if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+                return redirect()->route('super-admin.dashboard')
+                    ->with('success', __('messages.login_successful'));
+            }
+
             return redirect()->intended(route('home'))
                 ->with('success', __('messages.login_successful'));
         }

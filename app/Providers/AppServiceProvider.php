@@ -14,6 +14,7 @@ use Illuminate\Foundation\Auth\Events\Login;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
@@ -66,6 +67,16 @@ class AppServiceProvider extends ServiceProvider
                 $pendingRequestsCount = StockRequest::where('status', 'pending')->count();
                 $view->with('pendingStockRequestsCount', $pendingRequestsCount);
             }
+        });
+
+        Blade::if('feature', function (string $feature) {
+            $tenant = currentTenant();
+            return $tenant && $tenant->hasFeature($feature);
+        });
+
+        Blade::if('featurelimit', function (string $key) {
+            $tenant = currentTenant();
+            return $tenant && $tenant->canExceedLimit($key);
         });
 
         View::composer(['layouts.header', 'layouts.navigation'], function ($view): void {

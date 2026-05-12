@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 class Employee extends Model
 {
+    use BelongsToTenant;
     protected $fillable = [
         'first_name', 'last_name', 'employee_id', 'email', 'phone',
         'designation', 'branch_id', 'join_date',

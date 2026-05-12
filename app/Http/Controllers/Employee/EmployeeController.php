@@ -30,21 +30,25 @@ class EmployeeController extends Controller
             $branches = Branch::all();
             $departments = Department::all();
             $shifts = Shift::all();
-        } else {
-            // Employees in manager's branch
+        } elseif ($user->branch_id) {
             $employees = Employee::where('branch_id', $user->branch_id)->get();
             $employeeCards = Employee::where('branch_id', $user->branch_id)->paginate(8);
 
-            // Manager's branch
             $branches = Branch::where('id', $user->branch_id)->get();
             $shifts = Shift::where('branch_id', $user->branch_id)->get();
 
-            // Manager's company
             $branch = Branch::with('brand.company')->find($user->branch_id);
             $companies = $branch && $branch->brand ? collect([$branch->brand->company]) : collect();
             $departments = Department::where('branch_id', $user->branch_id)->get();
-            // Manager's brand(s)
             $brands = $branch && $branch->brand ? collect([$branch->brand]) : collect();
+        } else {
+            $employees = Employee::all();
+            $employeeCards = Employee::paginate(8);
+            $branches = Branch::all();
+            $shifts = Shift::all();
+            $companies = Company::all();
+            $departments = Department::all();
+            $brands = Brand::all();
         }
 
         return view('Admin.Backend.Employee.index', compact('branches', 'shifts', 'departments', 'employees', 'employeeCards', 'companies', 'brands'));

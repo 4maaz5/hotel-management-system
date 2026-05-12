@@ -16,7 +16,7 @@ class DashboardController extends Controller
         $stats = [
             'totalTenants' => Tenant::count(),
             'activeTenants' => Tenant::query()
-                ->where('status', 'active')
+                ->where('subscription_status', 'active')
                 ->whereDate('start_date', '<=', $today)
                 ->whereDate('end_date', '>=', $today)
                 ->count(),
@@ -24,10 +24,10 @@ class DashboardController extends Controller
                 ->whereDate('end_date', '<', $today)
                 ->count(),
             'suspendedTenants' => Tenant::query()
-                ->where('status', 'suspended')
+                ->where('subscription_status', 'suspended')
                 ->count(),
             'tenantUsers' => User::query()
-                ->whereNotNull('tenant_id')
+                ->whereNotNull('company_id')
                 ->count(),
             'properties' => Property::query()->count(),
         ];
