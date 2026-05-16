@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Attendance;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Branch;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Validator;
 
 class MarkAttendanceController extends Controller
 {
+    use ScopesTenantAccess;
+
     // public function index()
     // {
     //     $user = Auth::user();
@@ -94,7 +97,7 @@ class MarkAttendanceController extends Controller
             })->with('employee')->latest()->paginate(10);
 
             $employees = Employee::where('company_id', $user->company_id)->get();
-            $branches = Branch::all();
+            $branches = Branch::where('company_id', $user->company_id)->get();
         }
 
         return view('Admin.Backend.EmployeeAttendance.index', compact(
@@ -121,6 +124,7 @@ class MarkAttendanceController extends Controller
         }
 
         $data = $validator->validated();
+        abort_unless($this->canAccessEmployee((int) $data['employee_id'], Auth::user()), 403);
 
         // Prevent duplicate attendance
         $exists = Attendance::where('employee_id', $data['employee_id'])
@@ -172,6 +176,8 @@ class MarkAttendanceController extends Controller
         }
 
         $data = $validator->validated();
+        abort_unless($this->canAccessEmployee((int) $data['employee_id'], Auth::user()), 403);
+        abort_unless($this->canAccessEmployee((int) $attendance->employee_id, Auth::user()), 403);
 
         $attendance->update([
             'employee_id' => $data['employee_id'],
@@ -192,7 +198,8 @@ class MarkAttendanceController extends Controller
     public function destroy($id)
     {
         try {
-            $attendance = Attendance::findOrFail($id);
+            $attendance = Attendance::whereHas('employee', fn ($query) => $this->scopeEmployeesForUser($query, Auth::user()))
+                ->findOrFail($id);
             $attendance->delete();
 
             return response()->json([
@@ -304,7 +311,9 @@ class MarkAttendanceController extends Controller
                 'qr_code' => 'required|string',
             ]);
 
-            $employee = Employee::with('shift')->where('qr_code', $request->qr_code)->first();
+            $employee = $this->scopeEmployeesForUser(Employee::with('shift'), Auth::user())
+                ->where('qr_code', $request->qr_code)
+                ->first();
 
             if (! $employee) {
                 return response()->json([
@@ -482,5 +491,23 @@ class MarkAttendanceController extends Controller
         }
 
         return response()->json($attendances);
+    }
+
+    private function scopeEmployeesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function canAccessEmployee(int $employeeId, $user): bool
+    {
+        return $this->scopeEmployeesForUser(Employee::whereKey($employeeId), $user)->exists();
     }
 }

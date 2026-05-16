@@ -15,9 +15,11 @@ return new class extends Migration
             $table->id();
             $table->enum('type', ['sms', 'email', 'system'])->default('system');
             $table->text('message');
-            $table->enum('recipient_type', ['manager', 'employee', 'super_admin'])->default('manager');
+            $table->string('recipient_type')->default('manager');
             $table->unsignedBigInteger('recipient_id')->nullable()->index();
             $table->enum('status', ['pending', 'sent', 'failed'])->default('pending')->index();
+            $table->timestamp('scheduled_at')->nullable()->index();
+            $table->timestamp('sent_at')->nullable()->index();
             $table->unsignedBigInteger('created_by')->nullable()->index();
             $table->timestamps();
 

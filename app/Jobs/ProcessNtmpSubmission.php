@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\NtmpSubmission;
+use App\Models\Property;
 use App\Models\Scopes\CurrentPropertyScope;
 use App\Models\Scopes\TenantScope;
 use App\Services\Ntmp\NtmpService;
@@ -36,8 +37,10 @@ class ProcessNtmpSubmission implements ShouldQueue
             return;
         }
 
-        app(TenantContext::class)->setTenantId($submission->tenant_id);
-        app(PropertyContext::class)->setPropertyId($submission->property_id);
+        app(TenantContext::class)->setTenantId($submission->company_id);
+        app(PropertyContext::class)->setProperty(
+            Property::where('branch_id', $submission->branch_id)->first()
+        );
 
         $ntmpService->processSubmission($submission);
     }

@@ -17,10 +17,12 @@ return new class extends Migration
             $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete();
             $table->boolean('status')->default(true);
             $table->string('operating_status')->index();
-            $table->string('outlet_code', 3)->unique();
+            $table->string('outlet_code', 3);
             $table->string('name', 200);
             $table->text('description')->nullable();
             $table->timestamps();
+
+            $table->unique(['company_id', 'branch_id', 'outlet_code'], 'outlet_setups_company_branch_code_unique');
         });
     }
 
@@ -32,4 +34,3 @@ return new class extends Migration
         Schema::dropIfExists('outlet_setups');
     }
 };
-

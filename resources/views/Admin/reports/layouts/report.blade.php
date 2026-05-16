@@ -89,7 +89,6 @@ $reportKeyHyphen = str_replace('_', '-', $reportKey);
     function openPrintModal(reportKey) {
         const currentUrl = new URL(window.location.href);
         const printUrl = reportPrintRouteTemplate.replace('__REPORT__', reportKey) + '?' + currentUrl.searchParams.toString();
-        console.log('Opening print modal with URL:', printUrl);
         
         const iframe = document.getElementById('printIframe');
         const errDiv = document.getElementById('iframeError');
@@ -101,7 +100,6 @@ $reportKeyHyphen = str_replace('_', '-', $reportKey);
         modal.show();
 
         iframe.onload = function() {
-            console.log('Iframe loaded');
             setTimeout(function() {
                 switchPrintLang('en');
             }, 500);
@@ -114,17 +112,14 @@ $reportKeyHyphen = str_replace('_', '-', $reportKey);
 
     function switchPrintLang(lang) {
         const iframe = document.getElementById('printIframe');
-        console.log('Switching language to:', lang);
         try {
             if (iframe && iframe.contentWindow) {
                 if (typeof iframe.contentWindow.switchLanguage === 'function') {
                     iframe.contentWindow.switchLanguage(lang);
                 } else {
-                    console.log('switchLanguage function not found in iframe');
                 }
             }
         } catch(e) {
-            console.log('Error switching language:', e);
         }
     }
 

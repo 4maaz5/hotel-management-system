@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers\Branch;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Department;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class DepartmentController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         $user = auth()->user();
@@ -22,7 +26,7 @@ class DepartmentController extends Controller
             $departmentCards = Department::with('branch')->whereIn('branch_id', $companyBranchIds)->paginate(10);
         }
 
-        $branches = Branch::all();
+        $branches = $this->scopeBranchesForUser(Branch::query(), $user)->get();
 
         return view('Admin.Backend.Department.index', compact('departments', 'branches', 'departmentCards'));
     }
@@ -31,12 +35,15 @@ class DepartmentController extends Controller
     {
         $user = auth()->user();
         $request->validate([
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => [
+                'required',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $user)),
+            ],
             'dep_name' => 'required|string|max:255',
         ]);
 
         $branch = Branch::find($request->branch_id);
-        if (!$branch || (!$user->isSuperAdmin() && $branch->company_id !== $user->company_id)) {
+        if (! $branch || ! $this->userCanAccessBranch((int) $branch->id, $user)) {
             abort(403);
         }
 
@@ -63,21 +70,21 @@ class DepartmentController extends Controller
         $user = auth()->user();
         $request->validate([
             'id' => 'required|exists:departments,id',
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => [
+                'required',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $user)),
+            ],
             'dep_name' => 'required|string|max:255',
         ]);
 
         $branch = Branch::find($request->branch_id);
-        if (!$branch || (!$user->isSuperAdmin() && $branch->company_id !== $user->company_id)) {
+        if (! $branch || ! $this->userCanAccessBranch((int) $branch->id, $user)) {
             abort(403);
         }
 
         $department = Department::findOrFail($request->id);
-        if (!$user->isSuperAdmin() && $department->branch_id !== $request->branch_id) {
-            $oldBranch = Branch::find($department->branch_id);
-            if (!$oldBranch || $oldBranch->company_id !== $user->company_id) {
-                abort(403);
-            }
+        if (! $this->userCanAccessBranch((int) $department->branch_id, $user)) {
+            abort(403);
         }
 
         $department->update([
@@ -106,11 +113,8 @@ class DepartmentController extends Controller
 
         $department = Department::findOrFail($request->department_id);
 
-        if (!$user->isSuperAdmin()) {
-            $branch = Branch::find($department->branch_id);
-            if (!$branch || $branch->company_id !== $user->company_id) {
-                abort(403);
-            }
+        if (! $this->userCanAccessBranch((int) $department->branch_id, $user)) {
+            abort(403);
         }
 
         $department->delete();
@@ -127,9 +131,9 @@ class DepartmentController extends Controller
 
         $query = Department::with('branch');
 
-        if (!$user->isSuperAdmin()) {
-            $companyBranchIds = Branch::where('company_id', $user->company_id)->pluck('id');
-            $query->whereIn('branch_id', $companyBranchIds);
+        if (! $user->isSuperAdmin()) {
+            $branchIds = $this->accessibleBranchIds($user);
+            $query->whereIn('branch_id', $branchIds);
         }
 
         if ($request->filled('name')) {
@@ -137,6 +141,10 @@ class DepartmentController extends Controller
         }
 
         if ($request->filled('branch_id')) {
+            if (! $this->userCanAccessBranch((int) $request->branch_id, $user)) {
+                return response()->json(['html' => ''], 403);
+            }
+
             $query->where('branch_id', $request->branch_id);
         }
 

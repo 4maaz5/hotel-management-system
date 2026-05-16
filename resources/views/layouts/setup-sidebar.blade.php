@@ -24,7 +24,7 @@
 <nav id="sidebar" class="{{ app()->isLocale('ar') ? 'rtl-sidebar' : 'ltr-sidebar' }}"
     style="background-color: {{ $theme->sidebar_bg_color }};">
     <div class="sidebar-header">
-        <img src="{{ asset('logo.webp') }}" alt="Logo" class="logo-img">
+        <img src="{{ $theme->logo ? asset($theme->logo) : asset('logo.webp') }}" alt="Logo" class="logo-img">
         {{-- <h3 class="logo-title">{{ __('dashboard.bit') }}</h3> --}}
         {{-- <p class="logo-subtitle">{{ __('dashboard.bit') }}</p> --}}
     </div>

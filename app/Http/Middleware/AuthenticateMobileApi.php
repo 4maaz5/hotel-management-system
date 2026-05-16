@@ -47,14 +47,18 @@ class AuthenticateMobileApi
 
         app(TenantContext::class)->setTenantId($user->company_id);
 
-        $propertyId = $token->property?->id;
-        if (! $propertyId && $user->branch_id) {
-            $property = \App\Models\Property::where('branch_id', $user->branch_id)->first();
-            $propertyId = $property?->id;
+        $property = $token->property;
+        if (! $property && $user->branch_id) {
+            $property = $user->accessiblePropertiesQuery()
+                ->where('branch_id', $user->branch_id)
+                ->first();
         }
-        if ($propertyId && $user->canAccessProperty((int) $propertyId)) {
-            app(PropertyContext::class)->setPropertyId((int) $propertyId);
+
+        if (! $property || ! $user->canAccessProperty((int) $property->id)) {
+            return response()->json(['message' => 'No accessible branch is available for this token.'], 403);
         }
+
+        app(PropertyContext::class)->setProperty($property);
 
         $token->forceFill(['last_used_at' => now()])->save();
 

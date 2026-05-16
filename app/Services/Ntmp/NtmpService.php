@@ -33,11 +33,15 @@ class NtmpService
 
         $submission = NtmpSubmission::firstOrCreate(
             [
+                'company_id' => $reservation->company_id,
+                'branch_id' => $reservation->branch_id,
                 'reservation_id' => $reservation->id,
                 'event_type' => $eventType,
                 'payload_hash' => $payloadHash,
             ],
             [
+                'company_id' => $reservation->company_id,
+                'branch_id' => $reservation->branch_id,
                 'guest_id' => $reservation->guest_id,
                 'status' => 'queued',
                 'request_payload' => $payload,
@@ -136,8 +140,8 @@ class NtmpService
     {
         return NtmpSetting::withoutGlobalScope(TenantScope::class)
             ->withoutGlobalScope(CurrentPropertyScope::class)
-            ->where('tenant_id', $submission->tenant_id)
-            ->where('property_id', $submission->property_id)
+            ->where('company_id', $submission->company_id)
+            ->where('branch_id', $submission->branch_id)
             ->first();
     }
 

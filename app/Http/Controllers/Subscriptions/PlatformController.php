@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers\Subscriptions;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\ThirdPartyPlatform;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PlatformController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         $user = auth()->user();
         $companies = $user->isSuperAdmin() ? Company::all() : Company::whereKey($user->company_id)->get();
-        $platforms = ThirdPartyPlatform::with('company')
+        $platforms = $this->scopePlatformsForUser(ThirdPartyPlatform::with('company'), $user)
             ->latest()
             ->get();
 
@@ -24,7 +28,12 @@ class PlatformController extends Controller
     {
         //  Validate request
         $validated = $request->validate([
-            'company_id' => 'required|exists:companies,id',
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
             'name' => 'required|string|max:255',
             'contact_person' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
@@ -34,7 +43,7 @@ class PlatformController extends Controller
 
         //  Create platform
         ThirdPartyPlatform::create([
-            'company_id' => $validated['company_id'],
+            'company_id' => $this->isSuperAdmin($request->user()) ? $validated['company_id'] : $request->user()->company_id,
             'name' => $validated['name'],
             'contact_person' => $validated['contact_person'] ?? null,
             'email' => $validated['email'] ?? null,
@@ -50,9 +59,17 @@ class PlatformController extends Controller
 
     public function update(Request $request, ThirdPartyPlatform $platform)
     {
+        $platform = $this->scopePlatformsForUser(ThirdPartyPlatform::query(), $request->user())
+            ->findOrFail($platform->id);
+
         //  Validate incoming request
         $validated = $request->validate([
-            'company_id' => 'required|exists:companies,id',
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
             'name' => 'required|string|max:255',
             'contact_person' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
@@ -62,7 +79,7 @@ class PlatformController extends Controller
 
         //  Update the platform
         $platform->update([
-            'company_id' => $validated['company_id'],
+            'company_id' => $this->isSuperAdmin($request->user()) ? $validated['company_id'] : $request->user()->company_id,
             'name' => $validated['name'],
             'contact_person' => $validated['contact_person'] ?? null,
             'email' => $validated['email'] ?? null,
@@ -78,8 +95,20 @@ class PlatformController extends Controller
 
     public function destroy(ThirdPartyPlatform $platform)
     {
+        $platform = $this->scopePlatformsForUser(ThirdPartyPlatform::query(), auth()->user())
+            ->findOrFail($platform->id);
+
         $platform->delete();
 
         return redirect()->back()->with('delete', __('messages.third_party_platform_deleted_successfully'));
+    }
+
+    private function scopePlatformsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->where('company_id', $user->company_id);
     }
 }

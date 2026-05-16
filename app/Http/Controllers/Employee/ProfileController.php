@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Employee;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Employee;
@@ -13,22 +14,11 @@ use Illuminate\Support\Facades\Auth;
 
 class ProfileController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index($id)
     {
-        $user = Auth::user();
-
-        // Super Admin → can see any employee
-        if ($user->hasRole('super_admin')) {
-            $employee = Employee::findOrFail($id);
-        } elseif ($user->branch_id) {
-            $employee = Employee::where('id', $id)
-                ->where('branch_id', $user->branch_id)
-                ->firstOrFail();
-        } else {
-            $employee = Employee::where('id', $id)
-                ->whereHas('branch', fn ($q) => $q->where('company_id', $user->company_id))
-                ->firstOrFail();
-        }
+        $employee = $this->getEmployeeWithAccess($id);
 
         $attendances = Attendance::where('employee_id', $employee->id)->get();
         $insurances = Insurance::where('employee_id', $employee->id)->get();
@@ -46,7 +36,7 @@ class ProfileController extends Controller
             'id' => 'required|integer',
         ]);
 
-        $employee = Employee::findOrFail($request->id);
+        $employee = $this->getEmployeeWithAccess($request->id);
 
         if ($employee->image && \Storage::disk('public')->exists($employee->image)) {
             \Storage::disk('public')->delete($employee->image);
@@ -68,7 +58,7 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->hasRole('super_admin')) {
+        if ($this->isSuperAdmin($user)) {
             return Employee::findOrFail($id);
         }
 
@@ -79,7 +69,7 @@ class ProfileController extends Controller
         }
 
         return Employee::where('id', $id)
-            ->whereHas('branch', fn ($q) => $q->where('company_id', $user->company_id))
+            ->where('company_id', $user->company_id)
             ->firstOrFail();
     }
 

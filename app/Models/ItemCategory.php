@@ -10,6 +10,7 @@ class ItemCategory extends Model
     use BelongsToTenant;
 
     protected $fillable = [
+        'company_id',
         'status',
         'outlet_id',
         'name',
@@ -23,6 +24,6 @@ class ItemCategory extends Model
 
     public function outlet()
     {
-        return $this->belongsTo(OutletSetup::class);
+        return $this->belongsTo(OutletSetup::class, 'outlet_id');
     }
 }

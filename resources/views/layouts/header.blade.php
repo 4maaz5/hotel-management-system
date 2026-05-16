@@ -13,19 +13,16 @@
         ->limit(10)
         ->get();
     $unreadCount = $notifications->whereNull('read_at')->count();
+    $supportUnreadCount = $user && ! $user->isSuperAdmin()
+        ? app(\App\Support\SupportTicketUnreadCounter::class)->forTenantArea('reservation')
+        : 0;
 @endphp
 
-<header class="top-navbar app-header shadow-sm py-3"
-    style="background: #1a237e">
+<header class="top-navbar app-header shadow-sm py-3">
     <div class="container-fluid">
         <div class="app-header__bar d-flex justify-content-between align-items-center">
-            <!-- Left Side: Page Title -->
-            <h1 class="app-header__title h4 mb-0 text-{{ app()->getLocale() == 'ar' ? 'end' : 'start' }} text-white">
-                {{ $property?->property_name_en ?? $property?->property_name_ar }}
-            </h1>
-
             <!-- Right Side: Search, Language, Profile -->
-            <div class="app-header__actions d-flex align-items-center gap-3">
+            <div class="app-header__actions d-flex align-items-center gap-3 ms-auto">
                 <!-- Search Bar - In Middle -->
                 {{-- <div class="search-container position-relative" style="max-width: 300px;">
                     <input type="text" class="form-control search-input"
@@ -40,7 +37,7 @@
                     @if($canSwitchProperty && isset($accessibleProperties) && $accessibleProperties->isNotEmpty())
                         <form method="POST" action="{{ route('current-property.update') }}" class="property-switcher d-flex align-items-center gap-2">
                             @csrf
-                            <select name="property_id" class="property-switcher__select form-select form-select-sm" onchange="this.form.submit()">
+                            <select name="current_property_id" class="property-switcher__select form-select form-select-sm" onchange="this.form.submit()">
                                 @foreach($accessibleProperties as $accessibleProperty)
                                     <option value="{{ $accessibleProperty->id }}" @selected(($property?->id ?? null) === $accessibleProperty->id)>
                                         {{ $accessibleProperty->property_name_en ?? $accessibleProperty->property_name_ar }}
@@ -148,10 +145,18 @@
                     </div>
 
                     <!-- Support Center -->
-                    <button type="button" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 text-white" data-bs-toggle="modal" data-bs-target="#supportCenterModal">
+                    <a href="{{ route('support.tickets.index') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 text-white position-relative">
                         <i class="fas fa-headset"></i>
                         <span class="d-none d-lg-inline">{{ __('dashboard.support') }}</span>
-                    </button>
+                        @if($supportUnreadCount > 0)
+                            <span
+                                class="reservation-support-unread-count position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                data-reservation-support-unread-count="{{ $supportUnreadCount }}"
+                                style="font-size: 0.6rem;">
+                                {{ $supportUnreadCount }}
+                            </span>
+                        @endif
+                    </a>
 
 
                 </div>

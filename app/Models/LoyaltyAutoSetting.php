@@ -10,7 +10,7 @@ class LoyaltyAutoSetting extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'auto_loyalty_upgrade',
     ];
 }

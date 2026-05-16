@@ -12,7 +12,7 @@ class Vendor extends Model
     use BelongsToStaffCurrentProperty, BelongsToTenant, HasFactory;
 
     protected $fillable = [
-        'property_id',
+        'branch_id',
         'name',
         'dial_code',
         'phone',
@@ -31,6 +31,6 @@ class Vendor extends Model
 
     public function property()
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 }

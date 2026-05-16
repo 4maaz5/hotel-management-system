@@ -115,12 +115,13 @@ class StatusController extends Controller
         ));
     }
 
-    public function updateStatus(Request $request, Unit $unit)
+    public function updateStatus(Request $request, $unit)
     {
         $request->validate([
             'status' => 'required|in:clean,dirty,inspected,out_of_service'
         ]);
 
+        $unit = Unit::query()->findOrFail($unit);
         $unit->update(['housekeeping_status' => $request->status]);
 
         return response()->json([

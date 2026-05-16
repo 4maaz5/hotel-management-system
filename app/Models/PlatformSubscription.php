@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PlatformSubscription extends Model
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
     protected $fillable = [
         'third_party_platform_id',
+        'company_id',
         'branch_id',
         'subscription_start_date',
         'subscription_end_date',
@@ -32,6 +34,11 @@ class PlatformSubscription extends Model
     public function platform()
     {
         return $this->belongsTo(ThirdPartyPlatform::class, 'third_party_platform_id');
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function branch()

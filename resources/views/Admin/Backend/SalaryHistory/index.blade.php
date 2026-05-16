@@ -190,7 +190,6 @@
                     $('#salaryPagination').html(res.pagination);
                 },
                 error: function(err) {
-                    console.log(err);
                 }
             });
         }

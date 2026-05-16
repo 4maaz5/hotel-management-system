@@ -41,9 +41,9 @@ class FloorsController extends Controller
 
     public function store(Request $request)
     {
-        $propertyId = app(PropertyContext::class)->id();
+        $branchId = app(PropertyContext::class)->branchId();
 
-        if (!$propertyId) {
+        if (!$branchId) {
             return redirect()->back()->with('error', 'Please select or create a branch first.');
         }
 
@@ -54,7 +54,7 @@ class FloorsController extends Controller
             'is_active' => 'nullable|boolean',
             'block_id' => [
                 'required',
-                Rule::exists('blocks', 'id')->where(fn ($query) => $query->where('property_id', $propertyId)),
+                Rule::exists('blocks', 'id')->where(fn ($query) => $query->where('branch_id', $branchId)),
             ],
         ]);
 

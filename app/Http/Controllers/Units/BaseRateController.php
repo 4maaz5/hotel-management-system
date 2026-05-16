@@ -2,17 +2,22 @@
 
 namespace App\Http\Controllers\Units;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\HighWeekday;
 use App\Models\Unit;
 use App\Models\UnitCustomRate;
 use App\Models\UnitTypeCustomization;
 use App\Models\UnitTypeRate;
+use App\Support\PropertyContext;
 use App\Support\UserActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class BaseRateController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index(Request $request)
     {
         $unitTypesQuery = UnitTypeCustomization::with(['unitType', 'rate']);
@@ -112,9 +117,15 @@ class BaseRateController extends Controller
     public function storeCustomRate(Request $request)
     {
         $request->validate([
-            'unit_id' => 'required|exists:units,id',
+            'unit_id' => [
+                'required',
+                Rule::exists('units', 'id')->where(fn ($query) => $this->scopeUnitsForRequest($query, $request)),
+            ],
             'unit_type_id' => 'required|exists:unit_types,id',
         ]);
+
+        $unit = $this->scopeUnitsForRequest(Unit::query(), $request)->findOrFail($request->integer('unit_id'));
+        abort_unless((int) $unit->unit_type_id === (int) $request->unit_type_id, 422);
 
         $existingRate = UnitCustomRate::where('unit_id', $request->unit_id)->first();
         $before = $existingRate ? $this->customRateActivityData($existingRate) : [];
@@ -222,5 +233,38 @@ class BaseRateController extends Controller
             'monthly_rate' => (float) $customRate->monthly_rate,
             'monthly_min_rate' => (float) $customRate->monthly_min_rate,
         ];
+    }
+
+    private function scopeUnitsForRequest($query, Request $request)
+    {
+        $user = $request->user();
+
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        $branchId = $this->currentBranchId($request);
+
+        $query->where('company_id', $user->company_id);
+
+        return $branchId ? $query->where('branch_id', $branchId) : $query;
+    }
+
+    private function currentBranchId(Request $request): ?int
+    {
+        $user = $request->user();
+
+        if ($user?->branch_id) {
+            return (int) $user->branch_id;
+        }
+
+        $sessionBranchId = $request->session()->get('branch_id');
+        if ($sessionBranchId) {
+            return (int) $sessionBranchId;
+        }
+
+        $property = app(PropertyContext::class)->property();
+
+        return $property?->branch_id ? (int) $property->branch_id : null;
     }
 }

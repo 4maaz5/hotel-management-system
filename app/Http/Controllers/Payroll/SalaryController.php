@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payroll;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Brand;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Auth;
 
 class SalaryController extends Controller
 {
+    use ScopesTenantAccess;
+
     // public function index()
     // {
     //     $user = auth()->user();
@@ -118,9 +121,8 @@ class SalaryController extends Controller
 
     public function downloadSlip($id)
     {
-        $payslip = Payroll::with('employee')->findOrFail($id);
+        $payslip = $this->scopePayrollsForUser(Payroll::with('employee'), auth()->user())->findOrFail($id);
         $setting = GeneralSetting::first();
-        // dd($setting);
 
         // Load the Blade view and pass data
         $pdf = Pdf::loadView('Admin.Backend.SalaryHistory.pdf', compact('payslip', 'setting'));
@@ -145,7 +147,7 @@ class SalaryController extends Controller
         $perPage = $request->input('per_page', 15);
 
         // Base query
-        $query = Payroll::with(['employee', 'employee.branch']);
+        $query = $this->scopePayrollsForUser(Payroll::with(['employee', 'employee.branch']), $user);
 
         // ROLE: MANAGER → only own branch
         if ($user->hasRole('manager') && $user->branch_id) {
@@ -163,6 +165,7 @@ class SalaryController extends Controller
 
         // Filter by Employee
         if ($employeeId) {
+            $this->scopeEmployeesForUser(Employee::query(), $user)->findOrFail($employeeId);
             $query->where('employee_id', $employeeId);
         }
 
@@ -220,8 +223,8 @@ class SalaryController extends Controller
         }
 
         // Full page render
-        $employees = Employee::select('id', 'first_name', 'last_name')->get();
-        $branches = Branch::select('id', 'name')->get();
+        $employees = $this->scopeEmployeesForUser(Employee::select('id', 'first_name', 'last_name'), $user)->get();
+        $branches = $this->scopeBranchesForUser(Branch::select('id', 'name'), $user)->get();
 
         return view('Admin.Backend.partials.salary', compact(
             'payrolls', 'employees', 'branches', 'summary'
@@ -238,7 +241,9 @@ class SalaryController extends Controller
         $branches = Branch::query();
 
         // Role-based filtering
-        if ($user->hasRole('manager') && $user->branch_id) {
+        if ($this->isSuperAdmin($user)) {
+            // Super admin sees all salary dimensions.
+        } elseif ($user->branch_id) {
             // Manager sees only their branch
             $branches->where('id', $user->branch_id);
 
@@ -250,6 +255,10 @@ class SalaryController extends Controller
             $companies->whereHas('brands.branches', function ($q) use ($user) {
                 $q->where('id', $user->branch_id);
             });
+        } else {
+            $companies->whereKey($user->company_id);
+            $brands->where('company_id', $user->company_id);
+            $branches->where('company_id', $user->company_id);
         }
 
         $companies = $companies->get();
@@ -264,6 +273,14 @@ class SalaryController extends Controller
         }]);
 
         // Apply role restriction to unpaidBranches for manager
+        if (! $this->isSuperAdmin($user)) {
+            if ($user->branch_id) {
+                $unpaidBranches->where('id', $user->branch_id);
+            } else {
+                $unpaidBranches->where('company_id', $user->company_id);
+            }
+        }
+
         if ($user->hasRole('manager') && $user->branch_id) {
             $unpaidBranches->where('id', $user->branch_id);
         }
@@ -291,8 +308,10 @@ class SalaryController extends Controller
         // $brandId = $request->brand_id;
         $branchId = $request->branch_id;
         $month = $request->month;
+        abort_unless($this->userCanAccessBranch((int) $branchId, $request->user()), 403);
 
-        $allPayrolls = Payroll::whereHas('employee', function ($query) use ($branchId) {
+        $allPayrolls = $this->scopePayrollsForUser(Payroll::query(), $request->user())
+            ->whereHas('employee', function ($query) use ($branchId) {
             $query->where('branch_id', $branchId);
         })
             ->where('month', $month)
@@ -307,7 +326,8 @@ class SalaryController extends Controller
         ];
 
         // Paginated payrolls for table display
-        $payrolls = Payroll::whereHas('employee', function ($query) use ($branchId) {
+        $payrolls = $this->scopePayrollsForUser(Payroll::query(), $request->user())
+            ->whereHas('employee', function ($query) use ($branchId) {
             $query->where('branch_id', $branchId);
         })
             ->where('month', $month)
@@ -324,8 +344,28 @@ class SalaryController extends Controller
             return redirect()->back()->with('error', __('messages.no_payroll_selected'));
         }
 
-        Payroll::whereIn('id', $payrollIds)->update(['status' => 'Paid']);
+        $this->scopePayrollsForUser(Payroll::query(), $request->user())
+            ->whereIn('id', $payrollIds)
+            ->update(['status' => 'Paid']);
 
         return redirect()->back()->with('success', __('messages.salaries_marked_as_paid_successfully'));
+    }
+
+    private function scopeEmployeesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function scopePayrollsForUser($query, $user)
+    {
+        return $query->whereHas('employee', fn ($employeeQuery) => $this->scopeEmployeesForUser($employeeQuery, $user));
     }
 }

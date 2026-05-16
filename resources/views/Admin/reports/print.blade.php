@@ -440,7 +440,7 @@ $showPropertyInfo = $letterHead && !$blankPaper;
         <thead><tr><th>{{ __('dashboard.reservation_no') }}</th><th>{{ __('dashboard.guest') }}</th><th>{{ __('dashboard.check_in') }}</th><th class="text-end">{{ __('dashboard.total') }}</th></tr></thead>
         <tbody>
             @forelse($reservations as $reservation)
-                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td class="text-end">SAR {{ number_format($reservation->total_amount, 2) }}</td></tr>
+                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td class="text-end">SAR {{ number_format($reservation->grand_total, 2) }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center">{{ __('dashboard.no_records_found') }}</td></tr>
             @endforelse
@@ -454,7 +454,7 @@ $showPropertyInfo = $letterHead && !$blankPaper;
         <thead><tr><th>{{ __('dashboard.reservation_no_ar') }}</th><th>{{ __('dashboard.guest_ar') }}</th><th>{{ __('dashboard.check_in_ar') }}</th><th class="text-end">{{ __('dashboard.total_ar') }}</th></tr></thead>
         <tbody>
             @forelse($reservations as $reservation)
-                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td class="text-end">ر.س {{ number_format($reservation->total_amount, 2) }}</td></tr>
+                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td class="text-end">ر.س {{ number_format($reservation->grand_total, 2) }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center">{{ __('dashboard.no_records_found_ar') }}</td></tr>
             @endforelse
@@ -472,7 +472,7 @@ $showPropertyInfo = $letterHead && !$blankPaper;
         <thead><tr><th>{{ __('dashboard.reservation_no') }}</th><th>{{ __('dashboard.guest') }}</th><th>{{ __('dashboard.check_in') }}</th><th class="text-end">{{ __('dashboard.total') }}</th></tr></thead>
         <tbody>
             @forelse($reservations as $reservation)
-                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td class="text-end">SAR {{ number_format($reservation->total_amount, 2) }}</td></tr>
+                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td class="text-end">SAR {{ number_format($reservation->grand_total, 2) }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center">{{ __('dashboard.no_records_found') }}</td></tr>
             @endforelse
@@ -486,7 +486,7 @@ $showPropertyInfo = $letterHead && !$blankPaper;
         <thead><tr><th>{{ __('dashboard.reservation_no_ar') }}</th><th>{{ __('dashboard.guest_ar') }}</th><th>{{ __('dashboard.check_in_ar') }}</th><th class="text-end">{{ __('dashboard.total_ar') }}</th></tr></thead>
         <tbody>
             @forelse($reservations as $reservation)
-                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td class="text-end">ر.س {{ number_format($reservation->total_amount, 2) }}</td></tr>
+                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td class="text-end">ر.س {{ number_format($reservation->grand_total, 2) }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center">{{ __('dashboard.no_records_found_ar') }}</td></tr>
             @endforelse
@@ -504,7 +504,7 @@ $showPropertyInfo = $letterHead && !$blankPaper;
         <thead><tr><th>{{ __('dashboard.reservation_no') }}</th><th>{{ __('dashboard.guest') }}</th><th>{{ __('dashboard.check_in') }}</th><th class="text-end">{{ __('dashboard.total') }}</th></tr></thead>
         <tbody>
             @forelse($reservations as $reservation)
-                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td class="text-end">SAR {{ number_format($reservation->total_amount, 2) }}</td></tr>
+                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td class="text-end">SAR {{ number_format($reservation->grand_total, 2) }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center">{{ __('dashboard.no_records_found') }}</td></tr>
             @endforelse
@@ -518,7 +518,7 @@ $showPropertyInfo = $letterHead && !$blankPaper;
         <thead><tr><th>{{ __('dashboard.reservation_no_ar') }}</th><th>{{ __('dashboard.guest_ar') }}</th><th>{{ __('dashboard.check_in_ar') }}</th><th class="text-end">{{ __('dashboard.total_ar') }}</th></tr></thead>
         <tbody>
             @forelse($reservations as $reservation)
-                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td class="text-end">ر.س {{ number_format($reservation->total_amount, 2) }}</td></tr>
+                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td class="text-end">ر.س {{ number_format($reservation->grand_total, 2) }}</td></tr>
             @empty
                 <tr><td colspan="4" class="text-center">{{ __('dashboard.no_records_found_ar') }}</td></tr>
             @endforelse
@@ -573,7 +573,7 @@ $showPropertyInfo = $letterHead && !$blankPaper;
         <thead><tr><th>{{ __('dashboard.reservation_no') }}</th><th>{{ __('dashboard.guest') }}</th><th class="text-end">{{ __('dashboard.total') }}</th></tr></thead>
         <tbody>
             @forelse($reservations as $reservation)
-                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td class="text-end">SAR {{ number_format($reservation->total_amount, 2) }}</td></tr>
+                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td class="text-end">SAR {{ number_format($reservation->grand_total, 2) }}</td></tr>
             @empty
                 <tr><td colspan="3" class="text-center">{{ __('dashboard.no_records_found') }}</td></tr>
             @endforelse
@@ -592,7 +592,7 @@ $showPropertyInfo = $letterHead && !$blankPaper;
         <thead><tr><th>{{ __('dashboard.reservation_no_ar') }}</th><th>{{ __('dashboard.guest_ar') }}</th><th class="text-end">{{ __('dashboard.total_ar') }}</th></tr></thead>
         <tbody>
             @forelse($reservations as $reservation)
-                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td class="text-end">ر.س {{ number_format($reservation->total_amount, 2) }}</td></tr>
+                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td class="text-end">ر.س {{ number_format($reservation->grand_total, 2) }}</td></tr>
             @empty
                 <tr><td colspan="3" class="text-center">{{ __('dashboard.no_records_found_ar') }}</td></tr>
             @endforelse
@@ -656,7 +656,7 @@ $showPropertyInfo = $letterHead && !$blankPaper;
         <thead><tr><th>{{ __('dashboard.reservation_no') }}</th><th>{{ __('dashboard.guest') }}</th><th>{{ __('dashboard.check_in') }}</th><th>{{ __('dashboard.check_out') }}</th><th class="text-end">{{ __('dashboard.total') }}</th></tr></thead>
         <tbody>
             @forelse($reservations as $reservation)
-                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td>{{ $reservation->check_out_date->format('Y-m-d') }}</td><td class="text-end">SAR {{ number_format($reservation->total_amount, 2) }}</td></tr>
+                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td>{{ $reservation->check_out_date->format('Y-m-d') }}</td><td class="text-end">SAR {{ number_format($reservation->grand_total, 2) }}</td></tr>
             @empty
                 <tr><td colspan="5" class="text-center">{{ __('dashboard.no_records_found') }}</td></tr>
             @endforelse
@@ -670,7 +670,7 @@ $showPropertyInfo = $letterHead && !$blankPaper;
         <thead><tr><th>{{ __('dashboard.reservation_no_ar') }}</th><th>{{ __('dashboard.guest_ar') }}</th><th>{{ __('dashboard.check_in_ar') }}</th><th>{{ __('dashboard.check_out_ar') }}</th><th class="text-end">{{ __('dashboard.total_ar') }}</th></tr></thead>
         <tbody>
             @forelse($reservations as $reservation)
-                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td>{{ $reservation->check_out_date->format('Y-m-d') }}</td><td class="text-end">ر.س {{ number_format($reservation->total_amount, 2) }}</td></tr>
+                <tr><td>{{ $reservation->reservation_number }}</td><td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td><td>{{ $reservation->check_in_date->format('Y-m-d') }}</td><td>{{ $reservation->check_out_date->format('Y-m-d') }}</td><td class="text-end">ر.س {{ number_format($reservation->grand_total, 2) }}</td></tr>
             @empty
                 <tr><td colspan="5" class="text-center">{{ __('dashboard.no_records_found_ar') }}</td></tr>
             @endforelse

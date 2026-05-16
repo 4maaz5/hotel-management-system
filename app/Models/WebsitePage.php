@@ -18,7 +18,7 @@ class WebsitePage extends Model
     }
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'page_key',
         'nav_label_en',
         'nav_label_ar',

@@ -961,7 +961,6 @@
                     }, 500);
                 }
             } catch(e) {
-                console.log('Error:', e);
             }
         }
 

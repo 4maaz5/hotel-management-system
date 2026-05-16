@@ -13,7 +13,8 @@ class DropCashVoucher extends Model
     use BelongsToStaffCurrentProperty, BelongsToTenant, SoftDeletes;
 
     protected $fillable = [
-        'property_id',
+        'company_id',
+        'branch_id',
         'voucher_number',
         'user_id',
         'date_from',
@@ -50,7 +51,7 @@ class DropCashVoucher extends Model
 
     public function property()
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 
     public static function generateVoucherNumber()

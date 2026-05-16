@@ -10,7 +10,7 @@ class Penalty extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'name',
         'category',
         'penalty_type',

@@ -10,7 +10,7 @@ class NightAuditSetting extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'is_active',
         'allowance_period',
         'cancellation_threshold',

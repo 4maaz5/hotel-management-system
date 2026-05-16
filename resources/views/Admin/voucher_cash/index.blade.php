@@ -144,21 +144,21 @@
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     @can('drop_cash.view')
-                                        <li><a class="dropdown-item" href="#" onclick="viewVoucher({{ $voucher->id }}); return false;">
+                                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="viewVoucher({{ $voucher->id }}); return false;">
                                         <i class="fas fa-eye me-2"></i>{{__('dashboard.view')}}</a></li>
                                     @endcan
                                     @can('drop_cash.print')
-                                        <li><a class="dropdown-item" href="#" onclick="printVoucher({{ $voucher->id }}); return false;">
+                                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="printVoucher({{ $voucher->id }}); return false;">
                                         <i class="fas fa-print me-2"></i>{{__('dashboard.print')}}</a></li>
                                     @endcan
                                     @can('drop_cash.edit')
-                                        <li><a class="dropdown-item" href="#" onclick="editVoucher({{ $voucher->id }}); return false;">
+                                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="editVoucher({{ $voucher->id }}); return false;">
                                         <i class="fas fa-edit me-2"></i>{{__('dashboard.edit')}}</a></li>
                                     @endcan
 
                                     <li><hr class="dropdown-divider"></li>
                                     @can('drop_cash.delete')
-                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteVoucher({{ $voucher->id }}); return false;">
+                                        <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="deleteVoucher({{ $voucher->id }}); return false;">
                                         <i class="fas fa-trash me-2"></i>{{__('dashboard.delete')}}</a></li>
                                     @endcan
 
@@ -373,7 +373,32 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-const dropCashBaseUrl = @json(url('/app/dashboard/vouchers-drop'));
+const dropCashIndexUrl = @json(route('dashboard.drop_cash.index'));
+const dropCashShowUrlTemplate = @json(route('dashboard.drop_cash.show', ['id' => '__DROP_CASH__']));
+const dropCashPrintUrlTemplate = @json(route('dashboard.drop_cash.print', ['id' => '__DROP_CASH__']));
+const dropCashUpdateUrlTemplate = @json(route('dashboard.drop_cash.update', ['id' => '__DROP_CASH__']));
+const dropCashDestroyUrlTemplate = @json(route('dashboard.drop_cash.destroy', ['id' => '__DROP_CASH__']));
+
+function dropCashUrl(template, id) {
+    return template.replace('__DROP_CASH__', encodeURIComponent(id));
+}
+
+function requestJson(url, options = {}) {
+    return fetch(url, {
+        ...options,
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            ...(options.headers || {})
+        }
+    }).then(function(response) {
+        if (!response.ok) {
+            throw new Error(`Request failed (${response.status})`);
+        }
+
+        return response.json();
+    });
+}
 
 function openAddModal() {
     document.getElementById('voucherForm').reset();
@@ -384,8 +409,7 @@ function openAddModal() {
 }
 
 function editVoucher(id) {
-    fetch(`${dropCashBaseUrl}/${id}`)
-        .then(res => res.json())
+    requestJson(dropCashUrl(dropCashShowUrlTemplate, id))
         .then(data => {
             if (data.success) {
                 const v = data.voucher;
@@ -410,6 +434,9 @@ function editVoucher(id) {
                 var modal = new bootstrap.Modal(document.getElementById('voucherModal'));
                 modal.show();
             }
+        })
+        .catch(function(error) {
+            showToast(error.message || 'Error occurred', true);
         });
 }
 
@@ -426,8 +453,7 @@ function toggleBankDropdown() {
 }
 
 function viewVoucher(id) {
-    fetch(`${dropCashBaseUrl}/${id}`)
-        .then(res => res.json())
+    requestJson(dropCashUrl(dropCashShowUrlTemplate, id))
         .then(data => {
             if (data.success) {
                 const v = data.voucher;
@@ -451,11 +477,14 @@ function viewVoucher(id) {
                 var modal = new bootstrap.Modal(document.getElementById('viewModal'));
                 modal.show();
             }
+        })
+        .catch(function(error) {
+            showToast(error.message || 'Error occurred', true);
         });
 }
 
 function printVoucher(id) {
-    document.getElementById('printIframe').src = `${dropCashBaseUrl}/${id}/print`;
+    document.getElementById('printIframe').src = dropCashUrl(dropCashPrintUrlTemplate, id);
     new bootstrap.Modal(document.getElementById('printModal')).show();
     document.getElementById('printIframe').onload = function() { setTimeout(function() { switchPrintLang('en'); }, 500); };
 }
@@ -472,7 +501,7 @@ document.getElementById('voucherForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
     const id = document.getElementById('voucher_id').value;
-    const url = id ? `${dropCashBaseUrl}/${id}` : dropCashBaseUrl;
+    const url = id ? dropCashUrl(dropCashUpdateUrlTemplate, id) : dropCashIndexUrl;
 
     const formData = new FormData(this);
     formData.append('_token', '{{ csrf_token() }}');
@@ -480,11 +509,10 @@ document.getElementById('voucherForm').addEventListener('submit', function(e) {
         formData.append('_method', 'PUT');
     }
 
-    fetch(url, {
+    requestJson(url, {
         method: 'POST',
         body: formData
     })
-    .then(res => res.json())
     .then(data => {
         if (data.success) {
             bootstrap.Modal.getInstance(document.getElementById('voucherModal')).hide();
@@ -495,6 +523,9 @@ document.getElementById('voucherForm').addEventListener('submit', function(e) {
         } else {
             showToast(data.message || 'Error occurred', true);
         }
+    })
+    .catch(function(error) {
+        showToast(error.message || 'Error occurred', true);
     });
 });
 
@@ -519,13 +550,12 @@ function deleteVoucher(id) {
 document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
     if (!deleteId) return;
 
-    fetch(`${dropCashBaseUrl}/${deleteId}`, {
+    requestJson(dropCashUrl(dropCashDestroyUrlTemplate, deleteId), {
         method: 'DELETE',
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}'
         }
     })
-    .then(res => res.json())
     .then(data => {
         if (data.success) {
             bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();

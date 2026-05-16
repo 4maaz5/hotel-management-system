@@ -20,7 +20,7 @@
                 @php
                     $isPopular = $plan->name === 'Pro' || (!$loop->first && !$loop->last && $plan->is_active);
                 @endphp
-                <div class="col-md-6 col-lg-4">
+                <div class="col-sm-6 col-xl-3">
                     <div class="card border-0 shadow-sm h-100 position-relative" style="border-radius: 16px;">
                         @if ($isPopular)
                             <div class="position-absolute top-0 start-50 translate-middle">
@@ -44,7 +44,7 @@
                             </div>
 
                             <div class="text-center my-4">
-                                <span class="display-5 fw-bold">${{ $plan->formattedPrice() }}</span>
+                                <span class="display-5 fw-bold">SAR {{ $plan->formattedPrice() }}</span>
                                 <span class="text-muted" style="font-size: 0.9rem;">/ {{ $plan->billing_period }}</span>
                             </div>
 
@@ -64,18 +64,16 @@
                             <hr class="my-3">
 
                             <div class="mb-3">
-                                <small class="text-muted text-uppercase fw-semibold">Features</small>
-                                @if ($plan->features)
+                                <small class="text-muted text-uppercase fw-semibold">Optional Add-on</small>
+                                @if (in_array('custom_branding', $plan->features ?? [], true))
                                     <div class="mt-2">
-                                        @foreach ($plan->features as $feature)
-                                            <div class="d-flex align-items-start gap-2 py-1">
-                                                <i class="fas fa-check-circle text-success mt-1" style="font-size: 0.85rem;"></i>
-                                                <span style="font-size: 0.9rem;">{{ $plan->featureList()[$feature] ?? $feature }}</span>
-                                            </div>
-                                        @endforeach
+                                        <div class="d-flex align-items-start gap-2 py-1">
+                                            <i class="fas fa-check-circle text-success mt-1" style="font-size: 0.85rem;"></i>
+                                            <span style="font-size: 0.9rem;">{{ $plan->featureList()['custom_branding'] }}</span>
+                                        </div>
                                     </div>
                                 @else
-                                    <p class="text-muted small mt-2 mb-0">No features assigned.</p>
+                                    <p class="text-muted small mt-2 mb-0">No add-on enabled.</p>
                                 @endif
                             </div>
 
@@ -95,7 +93,7 @@
                     </div>
                 </div>
             @empty
-                <div class="col-md-6 col-lg-4">
+                <div class="col-sm-6 col-xl-3">
                     <div class="card border-0 shadow-sm" style="border-radius: 16px;">
                         <div class="card-body text-center text-muted py-5">
                             <div class="mb-3">

@@ -26,6 +26,6 @@ class PlatformRevenue extends Model
 
     public function subscription()
     {
-        return $this->belongsTo(PlatformSubscription::class);
+        return $this->belongsTo(PlatformSubscription::class, 'subscription_id');
     }
 }

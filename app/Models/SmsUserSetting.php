@@ -9,7 +9,7 @@ class SmsUserSetting extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['tenant_id', 'user_id', 'sms_template_id', 'enabled'];
+    protected $fillable = ['company_id', 'user_id', 'sms_template_id', 'enabled'];
 
     public function user()
     {

@@ -1,5 +1,7 @@
 @php
-    $theme = \App\Models\ThemeCustomization::getTheme();
+    $theme = \Illuminate\Support\Facades\Schema::hasTable('theme_customizations')
+        ? \App\Models\ThemeCustomization::getTheme()
+        : null;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
@@ -174,7 +176,7 @@
 <body>
     <div class="landing-page">
         <div class="logo-section">
-            <img src="{{ $theme->logo ? asset($theme->logo) : asset('logo.webp') }}" alt="Logo" class="logo-img">
+            <img src="{{ $theme?->logo ? asset($theme->logo) : asset('logo.webp') }}" alt="Logo" class="logo-img">
             <div class="welcome-title">{{ __('dashboard.welcome_back') }}, {{ Auth::user()->name }}!</div>
             <div class="welcome-subtitle">{{ __('dashboard.choose_module') }}</div>
         </div>

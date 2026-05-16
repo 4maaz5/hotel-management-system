@@ -15,6 +15,7 @@ class CreateChatifyFavoritesTable extends Migration
     {
         Schema::create('ch_favorites', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->foreignId('company_id')->nullable()->constrained('companies')->nullOnDelete();
             $table->bigInteger('user_id');
             $table->bigInteger('favorite_id');
             $table->timestamps();

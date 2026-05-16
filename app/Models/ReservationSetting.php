@@ -11,7 +11,7 @@ class ReservationSetting extends Model
     use BelongsToTenant, HasFactory;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'default_view',
         'check_in_time',
         'check_out_time',

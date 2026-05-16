@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Meetings;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Mail\MeetingCreated;
 use App\Models\Meeting;
@@ -9,9 +10,12 @@ use App\Models\MeetingParticipant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 
 class MeetingController extends Controller
 {
+    use ScopesTenantAccess;
+
     // public function index()
     // {
     //     $meetings = Meeting::all();
@@ -23,7 +27,7 @@ class MeetingController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $users = User::all();
+        $users = $this->scopeUsersForUser(User::query(), $user)->get();
 
         if ($user->hasRole('super_admin')) {
             $meetings = Meeting::latest()->get();
@@ -46,6 +50,10 @@ class MeetingController extends Controller
             'start_time' => 'nullable|date',
             'duration' => 'nullable|integer',
             'participants' => 'nullable|array',
+            'participants.*' => [
+                'integer',
+                Rule::exists('users', 'id')->where(fn ($query) => $this->scopeUsersForUser($query, $request->user())),
+            ],
         ]);
 
         $user = auth()->user();
@@ -70,7 +78,7 @@ class MeetingController extends Controller
                     'user_id' => $userId,
                 ]);
 
-                $users->push(User::find($userId));
+                $users->push($this->scopeUsersForUser(User::query(), $user)->find($userId));
             }
         }
 
@@ -88,14 +96,42 @@ class MeetingController extends Controller
 
     public function join(Meeting $meeting)
     {
+        $meeting = $this->scopeMeetingsForUser(Meeting::query(), auth()->user())->findOrFail($meeting->id);
+
         return view('Admin.Backend.Meetings.join', compact('meeting'));
     }
 
     public function destroy(Request $request, $meeting)
     {
-        $meetings = Meeting::findOrfail($meeting);
+        $meetings = $this->scopeMeetingsForUser(Meeting::query(), $request->user())->findOrfail($meeting);
         $meetings->delete();
 
         return redirect()->back()->with('delete', __('messages.meeting_deleted_successfully'));
+    }
+
+    private function scopeUsersForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function scopeMeetingsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->where('company_id', $user->company_id)
+            ->where(function ($meetingQuery) use ($user) {
+                $meetingQuery->where('created_by', $user->id)
+                    ->orWhereHas('participants', fn ($participantQuery) => $participantQuery->where('user_id', $user->id));
+            });
     }
 }

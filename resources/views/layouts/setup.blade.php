@@ -25,16 +25,22 @@
         <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
     @endif
 
+    @php
+        $theme = \App\Models\ThemeCustomization::getTheme();
+    @endphp
+
     <style>
         :root {
-            --sidebar-bg: #1a237e;
-            --sidebar-text: #e8eaf6;
-            --sidebar-active: #3949ab;
-            --sidebar-hover: #303f9f;
+            --sidebar-bg: {{ $theme->sidebar_bg_color }};
+            --sidebar-text: {{ $theme->sidebar_text_color }};
+            --sidebar-active: {{ $theme->sidebar_active_color }};
+            --sidebar-hover: {{ $theme->sidebar_hover_color }};
+            --topbar-bg: {{ $theme->topbar_bg_color }};
+            --topbar-text: {{ $theme->topbar_text_color }};
             --primary-blue: #1a73e8;
             --light-bg: #f8f9fa;
             --border-color: #dee2e6;
-            --text-dark: #212529;
+            --text-dark: {{ $theme->text_color }};
             --text-light: #6c757d;
         }
 
@@ -42,11 +48,7 @@
             font-family: @if (app()->getLocale() == 'ar')
                 'Cairo',
             @endif
-            'Segoe UI',
-            Tahoma,
-            Geneva,
-            Verdana,
-            sans-serif;
+            {{ $theme->font_family }};
         }
 
         body {
@@ -61,6 +63,14 @@
                 direction: ltr;
                 text-align: left;
             @endif
+        }
+
+        .wrapper {
+            min-height: 100vh;
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position: center center;
+            background-attachment: fixed;
         }
 
         /* Sidebar - RTL/LTR aware */
@@ -214,7 +224,29 @@
         }
 
         .top-navbar.app-header {
+            background: var(--topbar-bg) !important;
+            color: var(--topbar-text);
             min-height: 72px;
+        }
+
+        .top-navbar.app-header .app-header__title,
+        .top-navbar.app-header .app-header__tabs > a,
+        .top-navbar.app-header .app-header__tabs > button,
+        .top-navbar.app-header .language-dropdown > button,
+        .top-navbar.app-header .dropdown > button,
+        .top-navbar.app-header .current-language,
+        .top-navbar.app-header .user-name {
+            color: var(--topbar-text) !important;
+        }
+
+        .top-navbar.app-header .btn-outline-secondary {
+            border-color: var(--topbar-text);
+        }
+
+        .top-navbar.app-header .btn-outline-secondary:hover,
+        .top-navbar.app-header .btn-outline-secondary:focus {
+            background-color: rgba(255, 255, 255, .12);
+            border-color: var(--topbar-text);
         }
 
         .app-header__bar,
@@ -286,10 +318,12 @@
             }
         }
     </style>
+    @stack('styles')
 </head>
 
 <body>
-    <div class="wrapper" style="background-image: linear-gradient(135deg, #eef2ff 0%, #dbeafe 50%, #e0f2fe 100%);">
+    <div class="wrapper"
+        style="{{ $theme->background_image ? "background-image: url('".asset($theme->background_image)."');" : "background-image: linear-gradient(135deg, #eef2ff 0%, #dbeafe 50%, #e0f2fe 100%);" }}">
 
         @include('layouts.setup-sidebar')
 

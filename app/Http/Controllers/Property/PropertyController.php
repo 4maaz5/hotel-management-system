@@ -9,8 +9,10 @@ use App\Models\District;
 use App\Models\Property;
 use App\Models\PropertyType;
 use App\Models\Region;
+use App\Support\PropertyBranchManager;
 use App\Support\UserActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -104,7 +106,11 @@ class PropertyController extends Controller
         $validated['property_code'] = $this->generatePropertyCode($validated['property_name_en']);
 
         // Create property
-        $property = Property::create($validated);
+        $property = DB::transaction(function () use ($request, $validated) {
+            $property = Property::create($validated);
+
+            return app(PropertyBranchManager::class)->ensureBranch($property, $request->user());
+        });
 
         app(UserActivityLogger::class)->log(
             'property_setup',

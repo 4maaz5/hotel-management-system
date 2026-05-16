@@ -9,5 +9,5 @@ class SmsSetting extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['tenant_id', 'property_name', 'default_language', 'show_property_name'];
+    protected $fillable = ['company_id', 'property_name', 'default_language', 'show_property_name'];
 }

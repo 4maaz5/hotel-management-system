@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCurrentProperty;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class MarketingQuotation extends Model
 {
-    use HasFactory;
+    use BelongsToCurrentProperty, BelongsToTenant, HasFactory;
 
     protected $table = 'marketing_quotations';
 
@@ -15,6 +17,7 @@ class MarketingQuotation extends Model
      * Mass assignable attributes
      */
     protected $fillable = [
+        'company_id',
         'marketing_agent_id',
         'manual_agent_name',
         'branch_id',

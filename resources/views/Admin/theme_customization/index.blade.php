@@ -406,3 +406,34 @@
         </form>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('input[type="color"].form-control-color').forEach(function(colorInput) {
+                const textInput = colorInput.parentElement?.querySelector('input[type="text"]');
+
+                if (!textInput) {
+                    return;
+                }
+
+                const syncText = function() {
+                    textInput.value = colorInput.value;
+                };
+
+                const syncColor = function() {
+                    const value = textInput.value.trim();
+
+                    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                        colorInput.value = value;
+                    }
+                };
+
+                syncText();
+                colorInput.addEventListener('input', syncText);
+                textInput.addEventListener('input', syncColor);
+                textInput.addEventListener('change', syncColor);
+            });
+        });
+    </script>
+@endpush

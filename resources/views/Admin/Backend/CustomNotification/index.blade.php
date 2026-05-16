@@ -558,7 +558,6 @@
                     $('#notificationsTableBody').html(res.html);
                 },
                 error: function(err) {
-                    console.log(err);
                 }
             });
         });

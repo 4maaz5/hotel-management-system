@@ -696,7 +696,6 @@
                         $('#leavePagination').html(data.pagination);
                     },
                     error: function(xhr) {
-                        console.log(xhr.responseText);
                     }
                 });
             }

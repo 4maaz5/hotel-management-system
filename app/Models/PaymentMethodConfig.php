@@ -10,7 +10,7 @@ class PaymentMethodConfig extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'payment_method_id',
         'description',
         'is_active',

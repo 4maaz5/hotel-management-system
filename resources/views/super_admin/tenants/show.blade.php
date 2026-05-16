@@ -60,15 +60,20 @@
 
                         @if ($tenant->plan)
                             <hr>
-                            <h6 class="mb-2">Plan Features</h6>
+                            <h6 class="mb-2">Plan Entitlements</h6>
                             <div class="row g-1">
-                                @forelse ($tenant->plan->features ?? [] as $feature)
-                                    <div class="col-md-6">
-                                        <small><i class="fas fa-check-circle text-success me-1"></i>{{ $tenant->plan->featureList()[$feature] ?? $feature }}</small>
-                                    </div>
-                                @empty
-                                    <div class="col-12"><small class="text-muted">No features assigned.</small></div>
-                                @endforelse
+                                <div class="col-md-6">
+                                    <small><i class="fas fa-users text-primary me-1"></i>Users: {{ $tenant->plan->maxLimit('max_users') ?: 'Unlimited' }}</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <small><i class="fas fa-building text-primary me-1"></i>Properties: {{ $tenant->plan->maxLimit('max_properties') ?: 'Unlimited' }}</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <small>
+                                        <i class="fas fa-palette {{ in_array('custom_branding', $tenant->plan->features ?? [], true) ? 'text-success' : 'text-muted' }} me-1"></i>
+                                        Custom Branding: {{ in_array('custom_branding', $tenant->plan->features ?? [], true) ? 'Included' : 'Not included' }}
+                                    </small>
+                                </div>
                             </div>
                         @endif
                     </div>
@@ -107,7 +112,7 @@
                             </div>
                             <div>
                                 <span class="text-muted small d-block">Price</span>
-                                <strong>${{ $tenant->plan->formattedPrice() }} / {{ $tenant->plan->billing_period }}</strong>
+                                <strong>SAR {{ $tenant->plan->formattedPrice() }} / {{ $tenant->plan->billing_period }}</strong>
                             </div>
                         </div>
                     </div>

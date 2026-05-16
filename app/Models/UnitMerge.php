@@ -10,7 +10,7 @@ class UnitMerge extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'block_id',
         'floor_id',
         'unit_class_id',

@@ -15,6 +15,11 @@ return new class extends Migration
                 ->constrained('third_party_platforms')
                 ->cascadeOnDelete();
 
+            $table->foreignId('company_id')
+                ->nullable()
+                ->constrained('companies')
+                ->nullOnDelete();
+
             $table->foreignId('branch_id')
                 ->nullable()
                 ->constrained()

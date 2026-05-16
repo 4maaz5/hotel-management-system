@@ -10,8 +10,9 @@ use App\Models\TaskType;
 use App\Models\Housekeeper;
 use App\Models\Floor;
 use App\Models\UnitTypeCustomization;
-use App\Models\Property;
 use App\Models\PrintingOption;
+use App\Support\PropertyContext;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -212,6 +213,11 @@ class TaskController extends Controller
 
     protected function validateTaskData(Request $request, ?HousekeepingTask $task = null, bool $includeStatus = false): array
     {
+        $companyId = app(TenantContext::class)->id();
+        $branchId = app(PropertyContext::class)->branchId();
+
+        abort_unless($companyId && $branchId, 422, 'Please select or create a branch first.');
+
         $payload = [
             'task_type' => $request->input('task_type', $task?->task_type),
             'unit_id' => $request->input('unit_id', $task?->unit_id),
@@ -226,10 +232,31 @@ class TaskController extends Controller
 
         $rules = [
             'task_type' => ['required', Rule::in(['unit', 'property_facility'])],
-            'unit_id' => ['nullable', 'required_if:task_type,unit', 'exists:units,id'],
-            'property_facility_id' => ['nullable', 'required_if:task_type,property_facility', 'exists:property_facilities,id'],
-            'task_type_id' => ['required', 'exists:housekeeping_task_types,id'],
-            'housekeeper_id' => ['nullable', 'exists:housekeepers,id'],
+            'unit_id' => [
+                'nullable',
+                'required_if:task_type,unit',
+                Rule::exists('units', 'id')->where(fn ($query) => $query
+                    ->where('company_id', $companyId)
+                    ->where('branch_id', $branchId)),
+            ],
+            'property_facility_id' => [
+                'nullable',
+                'required_if:task_type,property_facility',
+                Rule::exists('property_facilities', 'id')->where(fn ($query) => $query
+                    ->where('company_id', $companyId)),
+            ],
+            'task_type_id' => [
+                'required',
+                Rule::exists('housekeeping_task_types', 'id')->where(fn ($query) => $query
+                    ->where('company_id', $companyId)),
+            ],
+            'housekeeper_id' => [
+                'nullable',
+                Rule::exists('housekeepers', 'id')->where(fn ($query) => $query
+                    ->where('company_id', $companyId)
+                    ->where('branch_id', $branchId)
+                    ->where('is_active', true)),
+            ],
             'priority' => ['required', Rule::in(['low', 'medium', 'high'])],
             'description' => ['nullable', 'string'],
             'start_date' => ['nullable', 'date'],
@@ -248,12 +275,18 @@ class TaskController extends Controller
         $user = $request->user();
 
         if ($user && ! (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin())) {
-            if ($task->tenant_id && $user->tenant_id && (int) $task->tenant_id !== (int) $user->tenant_id) {
+            if ($task->company_id && $user->company_id && (int) $task->company_id !== (int) $user->company_id) {
                 abort(404);
             }
 
-            if ($task->property_id && ! $user->canAccessProperty((int) $task->property_id)) {
-                abort(404);
+            if ($task->branch_id) {
+                $property = \App\Models\Property::query()
+                    ->where('branch_id', $task->branch_id)
+                    ->first();
+
+                if (! $property || ! $user->canAccessProperty((int) $property->id)) {
+                    abort(404);
+                }
             }
         }
 

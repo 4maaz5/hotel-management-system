@@ -27,7 +27,7 @@
                             @if ($doc->file_path)
                                 <div class="text-center my-2">
                                     <a href="#" class="view-pdf"
-                                        data-file="{{ asset('storage/' . $doc->file_path) }}" title="View PDF">
+                                        data-file="{{ route('dashboard.document.employee.file', $doc) }}" title="View PDF">
                                         <i class="fas fa-file-pdf text-secondary" style="font-size: 28px;"></i>
                                     </a>
                                 </div>
@@ -433,7 +433,7 @@
             <td>
                 ${doc.file_path ? `
                                                                                                                                                                                                                                                                                                                                                                                     <a href="#" class="view-pdf"
-                                                                                                                                                                                                                                                                                                                                                                                       data-file="${doc.file_path.startsWith('http') ? doc.file_path : '/storage/' + doc.file_path}"
+                                                                                                                                                                                                                                                                                                                                                                                       data-file="${doc.file_url}"
                                                                                                                                                                                                                                                                                                                                                                                        title="View PDF">
                                                                                                                                                                                                                                                                                                                                                                                        <i class="fas fa-file-pdf text-secondary" style="font-size: 18px;"></i>
                                                                                                                                                                                                                                                                                                                                                                              </a>` : ''}</td>
@@ -546,7 +546,7 @@
                      <td>
 
                                                              <a href="#" class="view-pdf"
-                                                                   data-file="${doc.file_path.startsWith('http') ? doc.file_path : '/storage/' + doc.file_path}"
+                                                                   data-file="${doc.file_url}"
                                                                    title="View PDF">
                                                                    <i class="fas fa-file-pdf text-secondary" style="font-size: 18px;"></i>
                                                                 </a> : ''}</td>

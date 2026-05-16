@@ -82,7 +82,7 @@ class PlanController extends Controller
             'price' => ['required', 'numeric', 'min:0'],
             'billing_period' => ['required', 'in:monthly,yearly'],
             'features' => ['nullable', 'array'],
-            'features.*' => ['string'],
+            'features.*' => ['string', 'in:custom_branding'],
             'max_users' => ['nullable', 'integer', 'min:0'],
             'max_properties' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],

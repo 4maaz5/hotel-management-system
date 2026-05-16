@@ -2,7 +2,7 @@
 
 return array (
   'title' => 'لوحة التحكم',
-  'name' => 'هوتيلي',
+  'name' => 'اسم',
   'main' => 'الرئيسية',
   'branch' => 'الفرع',
   'employee_management' => 'إدارة الموظفين',

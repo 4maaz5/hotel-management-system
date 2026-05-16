@@ -10,7 +10,7 @@ class SeasonalUnitTypeRate extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'seasonal_rate_id',
         'unit_type_id',
         'low_weekday_rate',
@@ -28,8 +28,4 @@ class SeasonalUnitTypeRate extends Model
         return $this->belongsTo(UnitType::class);
     }
 
-    public function unit()
-    {
-        return $this->belongsTo(Unit::class);
-    }
 }

@@ -14,7 +14,7 @@
             $employment = $user->employment_data ?? [];
             $contact = $user->contact_info ?? [];
             $selectedPropertyIds = collect(old('property_ids', $user->assignedProperties->pluck('id')->all()))->map(fn ($id) => (int) $id)->all();
-            $defaultPropertyId = old('default_property_id', $user->property_id);
+            $defaultPropertyId = old('default_property_id', $user->property?->id);
         @endphp
 
         <!-- User Type & Role -->

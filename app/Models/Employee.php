@@ -35,11 +35,13 @@ class Employee extends Model
             // 3. Delete employee documents
             foreach ($employee->documents as $document) {
                 if ($document->file_path) {
+                    Storage::disk('local')->delete($document->file_path);
                     Storage::disk('public')->delete($document->file_path);
                 }
             }
             foreach ($employee->documents as $document) {
                 if ($document->image) {
+                    Storage::disk('local')->delete($document->image);
                     Storage::disk('public')->delete($document->image);
                 }
             }

@@ -29,7 +29,7 @@
                                 <td>{{ $reservation->check_in_date->format('Y-m-d') }}</td>
                                 <td>{{ $reservation->check_out_date->format('Y-m-d') }}</td>
                                 <td>{{ $reservation->unit->room_number ?? '-' }}</td>
-                                <td class="text-end">SAR {{ number_format($reservation->total_amount ?? 0, 2) }}</td>
+                                <td class="text-end">SAR {{ number_format($reservation->grand_total ?? 0, 2) }}</td>
                                 <td class="text-end {{ ($reservation->balance ?? 0) > 0 ? 'text-danger' : 'text-success' }}">
                                     SAR {{ number_format($reservation->balance ?? 0, 2) }}
                                 </td>
@@ -70,7 +70,7 @@
                     <td>{{ $reservation->check_in_date->format('Y-m-d') }}</td>
                     <td>{{ $reservation->check_out_date->format('Y-m-d') }}</td>
                     <td>{{ $reservation->unit->room_number ?? '-' }}</td>
-                    <td class="text-end">SAR {{ number_format($reservation->total_amount ?? 0, 2) }}</td>
+                    <td class="text-end">SAR {{ number_format($reservation->grand_total ?? 0, 2) }}</td>
                     <td class="text-end">SAR {{ number_format($reservation->balance ?? 0, 2) }}</td>
                 </tr>
             @empty
@@ -102,7 +102,7 @@
                     <td>{{ $reservation->check_in_date->format('Y-m-d') }}</td>
                     <td>{{ $reservation->check_out_date->format('Y-m-d') }}</td>
                     <td>{{ $reservation->unit->room_number ?? '-' }}</td>
-                    <td class="text-end">ر.س {{ number_format($reservation->total_amount ?? 0, 2) }}</td>
+                    <td class="text-end">ر.س {{ number_format($reservation->grand_total ?? 0, 2) }}</td>
                     <td class="text-end">ر.س {{ number_format($reservation->balance ?? 0, 2) }}</td>
                 </tr>
             @empty

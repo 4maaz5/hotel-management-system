@@ -87,8 +87,8 @@ class NtmpController extends Controller
                 return $redirect;
             }
 
-            $query->where('tenant_id', app(TenantContext::class)->id())
-                ->where('property_id', app(PropertyContext::class)->id());
+            $query->where('company_id', app(TenantContext::class)->id())
+                ->where('branch_id', app(PropertyContext::class)->branchId());
         } else {
             $query->withoutGlobalScope(TenantScope::class)
                 ->withoutGlobalScope(CurrentPropertyScope::class);
@@ -103,7 +103,7 @@ class NtmpController extends Controller
 
     private function redirectWhenPropertyIsMissing()
     {
-        if (app(PropertyContext::class)->id()) {
+        if (app(PropertyContext::class)->id() && app(PropertyContext::class)->branchId()) {
             return null;
         }
 

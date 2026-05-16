@@ -11,8 +11,8 @@ class NtmpSubmission extends Model
     use BelongsToCurrentProperty, BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
-        'property_id',
+        'company_id',
+        'branch_id',
         'reservation_id',
         'guest_id',
         'event_type',

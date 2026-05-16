@@ -54,7 +54,7 @@
                                 <td>{{ $reservation->reservation_number }}</td>
                                 <td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td>
                                 <td>{{ $reservation->unit->unit_number ?? '-' }}</td>
-                                <td class="text-end">SAR {{ number_format($reservation->total_amount, 2) }}</td>
+                                <td class="text-end">SAR {{ number_format($reservation->grand_total, 2) }}</td>
                                 <td class="text-end text-success">SAR {{ number_format($reservation->paid_amount ?? 0, 2) }}</td>
                                 <td class="text-end {{ ($reservation->balance ?? 0) > 0 ? 'text-danger' : 'text-success' }}">
                                     SAR {{ number_format($reservation->balance ?? 0, 2) }}
@@ -107,7 +107,7 @@
                     <td>{{ $reservation->reservation_number }}</td>
                     <td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td>
                     <td>{{ $reservation->unit->unit_number ?? '-' }}</td>
-                    <td class="text-end">SAR {{ number_format($reservation->total_amount, 2) }}</td>
+                    <td class="text-end">SAR {{ number_format($reservation->grand_total, 2) }}</td>
                     <td class="text-end">SAR {{ number_format($reservation->paid_amount ?? 0, 2) }}</td>
                     <td class="text-end">SAR {{ number_format($reservation->balance ?? 0, 2) }}</td>
                 </tr>
@@ -151,7 +151,7 @@
                     <td>{{ $reservation->reservation_number }}</td>
                     <td>{{ $reservation->guest->first_name ?? '-' }} {{ $reservation->guest->last_name ?? '' }}</td>
                     <td>{{ $reservation->unit->unit_number ?? '-' }}</td>
-                    <td class="text-end">ر.س {{ number_format($reservation->total_amount, 2) }}</td>
+                    <td class="text-end">ر.س {{ number_format($reservation->grand_total, 2) }}</td>
                     <td class="text-end">ر.س {{ number_format($reservation->paid_amount ?? 0, 2) }}</td>
                     <td class="text-end">ر.س {{ number_format($reservation->balance ?? 0, 2) }}</td>
                 </tr>

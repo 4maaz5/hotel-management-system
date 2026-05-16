@@ -153,7 +153,6 @@
 
     async function submitQr(qrCode) {
         if (isCooldown) {
-            console.log("Please wait before scanning again.");
             return;
         }
 
@@ -171,7 +170,6 @@
             });
 
             const data = await res.json();
-            console.log(data);
 
             if (data.status === 'success') {
                 const audio = document.getElementById("thankYouAudio");
@@ -253,6 +251,8 @@
         location.reload();
     }
 </script>
+
+@stack('scripts')
 
 </body>
 

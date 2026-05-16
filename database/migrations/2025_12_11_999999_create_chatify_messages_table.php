@@ -15,6 +15,7 @@ class CreateChatifyMessagesTable extends Migration
     {
         Schema::create('ch_messages', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->foreignId('company_id')->nullable()->constrained('companies')->nullOnDelete();
             $table->bigInteger('from_id');
             $table->bigInteger('to_id');
             $table->string('body',5000)->nullable();

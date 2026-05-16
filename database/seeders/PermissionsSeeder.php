@@ -66,7 +66,7 @@ class PermissionsSeeder extends Seeder
             'numbering_option' => ['edit'],
             'printing_option' => ['edit'],
             'outlet_setup' => ['add', 'edit', 'view', 'delete'],
-            'item_categories' => ['add', 'edit', 'delete'],
+            'item_categories' => ['view', 'add', 'edit', 'delete'],
             'outlet_item' => ['add', 'edit', 'view', 'delete'],
             'terms_and_condition' => ['add', 'edit', 'delete'],
             'penalties' => ['add', 'edit', 'delete'],
@@ -116,14 +116,24 @@ class PermissionsSeeder extends Seeder
 
         $allPermissions = array_merge($hrPermissions, $reservationPermissions);
 
+        $existingPermissionCount = Permission::where('guard_name', 'web')->count();
+        $fullAccessRoleIds = $existingPermissionCount > 0
+            ? Role::where('guard_name', 'web')
+                ->withCount('permissions')
+                ->get()
+                ->filter(fn ($role) => $role->permissions_count === $existingPermissionCount)
+                ->pluck('id')
+                ->all()
+            : [];
+
         // Create Roles (HR roles)
         $superAdmin = Role::firstOrCreate(['name' => 'super_admin']);
         $manager = Role::firstOrCreate(['name' => 'manager']);
         $employee = Role::firstOrCreate(['name' => 'employee']);
 
         // Create Reservation roles
-        Role::firstOrCreate(['name' => 'Administrator', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'owner', 'guard_name' => 'web']);
+        $administrator = Role::firstOrCreate(['name' => 'Administrator', 'guard_name' => 'web']);
+        $owner = Role::firstOrCreate(['name' => 'owner', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'receptionist', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'housekeeping', 'guard_name' => 'web']);
 
@@ -135,8 +145,13 @@ class PermissionsSeeder extends Seeder
             ]);
         }
 
-        // Assign ALL permissions to super_admin
+        // Assign ALL permissions to full-access roles so newly added tabs do not stay hidden.
         $superAdmin->syncPermissions(Permission::all());
+        $administrator->syncPermissions(Permission::all());
+        $owner->syncPermissions(Permission::all());
+
+        Role::whereIn('id', $fullAccessRoleIds)->get()
+            ->each(fn (Role $role) => $role->syncPermissions(Permission::all()));
 
         // Manager → No permissions (via HR)
         $manager->syncPermissions([]);

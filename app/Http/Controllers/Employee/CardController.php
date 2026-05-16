@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Employee;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Employee;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 
 class CardController extends Controller
 {
+    use ScopesTenantAccess;
+
     // public function index()
     // {
     //     $user = Auth::user();
@@ -51,10 +54,10 @@ class CardController extends Controller
                 $tableEmployees = Employee::where('branch_id', $branchId)->paginate(10);
                 $branches = Branch::where('id', $branchId)->get();
             } else {
-                $employees = Employee::all();
-                $employeeCards = Employee::paginate(10);
-                $tableEmployees = Employee::paginate(10);
-                $branches = Branch::all();
+                $employees = Employee::where('company_id', $user->company_id)->get();
+                $employeeCards = Employee::where('company_id', $user->company_id)->paginate(10);
+                $tableEmployees = Employee::where('company_id', $user->company_id)->paginate(10);
+                $branches = Branch::where('company_id', $user->company_id)->get();
             }
         }
 

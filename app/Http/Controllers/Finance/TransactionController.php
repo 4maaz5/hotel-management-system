@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers\Finance;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class TransactionController extends Controller
 {
+    use ScopesTenantAccess;
+
     // public function index()
     // {
     //     $user = Auth::user();
@@ -63,7 +67,10 @@ class TransactionController extends Controller
     {
         $request->validate([
             'type' => 'required|string|max:255',
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => [
+                'required',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
             'amount' => 'required|numeric',
             'date' => 'required|date',
             'description' => 'nullable|string',
@@ -91,13 +98,16 @@ class TransactionController extends Controller
     {
         $request->validate([
             'type' => 'required|string|max:255',
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => [
+                'required',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
             'amount' => 'required|numeric',
             'date' => 'required|date',
             'description' => 'nullable|string',
         ]);
 
-        $transaction = Transaction::findOrFail($id);
+        $transaction = $this->scopeTransactionsForUser(Transaction::query(), $request->user())->findOrFail($id);
         $transaction->update([
             'type' => $request->type,
             'branch_id' => $request->branch_id,
@@ -117,7 +127,7 @@ class TransactionController extends Controller
 
     public function destroy($id)
     {
-        $transaction = Transaction::findOrFail($id);
+        $transaction = $this->scopeTransactionsForUser(Transaction::query(), Auth::user())->findOrFail($id);
         $transaction->delete();
 
         return response()->json([
@@ -176,7 +186,7 @@ class TransactionController extends Controller
     {
         $user = Auth::user();
 
-        $query = Transaction::with('branch');
+        $query = $this->scopeTransactionsForUser(Transaction::with('branch'), $user);
 
         if ($user->hasRole('super_admin')) {
             // Super admin → optional branch filter
@@ -189,7 +199,13 @@ class TransactionController extends Controller
                 $query->where('branch_id', $user->branch_id);
             } else {
                 // No branch assigned → return empty
-                return response()->json(['html' => '']);
+                if ($request->filled('branch_id')) {
+                    if (! $this->userCanAccessBranch((int) $request->branch_id, $user)) {
+                        return response()->json(['html' => ''], 403);
+                    }
+
+                    $query->where('branch_id', $request->branch_id);
+                }
             }
         }
 
@@ -222,5 +238,20 @@ class TransactionController extends Controller
         return response()->json([
             'html' => $html,
         ]);
+    }
+
+    private function scopeTransactionsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        $branchIds = Branch::where('company_id', $user->company_id)->pluck('id');
+
+        return $query->whereIn('branch_id', $branchIds);
     }
 }

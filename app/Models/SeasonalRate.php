@@ -10,7 +10,7 @@ class SeasonalRate extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'name',
         'description',
         'start_date',

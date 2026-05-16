@@ -122,6 +122,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('setup-sidebar.property.create');
 
         Route::post('/dashboard/setup-sidebar/property-store', [PropertyController::class, 'store'])
+            ->middleware('plan.limit:max_properties')
             ->name('setup-sidebar.property.store');
     });
 
@@ -166,6 +167,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('setup-sidebar.property-user.create');
 
         Route::post('/dashboard/setup-sidebar/property-user-store', [UserController::class, 'store'])
+            ->middleware('plan.limit:max_users')
             ->name('setup-sidebar.property-user.store');
     });
 

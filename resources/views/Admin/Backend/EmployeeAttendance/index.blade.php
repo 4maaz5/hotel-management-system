@@ -589,7 +589,6 @@
                         $('#attendanceTableBody').html(data);
                     },
                     error: function(xhr) {
-                        console.log(xhr.responseText);
                     }
                 });
             });

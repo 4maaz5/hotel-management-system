@@ -14,7 +14,6 @@ class Unit extends Model
     protected $fillable = [
         'company_id',
         'branch_id',
-        'property_id',
         'unit_number',
         'unit_class_id',
         'unit_type_id',

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Property;
+use App\Support\PropertyBranchManager;
 use App\Support\PropertyContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -28,25 +29,43 @@ class SetCurrentProperty
         }
 
         $selectedProperty = null;
-        $selectedPropertyId = $request->session()->get('property_id');
+        $selectedPropertyId = $request->session()->get('current_property_id')
+            ?: $request->session()->get('property_id');
+        $selectedBranchId = $request->session()->get('branch_id');
 
         if ($selectedPropertyId && $user->canAccessProperty((int) $selectedPropertyId)) {
-            $selectedProperty = $user->accessiblePropertiesQuery()->find($selectedPropertyId);
+            $selectedProperty = $user->accessiblePropertiesQuery()
+                ->find($selectedPropertyId);
+        }
+
+        if (! $selectedProperty && $selectedBranchId) {
+            $selectedProperty = $user->accessiblePropertiesQuery()
+                ->where('branch_id', (int) $selectedBranchId)
+                ->first();
         }
 
         if (! $selectedProperty && $user->branch_id) {
-            $selectedProperty = Property::where('branch_id', $user->branch_id)->first();
+            $selectedProperty = $user->accessiblePropertiesQuery()
+                ->where('branch_id', $user->branch_id)
+                ->first();
         }
 
         if (! $selectedProperty) {
-            $selectedProperty = $user->accessiblePropertiesQuery()->orderBy('property_name_en')->first();
+            $selectedProperty = $user->accessiblePropertiesQuery()
+                ->orderBy('property_name_en')
+                ->first();
         }
 
         if ($selectedProperty) {
-            $request->session()->put('property_id', $selectedProperty->id);
+            $selectedProperty = app(PropertyBranchManager::class)->ensureBranch($selectedProperty, $user);
+            $request->session()->put('current_property_id', $selectedProperty->id);
+            $request->session()->forget('property_id');
+            $request->session()->put('branch_id', $selectedProperty->branch_id);
             app(PropertyContext::class)->setProperty($selectedProperty);
         } else {
+            $request->session()->forget('current_property_id');
             $request->session()->forget('property_id');
+            $request->session()->forget('branch_id');
             app(PropertyContext::class)->forget();
         }
 

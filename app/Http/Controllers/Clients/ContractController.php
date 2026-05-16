@@ -2,21 +2,25 @@
 
 namespace App\Http\Controllers\Clients;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Contract;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class ContractController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         $user = auth()->user();
-        $clients = Client::all();
+        $clients = $this->scopeClientsForUser(Client::query(), $user)->get();
         $companies = $user->isSuperAdmin() ? Company::all() : Company::whereKey($user->company_id)->get();
-        $contracts = Contract::with('client', 'company')->get();
+        $contracts = $this->scopeContractsForUser(Contract::with('client', 'company'), $user)->get();
 
         return view('Admin.Backend.Client.contract', compact('clients', 'contracts', 'companies'));
     }
@@ -25,8 +29,16 @@ class ContractController extends Controller
     {
         // Validate the request
         $validated = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'company_id' => 'required|exists:companies,id',
+            'client_id' => [
+                'required',
+                Rule::exists('clients', 'id')->where(fn ($query) => $this->scopeClientsForUser($query, $request->user())),
+            ],
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
             'title' => 'required|string|max:255',
             'contract_number' => 'required|string|unique:contracts,contract_number',
             'status' => 'required|in:active,near_expiry,expired,ended',
@@ -49,7 +61,7 @@ class ContractController extends Controller
         // Save contract
         $contract = new Contract;
         $contract->client_id = $validated['client_id'];
-        $contract->company_id = $validated['company_id'];
+        $contract->company_id = $this->isSuperAdmin($request->user()) ? $validated['company_id'] : $request->user()->company_id;
         $contract->title = $validated['title'];
         $contract->contract_number = $validated['contract_number'];
         $contract->status = $validated['status'];
@@ -64,10 +76,18 @@ class ContractController extends Controller
 
     public function update(Request $request, $id)
     {
-        $contract = Contract::findOrFail($id);
+        $contract = $this->scopeContractsForUser(Contract::query(), $request->user())->findOrFail($id);
         $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'company_id' => 'required|exists:companies,id',
+            'client_id' => [
+                'required',
+                Rule::exists('clients', 'id')->where(fn ($query) => $this->scopeClientsForUser($query, $request->user())),
+            ],
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
             'title' => 'required|string|max:255',
             'contract_number' => 'required|string|max:255|unique:contracts,contract_number,'.$contract->id,
             'status' => 'required|in:active,near_expiry,expired,ended',
@@ -77,16 +97,20 @@ class ContractController extends Controller
             'files.*' => 'nullable|file|max:5120',
         ]);
 
-        $contract->update($request->only([
+        $data = $request->only([
             'client_id',
-            'companies_id',
+            'company_id',
             'title',
             'contract_number',
             'status',
             'start_date',
             'end_date',
             'remarks',
-        ]));
+        ]);
+        if (! $this->isSuperAdmin($request->user())) {
+            $data['company_id'] = $request->user()->company_id;
+        }
+        $contract->update($data);
 
         // Append files
         if ($request->hasFile('files')) {
@@ -106,7 +130,7 @@ class ContractController extends Controller
 
     public function destroy($id)
     {
-        $contract = Contract::findOrfail($id);
+        $contract = $this->scopeContractsForUser(Contract::query(), auth()->user())->findOrfail($id);
         // Delete stored files
         if ($contract->file) {
             $files = json_decode($contract->file, true);
@@ -128,7 +152,30 @@ class ContractController extends Controller
 
     public function print(Contract $contract)
     {
+        $contract = $this->scopeContractsForUser(Contract::query(), auth()->user())->findOrFail($contract->id);
 
         return view('Admin.Backend.Client.contract_print', compact('contract'));
+    }
+
+    private function scopeClientsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function scopeContractsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->where('company_id', $user->company_id);
     }
 }

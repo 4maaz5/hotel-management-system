@@ -31,6 +31,8 @@ class ShomoosService
         $payload = $this->payloadBuilder->build($reservation, $eventType);
 
         $submission = ShomoosSubmission::create([
+            'company_id' => $reservation->company_id,
+            'branch_id' => $reservation->branch_id,
             'reservation_id' => $reservation->id,
             'guest_id' => $reservation->guest_id,
             'event_type' => $eventType,
@@ -126,8 +128,8 @@ class ShomoosService
     {
         return ShomoosSetting::withoutGlobalScope(TenantScope::class)
             ->withoutGlobalScope(CurrentPropertyScope::class)
-            ->where('tenant_id', $submission->tenant_id)
-            ->where('property_id', $submission->property_id)
+            ->where('company_id', $submission->company_id)
+            ->where('branch_id', $submission->branch_id)
             ->first();
     }
 

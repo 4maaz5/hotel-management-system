@@ -14,8 +14,8 @@ class TaskMedia extends Model
     protected $table = 'task_media';
 
     protected $fillable = [
-        'tenant_id',
-        'property_id',
+        'company_id',
+        'branch_id',
         'task_id',
         'file_path',
         'file_name',

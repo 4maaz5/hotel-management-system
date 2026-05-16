@@ -15,6 +15,10 @@ return new class extends Migration
             $table->id();
 
             // Relations
+            $table->foreignId('company_id')
+                ->constrained('companies')
+                ->cascadeOnDelete();
+
             $table->foreignId('branch_id')
                 ->constrained('branches')
                 ->cascadeOnDelete();

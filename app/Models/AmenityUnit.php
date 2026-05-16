@@ -12,7 +12,7 @@ class AmenityUnit extends Model
     protected $table = 'amenity_unit';
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'amenity_id',
         'unit_id',
     ];

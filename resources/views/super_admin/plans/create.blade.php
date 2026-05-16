@@ -7,7 +7,7 @@
     <div class="container py-4">
         <div class="mb-4">
             <h2 class="mb-1">Create Plan</h2>
-            <p class="text-muted mb-0">Define a new subscription tier with features and limits.</p>
+            <p class="text-muted mb-0">Define a subscription tier using user and property limits.</p>
         </div>
 
         <div class="card shadow-sm">
@@ -23,7 +23,7 @@
                         <div class="col-md-3">
                             <label class="form-label">Price</label>
                             <div class="input-group">
-                                <span class="input-group-text">$</span>
+                                <span class="input-group-text">SAR</span>
                                 <input type="number" step="0.01" min="0" name="price" value="{{ old('price', '0') }}" class="form-control" required>
                             </div>
                         </div>
@@ -58,17 +58,11 @@
 
                     <hr class="my-4">
 
-                    <h5 class="mb-3">Features</h5>
-                    <div class="row g-3">
-                        @foreach ($plan->featureList() as $key => $label)
-                            <div class="col-md-6">
-                                <div class="form-check">
-                                    <input type="checkbox" name="features[]" value="{{ $key }}" class="form-check-input" id="feature_{{ $key }}"
-                                        {{ in_array($key, old('features', [])) ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="feature_{{ $key }}">{{ $label }}</label>
-                                </div>
-                            </div>
-                        @endforeach
+                    <h5 class="mb-3">Optional Add-on</h5>
+                    <div class="form-check">
+                        <input type="checkbox" name="features[]" value="custom_branding" class="form-check-input" id="feature_custom_branding"
+                            {{ in_array('custom_branding', old('features', [])) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="feature_custom_branding">Custom Branding (White-label)</label>
                     </div>
 
                     <hr class="my-4">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\CompanyPartners;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\CompanyPartner;
@@ -9,14 +10,17 @@ use App\Models\PartnerDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class PartnerController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         $user = auth()->user();
         $companies = $user->isSuperAdmin() ? Company::all() : Company::whereKey($user->company_id)->get();
-        $partners = CompanyPartner::with(['company', 'documents'])->get();
+        $partners = $this->scopePartnersForUser(CompanyPartner::with(['company', 'documents']), $user)->get();
 
         return view('Admin.Backend.Partners.index', compact('companies', 'partners'));
     }
@@ -29,7 +33,12 @@ class PartnerController extends Controller
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:20',
             'nationality' => 'required|string|max:50',
-            'company_id' => 'required|exists:companies,id',
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
             'partner_type' => 'required|in:owner,investor',
             'id_type' => 'required|in:national_id,iqama,passport',
             'id_number' => 'required|string|max:50',
@@ -47,7 +56,7 @@ class PartnerController extends Controller
         try {
             //  Create partner
             $partner = CompanyPartner::create([
-                'company_id' => $request->company_id,
+                'company_id' => $this->isSuperAdmin($request->user()) ? $request->company_id : $request->user()->company_id,
                 'partner_type' => $request->partner_type,
                 'full_name' => $request->full_name,
                 'email' => $request->email,
@@ -109,7 +118,12 @@ class PartnerController extends Controller
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
             'nationality' => 'required|string|max:100',
-            'company_id' => 'required|exists:companies,id',
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
             'partner_type' => 'required|in:owner,investor',
             'id_type' => 'required|in:national_id,iqama,passport',
             'id_number' => 'required|string|max:100',
@@ -122,7 +136,7 @@ class PartnerController extends Controller
         ]);
 
         //  Find partner
-        $partner = CompanyPartner::findOrFail($id);
+        $partner = $this->scopePartnersForUser(CompanyPartner::query(), $request->user())->findOrFail($id);
 
         //  Update partner info
         $partner->update([
@@ -130,7 +144,7 @@ class PartnerController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'nationality' => $request->nationality,
-            'company_id' => $request->company_id,
+            'company_id' => $this->isSuperAdmin($request->user()) ? $request->company_id : $request->user()->company_id,
             'partner_type' => $request->partner_type,
             'id_type' => $request->id_type,
             'id_number' => $request->id_number,
@@ -164,7 +178,7 @@ class PartnerController extends Controller
 
     public function destroy(Request $request)
     {
-        $partner = CompanyPartner::findOrFail($request->id);
+        $partner = $this->scopePartnersForUser(CompanyPartner::query(), $request->user())->findOrFail($request->id);
 
         // Delete related documents
         foreach ($partner->documents as $doc) {
@@ -177,5 +191,14 @@ class PartnerController extends Controller
 
         return redirect()->back()
             ->with('delete', __('messages.partner_deleted_successfully'));
+    }
+
+    private function scopePartnersForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->where('company_id', $user->company_id);
     }
 }

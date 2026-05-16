@@ -24,7 +24,7 @@ class AuthController extends Controller
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
             'device_name' => ['nullable', 'string', 'max:255'],
-            'property_id' => ['nullable', 'integer', 'exists:properties,id'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
         ]);
 
         $user = User::withoutGlobalScopes()
@@ -45,12 +45,12 @@ class AuthController extends Controller
             ]);
         }
 
-        app(TenantContext::class)->setTenantId($user->tenant_id);
+        app(TenantContext::class)->setTenantId($user->company_id);
 
-        $propertyId = $this->resolvePropertyId($user, $validated['property_id'] ?? null);
-        app(PropertyContext::class)->setPropertyId($propertyId);
+        $property = $this->resolveProperty($user, $validated['branch_id'] ?? null);
+        app(PropertyContext::class)->setProperty($property);
 
-        $branchId = Property::withoutGlobalScopes()->where('id', $propertyId)->value('branch_id');
+        $branchId = $property->branch_id;
 
         $housekeeper = Housekeeper::withoutGlobalScopes()
             ->where('user_id', $user->id)
@@ -66,11 +66,9 @@ class AuthController extends Controller
 
         $plainToken = Str::random(64);
         $expiresAt = now()->addDays((int) config('mobile_attendance.token_ttl_days', 30));
-        $tokenBranchId = Property::withoutGlobalScopes()->where('id', $propertyId)->value('branch_id');
-
         MobileApiToken::create([
             'user_id' => $user->id,
-            'branch_id' => $tokenBranchId,
+            'branch_id' => $branchId,
             'token_hash' => hash('sha256', $plainToken),
             'device_name' => $validated['device_name'] ?? null,
             'expires_at' => $expiresAt,
@@ -80,7 +78,7 @@ class AuthController extends Controller
             'token_type' => 'Bearer',
             'access_token' => $plainToken,
             'expires_at' => $expiresAt?->toISOString(),
-            'user' => $this->userPayload($user, $housekeeper, $propertyId),
+            'user' => $this->userPayload($user, $housekeeper, $property),
         ]);
     }
 
@@ -100,14 +98,17 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         $user = $request->user();
-        $propertyId = app(PropertyContext::class)->id();
+        $property = app(PropertyContext::class)->property();
+
+        abort_unless($property, 422, 'No branch context is available.');
+
         $housekeeper = Housekeeper::with('user')
             ->where('user_id', $user->id)
-            ->where('property_id', $propertyId)
+            ->where('branch_id', $property->branch_id)
             ->first();
 
         return response()->json([
-            'user' => $this->userPayload($user, $housekeeper, $propertyId),
+            'user' => $this->userPayload($user, $housekeeper, $property),
         ]);
     }
 
@@ -124,16 +125,20 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logged out successfully.']);
     }
 
-    protected function resolvePropertyId(User $user, ?int $requestedPropertyId): int
+    protected function resolveProperty(User $user, ?int $requestedBranchId): Property
     {
         $property = null;
 
-        if ($requestedPropertyId && $user->canAccessProperty($requestedPropertyId)) {
-            $property = Property::withoutGlobalScopes()->find($requestedPropertyId);
+        if ($requestedBranchId) {
+            $property = $user->accessiblePropertiesQuery()
+                ->where('branch_id', $requestedBranchId)
+                ->first();
         }
 
-        if (! $property && $user->property_id && $user->canAccessProperty((int) $user->property_id)) {
-            $property = Property::withoutGlobalScopes()->find($user->property_id);
+        if (! $property && $user->branch_id) {
+            $property = $user->accessiblePropertiesQuery()
+                ->where('branch_id', $user->branch_id)
+                ->first();
         }
 
         if (! $property) {
@@ -142,14 +147,14 @@ class AuthController extends Controller
 
         if (! $property) {
             throw ValidationException::withMessages([
-                'property_id' => ['No accessible property was found for this user.'],
+                'branch_id' => ['No accessible branch was found for this user.'],
             ]);
         }
 
-        return (int) $property->id;
+        return $property;
     }
 
-    protected function userPayload(User $user, ?Housekeeper $housekeeper, ?int $propertyId): array
+    protected function userPayload(User $user, ?Housekeeper $housekeeper, ?Property $property): array
     {
         $photoPath = $user->profile_data['photo_path'] ?? null;
         $photoUrl = $photoPath ? Storage::disk('public')->url($photoPath) : null;
@@ -161,7 +166,7 @@ class AuthController extends Controller
             'employee_name' => $user->profile_data['first_name_en'] ?? $user->name,
             'mobile_number' => $user->contact_info['mobile_number'] ?? null,
             'photo_url' => $photoUrl,
-            'property_id' => $propertyId,
+            'branch_id' => $property?->branch_id,
             'housekeeper_id' => $housekeeper?->id,
             'roles' => $user->getRoleNames()->values(),
         ];

@@ -10,7 +10,7 @@ class SmsLog extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'requested_by',
         'guest_id',
         'phone',

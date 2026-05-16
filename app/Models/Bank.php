@@ -10,7 +10,7 @@ class Bank extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'name',
         'account_number',
         'currency',

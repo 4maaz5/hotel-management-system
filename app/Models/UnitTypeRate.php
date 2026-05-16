@@ -10,7 +10,7 @@ class UnitTypeRate extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'unit_type_id',
         'low_weekday_rate',
         'high_weekday_rate',

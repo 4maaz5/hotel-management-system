@@ -217,13 +217,14 @@ class ReservationController extends Controller
         $reservation = $this->resolveAccessibleReservation($request, $reservation);
         $beforeReservation = $this->reservationActivityData($reservation);
         $propertyId = app(PropertyContext::class)->id();
+        $branchId = app(PropertyContext::class)->branchId();
 
         $validated = $request->validate([
             'check_in_date' => 'required|date',
             'check_out_date' => 'required|date|after:check_in_date',
             'unit_id' => [
                 'required',
-                Rule::exists('units', 'id')->where(fn ($query) => $query->where('property_id', $propertyId)),
+                Rule::exists('units', 'id')->where(fn ($query) => $query->where('branch_id', $branchId)),
             ],
             'nights' => 'required|integer|min:1',
             'adults' => 'nullable|integer|min:0',
@@ -239,7 +240,7 @@ class ReservationController extends Controller
             'paid_amount' => 'nullable|numeric|min:0',
             'balance' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:pending,confirmed,checked_in,checked_out,cancelled,no_show',
-        ] + $this->guestSelectionRules($propertyId));
+        ] + $this->guestSelectionRules($branchId));
 
         $settings = ReservationSetting::getSettings();
 
@@ -478,15 +479,17 @@ class ReservationController extends Controller
     public function store(Request $request)
     {
         $propertyId = app(PropertyContext::class)->id();
+        $branchId = app(PropertyContext::class)->branchId();
+        $companyId = app(PropertyContext::class)->property()?->company_id;
 
-        abort_unless($propertyId, 422, 'Please select or create a branch first.');
+        abort_unless($propertyId && $branchId && $companyId, 422, 'Please select or create a branch first.');
 
         $validated = $request->validate([
             'check_in_date' => 'required|date',
             'check_out_date' => 'required|date|after:check_in_date',
             'unit_id' => [
                 'required',
-                Rule::exists('units', 'id')->where(fn ($query) => $query->where('property_id', $propertyId)),
+                Rule::exists('units', 'id')->where(fn ($query) => $query->where('branch_id', $branchId)),
             ],
             'nights' => 'required|integer|min:1',
             'adults' => 'nullable|integer|min:0',
@@ -502,7 +505,7 @@ class ReservationController extends Controller
             'paid_amount' => 'nullable|numeric|min:0',
             'balance' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:pending,confirmed,checked_in,checked_out,cancelled,no_show',
-        ] + $this->guestSelectionRules($propertyId));
+        ] + $this->guestSelectionRules($branchId));
 
         $settings = ReservationSetting::getSettings();
 
@@ -540,8 +543,9 @@ class ReservationController extends Controller
         $stayEventAttributes = $this->resolveStayEventAttributes(null, $status, $request->reservation_action);
 
         $reservation = Reservation::create([
+            'company_id' => $companyId,
             'reservation_number' => Reservation::generateReservationNumber(),
-            'property_id' => $propertyId,
+            'branch_id' => $branchId,
             'guest_id' => $request->guest_id ?? null,
             'corporate_id' => $request->corporate_id ?? null,
             'unit_id' => $request->unit_id,
@@ -597,6 +601,8 @@ class ReservationController extends Controller
 
         // Create invoice for the reservation
         $invoice = Invoice::create([
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
             'reservation_id' => $reservation->id,
             'invoice_number' => Invoice::generateInvoiceNumber(),
             'issue_date' => now()->toDateString(),
@@ -623,6 +629,7 @@ class ReservationController extends Controller
 
         // Room charges
         InvoiceItem::create([
+            'company_id' => $companyId,
             'invoice_id' => $invoice->id,
             'description' => 'Room Charges ('.$nights.' night'.($nights > 1 ? 's' : '').')',
             'quantity' => $nights,
@@ -633,6 +640,7 @@ class ReservationController extends Controller
         // Add discount if any
         if (($request->discount ?? 0) > 0) {
             InvoiceItem::create([
+                'company_id' => $companyId,
                 'invoice_id' => $invoice->id,
                 'description' => 'Discount',
                 'quantity' => 1,
@@ -644,6 +652,7 @@ class ReservationController extends Controller
         // Add taxes/fees
         if (($request->total_taxes_fees ?? 0) > 0) {
             InvoiceItem::create([
+                'company_id' => $companyId,
                 'invoice_id' => $invoice->id,
                 'description' => 'Taxes & Fees',
                 'quantity' => 1,
@@ -655,6 +664,7 @@ class ReservationController extends Controller
         // Add security deposit if any
         if (($request->security_deposit ?? 0) > 0) {
             InvoiceItem::create([
+                'company_id' => $companyId,
                 'invoice_id' => $invoice->id,
                 'description' => 'Security Deposit (Refundable)',
                 'quantity' => 1,
@@ -666,6 +676,8 @@ class ReservationController extends Controller
         // Create receipt voucher if there's any payment
         if (($request->paid_amount ?? 0) > 0) {
             $receiptVoucher = ReceiptVoucher::create([
+                'company_id' => $companyId,
+                'branch_id' => $branchId,
                 'reservation_id' => $reservation->id,
                 'guest_id' => $request->guest_id ?? null,
                 'corporate_id' => $request->corporate_id ?? null,
@@ -1083,14 +1095,17 @@ class ReservationController extends Controller
 
         $user = $request->user();
 
-        if ($user && ! $user->canAccessProperty((int) $reservation->property_id)) {
+        $property = Property::query()
+            ->where('branch_id', $reservation->branch_id)
+            ->first();
+
+        if ($user && (! $property || ! $user->canAccessProperty((int) $property->id))) {
             abort(404);
         }
 
-        $property = Property::query()->find($reservation->property_id);
-
         if ($property && app(PropertyContext::class)->id() !== $property->id) {
-            $request->session()->put('property_id', $property->id);
+            $request->session()->put('current_property_id', $property->id);
+            $request->session()->forget('property_id');
             app(PropertyContext::class)->setProperty($property);
         }
 
@@ -1124,22 +1139,22 @@ class ReservationController extends Controller
         }
     }
 
-    protected function guestSelectionRules(int $propertyId): array
+    protected function guestSelectionRules(int $branchId): array
     {
         return [
             'guest_id' => [
                 'nullable',
-                Rule::exists('guests', 'id')->where(fn ($query) => $query->where('property_id', $propertyId)),
+                Rule::exists('guests', 'id')->where(fn ($query) => $query->where('branch_id', $branchId)),
             ],
             'corporate_id' => [
                 'nullable',
-                Rule::exists('corporates', 'id')->where(fn ($query) => $query->where('property_id', $propertyId)),
+                Rule::exists('corporates', 'id')->where(fn ($query) => $query->where('branch_id', $branchId)),
             ],
             'occupants' => ['nullable', 'array'],
             'occupants.*.guest_id' => [
                 'nullable',
                 'distinct',
-                Rule::exists('guests', 'id')->where(fn ($query) => $query->where('property_id', $propertyId)),
+                Rule::exists('guests', 'id')->where(fn ($query) => $query->where('branch_id', $branchId)),
             ],
             'occupants.*.relationship' => 'nullable|string|max:50',
         ];
@@ -1297,8 +1312,8 @@ class ReservationController extends Controller
 
         if ($primaryGuestId) {
             $syncPayload[$primaryGuestId] = [
-                'tenant_id' => $reservation->tenant_id,
-                'property_id' => $reservation->property_id,
+                'company_id' => $reservation->company_id,
+                'branch_id' => $reservation->branch_id,
                 'is_primary' => true,
                 'relationship' => 'primary',
                 ...$this->resolveOccupantStatuses(
@@ -1319,8 +1334,8 @@ class ReservationController extends Controller
             $existingRecord = $existingRecords->get($guestId);
 
             $syncPayload[$guestId] = [
-                'tenant_id' => $reservation->tenant_id,
-                'property_id' => $reservation->property_id,
+                'company_id' => $reservation->company_id,
+                'branch_id' => $reservation->branch_id,
                 'is_primary' => false,
                 'relationship' => $occupant['relationship']
                     ?? $existingRecord?->relationship

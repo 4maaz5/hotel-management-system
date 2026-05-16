@@ -126,7 +126,15 @@ class ReservationBookingService
             ];
         }
 
+        if ($session->branch_id && (int) $unit->branch_id !== (int) $session->branch_id) {
+            return [
+                'status' => 'failed',
+                'message' => 'The selected unit is not available for this branch.',
+            ];
+        }
+
         $stillAvailable = Reservation::query()
+            ->when($session->branch_id, fn ($query) => $query->where('branch_id', $session->branch_id))
             ->where('unit_id', $unit->id)
             ->whereNotIn('status', ['cancelled', 'checked_out', 'no_show'])
             ->where('check_in_date', '<', $proposal['check_out_date'])
@@ -142,7 +150,7 @@ class ReservationBookingService
             ];
         }
 
-        $guest = $this->findOrCreateGuest($proposal);
+        $guest = $this->findOrCreateGuest($session, $proposal);
         $settings = ReservationSetting::getSettings();
         $quote = $proposal['quote'];
         $isWebsiteGuest = $this->isWebsiteGuestSession($session);
@@ -196,8 +204,9 @@ class ReservationBookingService
     ): Reservation {
         return DB::transaction(function () use ($session, $guest, $settings, $proposal, $quote) {
             $reservation = Reservation::create([
+                'company_id' => $session->company_id,
                 'reservation_number' => Reservation::generateReservationNumber(),
-                'property_id' => $session->property_id,
+                'branch_id' => $session->branch_id,
                 'guest_id' => $guest->id,
                 'unit_id' => $proposal['unit_id'],
                 'check_in_date' => $proposal['check_in_date'],
@@ -225,6 +234,14 @@ class ReservationBookingService
                 'created_by' => $session->user_id,
             ]);
 
+            $reservation->reservationGuests()->create([
+                'company_id' => $session->company_id,
+                'branch_id' => $session->branch_id,
+                'guest_id' => $guest->id,
+                'is_primary' => true,
+                'relationship' => 'primary',
+            ]);
+
             $this->createInvoice($reservation, $proposal, $quote);
 
             return $reservation;
@@ -240,8 +257,9 @@ class ReservationBookingService
     ): Reservation {
         return DB::transaction(function () use ($session, $guest, $settings, $proposal, $quote) {
             $reservation = Reservation::create([
+                'company_id' => $session->company_id,
                 'reservation_number' => Reservation::generateReservationNumber(),
-                'property_id' => $session->property_id,
+                'branch_id' => $session->branch_id,
                 'guest_id' => $guest->id,
                 'unit_id' => $proposal['unit_id'],
                 'source_id' => $this->websiteSourceId(),
@@ -269,6 +287,14 @@ class ReservationBookingService
                 'notes' => $proposal['notes'] ?: null,
             ]);
 
+            $reservation->reservationGuests()->create([
+                'company_id' => $session->company_id,
+                'branch_id' => $session->branch_id,
+                'guest_id' => $guest->id,
+                'is_primary' => true,
+                'relationship' => 'primary',
+            ]);
+
             $this->createInvoice($reservation, $proposal, $quote);
 
             return $reservation;
@@ -278,6 +304,8 @@ class ReservationBookingService
     private function createInvoice(Reservation $reservation, array $proposal, array $quote): void
     {
         $invoice = Invoice::create([
+            'company_id' => $reservation->company_id,
+            'branch_id' => $reservation->branch_id,
             'reservation_id' => $reservation->id,
             'invoice_number' => Invoice::generateInvoiceNumber(),
             'issue_date' => now()->toDateString(),
@@ -296,6 +324,7 @@ class ReservationBookingService
         ]);
 
         InvoiceItem::create([
+            'company_id' => $reservation->company_id,
             'invoice_id' => $invoice->id,
             'description' => 'Room Charges ('.$quote['nights'].' night'.($quote['nights'] > 1 ? 's' : '').')',
             'quantity' => $quote['nights'],
@@ -305,6 +334,7 @@ class ReservationBookingService
 
         if ((float) $quote['total_taxes_fees'] > 0) {
             InvoiceItem::create([
+                'company_id' => $reservation->company_id,
                 'invoice_id' => $invoice->id,
                 'description' => 'Taxes & Fees',
                 'quantity' => 1,
@@ -335,12 +365,14 @@ class ReservationBookingService
             && data_get($session->context ?? [], 'channel') === 'website';
     }
 
-    private function findOrCreateGuest(array $proposal): Guest
+    private function findOrCreateGuest(ChatSession $session, array $proposal): Guest
     {
         [$dialCode, $mobileNumber] = $this->splitPhone($proposal['phone']);
         [$firstName, $secondName, $lastName] = $this->splitName($proposal['guest_name']);
 
         $guest = Guest::query()
+            ->when($session->company_id, fn ($query) => $query->where('company_id', $session->company_id))
+            ->when($session->branch_id, fn ($query) => $query->where('branch_id', $session->branch_id))
             ->where('mobile_number', $mobileNumber)
             ->when($dialCode, fn ($query) => $query->where('mobile_dial_code', $dialCode))
             ->first();
@@ -358,6 +390,8 @@ class ReservationBookingService
         }
 
         return Guest::create([
+            'company_id' => $session->company_id,
+            'branch_id' => $session->branch_id,
             'first_name' => $firstName,
             'second_name' => $secondName ?: null,
             'last_name' => $lastName,

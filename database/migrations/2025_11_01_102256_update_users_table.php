@@ -9,8 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Add role column
-            $table->enum('role', ['super_admin', 'manager', 'employee'])->default('employee')->after('password');
+            $table->string('role')->default('employee')->after('password');
             $table->unsignedBigInteger('branch_id')->nullable()->after('role');
             $table->foreign('branch_id')->references('id')->on('branches')->onDelete('set null');
         });

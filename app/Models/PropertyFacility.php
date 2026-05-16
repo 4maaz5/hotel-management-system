@@ -12,7 +12,7 @@ class PropertyFacility extends Model
     use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'facility_category_id',
         'facility_id',
         'description',

@@ -5,10 +5,9 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Tenant extends Model
+class Tenant extends Company
 {
     use HasFactory;
 

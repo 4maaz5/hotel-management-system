@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Finance;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\AdministrativeExpense;
 use App\Models\Branch;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         $user = auth()->user();
@@ -85,37 +88,37 @@ class DashboardController extends Controller
             $transactions = Transaction::where('branch_id', $branchId)->get();
             $transactionCards = Transaction::where('branch_id', $branchId)->paginate(10);
         } else {
-            // Owner (no branch_id): TenantScope auto-scopes BelongsToTenant models
-            // Non-tenant models (AdministrativeExpense, Income, Payroll via Employee) without branch filter
-            $totalExpenses = AdministrativeExpense::sum('amount');
-            $payrollCost = Payroll::whereHas('employee', fn ($q) => $q)->sum('net_pay');
+            $branchIds = Branch::where('company_id', $user->company_id)->pluck('id');
 
-            $pendingTransactions = Payroll::whereHas('employee', fn ($q) => $q)
+            $totalExpenses = AdministrativeExpense::whereIn('branch_id', $branchIds)->sum('amount');
+            $payrollCost = Payroll::whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))->sum('net_pay');
+
+            $pendingTransactions = Payroll::whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
                 ->where('status', 'pending')->count();
 
-            $paidTransactions = Payroll::whereHas('employee', fn ($q) => $q)
+            $paidTransactions = Payroll::whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
                 ->where('status', 'paid')->count();
 
-            $pendingPayroll = Payroll::whereHas('employee', fn ($q) => $q)
+            $pendingPayroll = Payroll::whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
                 ->where('status', 'pending')->sum('net_pay');
 
-            $totalIncome = Income::sum('amount');
+            $totalIncome = Income::whereIn('branch_id', $branchIds)->sum('amount');
 
-            $monthlySalary = Payroll::whereHas('employee', fn ($q) => $q)
+            $monthlySalary = Payroll::whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->sum('net_pay');
 
-            $totalPayroll = Payroll::whereHas('employee', fn ($q) => $q)
+            $totalPayroll = Payroll::whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
                 ->sum('net_pay');
 
             $payrollPercentage = $totalPayroll > 0
                 ? round(($monthlySalary / $totalPayroll) * 100, 2)
                 : 0;
 
-            $branches = Branch::all();
-            $transactions = Transaction::all();
-            $transactionCards = Transaction::paginate(10);
+            $branches = Branch::whereIn('id', $branchIds)->get();
+            $transactions = Transaction::whereIn('branch_id', $branchIds)->get();
+            $transactionCards = Transaction::whereIn('branch_id', $branchIds)->paginate(10);
         }
 
         return view('Admin.Backend.Finance.dashboard', compact(
@@ -142,7 +145,7 @@ class DashboardController extends Controller
         $branches = collect(); // default empty
         $brands = collect();   // default empty
 
-        if ($selectedCompany) {
+        if ($selectedCompany && ($user->isSuperAdmin() || (int) $selectedCompany === (int) $user->company_id)) {
             $company = Company::with(['branches', 'brands'])->find($selectedCompany);
 
             if ($company) {
@@ -185,14 +188,13 @@ class DashboardController extends Controller
 
         } else {
             // Owner (no branch_id): show all company data
-            $totalIncome = Income::sum('amount');
-            $totalExpenses = AdministrativeExpense::sum('amount');
-            $payrollCost = Payroll::whereHas('employee', function ($q) {
-                // TenantScope auto-scopes Employee by company_id
-            })->sum('net_pay');
-            $pendingTransactions = Payroll::whereHas('employee', function ($q) {
-                // TenantScope auto-scopes Employee by company_id
-            })->where('status', 'pending')->count();
+            $branchIds = Branch::where('company_id', $user->company_id)->pluck('id');
+            $totalIncome = Income::whereIn('branch_id', $branchIds)->sum('amount');
+            $totalExpenses = AdministrativeExpense::whereIn('branch_id', $branchIds)->sum('amount');
+            $payrollCost = Payroll::whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))->sum('net_pay');
+            $pendingTransactions = Payroll::whereHas('employee', fn ($q) => $q->where('company_id', $user->company_id))
+                ->where('status', 'pending')
+                ->count();
         }
 
         return view('Admin.Backend.Finance.report', compact(
@@ -210,6 +212,7 @@ class DashboardController extends Controller
     public function branchFinanceData(Request $request)
     {
         $branchId = $request->branch_id;
+        abort_unless($this->userCanAccessBranch((int) $branchId, $request->user()), 403);
         $brandId = $request->brand_id ?? null;
         $month = \Carbon\Carbon::parse($request->month)->format('Y-m');
 
@@ -240,6 +243,9 @@ class DashboardController extends Controller
     {
         $branchId = $request->branch_id;
         $companyId = $request->company_id;
+        abort_unless($this->userCanAccessBranch((int) $branchId, $request->user()), 403);
+        abort_unless($request->user()->isSuperAdmin() || (int) $companyId === (int) $request->user()->company_id, 403);
+
         $company = Company::find($companyId);
 
         $employees = Employee::with('payroll')

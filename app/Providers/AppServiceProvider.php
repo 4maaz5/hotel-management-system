@@ -28,8 +28,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(TenantContext::class);
-        $this->app->singleton(PropertyContext::class);
+        $this->app->scoped(TenantContext::class);
+        $this->app->scoped(PropertyContext::class);
     }
 
     /**
@@ -53,11 +53,39 @@ class AppServiceProvider extends ServiceProvider
         // Listen to login event — check expiring documents
         Event::listen(Login::class, function ($event) {
             $today = Carbon::today();
+            $user = $event->user;
 
             $checker = new CheckExpiringDocuments;
 
-            $checker->checkDocuments(EmployeeDocument::all(), $today, 'Employee Document');
-            $checker->checkDocuments(CompanyDocument::all(), $today, 'Company Document');
+            $employeeDocuments = EmployeeDocument::with('employee')
+                ->whereHas('employee', function ($query) use ($user) {
+                    if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+                        return;
+                    }
+
+                    if ($user->branch_id) {
+                        $query->where('branch_id', $user->branch_id);
+                    } else {
+                        $query->where('company_id', $user->company_id);
+                    }
+                })
+                ->get();
+
+            $companyDocuments = CompanyDocument::query()
+                ->when(! (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()), function ($query) use ($user) {
+                    $query->where('company_id', $user->company_id);
+
+                    if ($user->branch_id) {
+                        $query->where(function ($branchQuery) use ($user) {
+                            $branchQuery->whereNull('branch_id')
+                                ->orWhere('branch_id', $user->branch_id);
+                        });
+                    }
+                })
+                ->get();
+
+            $checker->checkDocuments($employeeDocuments, $today, 'Employee Document');
+            $checker->checkDocuments($companyDocuments, $today, 'Company Document');
         });
 
         // View composers

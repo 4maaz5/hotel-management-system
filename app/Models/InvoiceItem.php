@@ -10,6 +10,7 @@ class InvoiceItem extends Model
     use BelongsToTenant;
 
     protected $fillable = [
+        'company_id',
         'invoice_id',
         'description',
         'quantity',

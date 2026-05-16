@@ -10,7 +10,7 @@ class DateTimeSetting extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'date_format',
         'time_format',
         'timezone',

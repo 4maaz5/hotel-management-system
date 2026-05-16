@@ -2,18 +2,23 @@
 
 namespace App\Http\Controllers\Units;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\SeasonalRate;
 use App\Models\SeasonalUnitTypeRate;
 use App\Models\Unit;
 use App\Models\UnitCustomRate;
 use App\Models\UnitTypeCustomization;
+use App\Support\PropertyContext;
 use App\Support\UserActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class SeasonalRateController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index(Request $request)
     {
         $query = SeasonalRate::query();
@@ -99,7 +104,6 @@ class SeasonalRateController extends Controller
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
             ]);
-            // dd($request->rates);
 
             foreach ($request->rates as $rate) {
 
@@ -237,11 +241,17 @@ class SeasonalRateController extends Controller
     {
         $request->validate([
             'unit_type_id' => 'required|exists:unit_types,id',
-            'unit_id' => 'required|exists:units,id',
+            'unit_id' => [
+                'required',
+                Rule::exists('units', 'id')->where(fn ($query) => $this->scopeUnitsForRequest($query, $request)),
+            ],
             'low_weekday_rate' => 'nullable|numeric|min:0',
             'high_weekday_rate' => 'nullable|numeric|min:0',
             'daily_min_rate' => 'nullable|numeric|min:0',
         ]);
+
+        $unit = $this->scopeUnitsForRequest(Unit::query(), $request)->findOrFail($request->integer('unit_id'));
+        abort_unless((int) $unit->unit_type_id === (int) $request->unit_type_id, 422);
 
         UnitCustomRate::create([
             'unit_id' => $request->unit_id,
@@ -280,5 +290,38 @@ class SeasonalRateController extends Controller
                 ],
             ])->all(),
         ];
+    }
+
+    private function scopeUnitsForRequest($query, Request $request)
+    {
+        $user = $request->user();
+
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        $branchId = $this->currentBranchId($request);
+
+        $query->where('company_id', $user->company_id);
+
+        return $branchId ? $query->where('branch_id', $branchId) : $query;
+    }
+
+    private function currentBranchId(Request $request): ?int
+    {
+        $user = $request->user();
+
+        if ($user?->branch_id) {
+            return (int) $user->branch_id;
+        }
+
+        $sessionBranchId = $request->session()->get('branch_id');
+        if ($sessionBranchId) {
+            return (int) $sessionBranchId;
+        }
+
+        $property = app(PropertyContext::class)->property();
+
+        return $property?->branch_id ? (int) $property->branch_id : null;
     }
 }

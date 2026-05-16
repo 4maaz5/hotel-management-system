@@ -357,7 +357,6 @@
                     $('#tableExport tbody').html(res.html); // Replace table rows
                 },
                 error: function(err) {
-                    console.log(err);
                 }
             });
         });

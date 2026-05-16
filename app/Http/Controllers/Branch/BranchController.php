@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Branch;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Brand;
@@ -10,9 +11,12 @@ use App\Models\CompanyDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class BranchController extends Controller
 {
+    use ScopesTenantAccess;
+
     /**
      * Display a listing of the resource.
      */
@@ -41,9 +45,9 @@ class BranchController extends Controller
                 $q->where('id', $user->branch_id);
             })->get();
         } else {
-            $branches = Branch::with('documents')->get();
-            $branchesCards = Branch::paginate(10);
-            $brands = Brand::all();
+            $branches = Branch::with('documents')->where('company_id', $user->company_id)->get();
+            $branchesCards = Branch::where('company_id', $user->company_id)->paginate(10);
+            $brands = Brand::where('company_id', $user->company_id)->get();
             $companies = $user->company_id
                 ? Company::whereKey($user->company_id)->get()
                 : collect();
@@ -74,8 +78,16 @@ class BranchController extends Controller
         $validated = $request->validate([
             // existing branch rules ...
             'branch_name' => 'required|string|max:255|unique:branches,name',
-            'brand_id' => 'required',
-            'company_id' => 'required',
+            'brand_id' => [
+                'required',
+                Rule::exists('brands', 'id')->where(fn ($query) => $this->scopeBrandsForUser($query, Auth::user())),
+            ],
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin(Auth::user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', Auth::user()->company_id)),
+            ],
             'branch_address' => 'required|string|max:255',
             'branch_manager' => 'required|string|max:255',
             'branch_email' => 'required|email|unique:branches,email',
@@ -110,6 +122,10 @@ class BranchController extends Controller
         ]);
 
         // Create branch
+        if (! Auth::user()->isSuperAdmin()) {
+            $validated['company_id'] = Auth::user()->company_id;
+        }
+
         $branch = new Branch;
         $branch->name = $validated['branch_name'];
         $branch->brand_id = $validated['brand_id'];
@@ -235,7 +251,6 @@ class BranchController extends Controller
      */
     public function update(Request $request)
     {
-        // dd($request->all());
         try {
             //  Validation - UPDATED FIELD NAMES
             $validated = $request->validate([
@@ -275,7 +290,7 @@ class BranchController extends Controller
             ]);
 
             //  Find the branch
-            $branch = Branch::findOrFail($request->branchId);
+            $branch = $this->scopeBranchesForUser(Branch::query(), Auth::user())->findOrFail($request->branchId);
 
             //  Update all fields
             $branch->update([
@@ -393,7 +408,7 @@ class BranchController extends Controller
      */
     public function destroy(Request $request)
     {
-        $branch = Branch::find($request->branchId);
+        $branch = $this->scopeBranchesForUser(Branch::query(), Auth::user())->find($request->branchId);
 
         if (! $branch) {
             return response()->json([
@@ -427,7 +442,7 @@ class BranchController extends Controller
 
     public function filter(Request $request)
     {
-        $query = Branch::query();
+        $query = $this->scopeBranchesForUser(Branch::query(), $request->user());
 
         if ($request->filled('name')) {
             $query->where('name', 'like', '%'.$request->name.'%');
@@ -458,7 +473,7 @@ class BranchController extends Controller
     public function getDocuments($id)
     {
         try {
-            $branch = Branch::with('documents')->findOrFail($id);
+            $branch = $this->scopeBranchesForUser(Branch::with('documents'), Auth::user())->findOrFail($id);
 
             return response()->json([
                 'success' => true,
@@ -475,5 +490,14 @@ class BranchController extends Controller
                 'message' => 'Error loading documents',
             ], 500);
         }
+    }
+
+    private function scopeBrandsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->where('company_id', $user->company_id);
     }
 }

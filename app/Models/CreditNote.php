@@ -12,7 +12,8 @@ class CreditNote extends Model
     use BelongsToStaffCurrentProperty, BelongsToTenant;
 
     protected $fillable = [
-        'property_id',
+        'company_id',
+        'branch_id',
         'credit_note_number',
         'invoice_type',
         'reservation_id',
@@ -62,7 +63,7 @@ class CreditNote extends Model
 
     public function property()
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 
     public static function generateCreditNoteNumber()

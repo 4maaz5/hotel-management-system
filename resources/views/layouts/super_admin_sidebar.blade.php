@@ -1,3 +1,7 @@
+@php
+    $supportUnreadCount = app(\App\Support\SupportTicketUnreadCounter::class)->forSuperAdmin();
+@endphp
+
 <aside class="super-admin-sidebar" id="superAdminSidebar">
     <div class="super-admin-brand">
         <div class="super-admin-brand__logo">SA</div>
@@ -31,6 +35,11 @@
         <a href="{{ route('super-admin.support.index') }}" class="{{ request()->routeIs('super-admin.support.*') ? 'is-active' : '' }}">
             <i class="fas fa-headset"></i>
             <span>Support</span>
+            @if($supportUnreadCount > 0)
+                <span class="support-unread-count badge bg-danger rounded-pill ms-auto" data-support-unread-count="{{ $supportUnreadCount }}">
+                    {{ $supportUnreadCount }}
+                </span>
+            @endif
         </a>
 
         <a href="{{ route('super-admin.activity.index') }}" class="{{ request()->routeIs('super-admin.activity.*') ? 'is-active' : '' }}">

@@ -29,6 +29,6 @@ class PublicEntryController extends Controller
             return redirect()->route('app.home');
         }
 
-        return redirect()->route('login');
+        return view('public-entry');
     }
 }

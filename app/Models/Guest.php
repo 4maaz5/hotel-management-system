@@ -14,7 +14,6 @@ class Guest extends Model
     protected $fillable = [
         'company_id',
         'branch_id',
-        'property_id',
         'first_name',
         'second_name',
         'middle_name',
@@ -56,7 +55,7 @@ class Guest extends Model
 
     public function property()
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 
     public function reservations()
@@ -73,8 +72,8 @@ class Guest extends Model
     {
         return $this->belongsToMany(Reservation::class, 'reservation_guests')
             ->withPivot([
-                'tenant_id',
-                'property_id',
+                'company_id',
+                'branch_id',
                 'is_primary',
                 'relationship',
                 'check_in_status',

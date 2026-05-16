@@ -28,6 +28,11 @@ class SubscriptionPlan extends Model
         return $query->where('is_active', true);
     }
 
+    public function tenants()
+    {
+        return $this->hasMany(Tenant::class, 'subscription_plan_id');
+    }
+
     public function hasFeature(string $feature): bool
     {
         return in_array($feature, $this->features ?? []);
@@ -46,17 +51,6 @@ class SubscriptionPlan extends Model
     public function featureList(): array
     {
         return [
-            'multi_property' => 'Multi-Property Management',
-            'hr_module' => 'HR Module (Employees, Attendance, Payroll)',
-            'sms_notifications' => 'SMS Notifications',
-            'channel_manager' => 'Channel Manager (Booking.com, etc.)',
-            'reports_analytics' => 'Reports & Analytics',
-            'ai_chatbot' => 'AI Chatbot',
-            'booking_engine' => 'Website Booking Engine',
-            'housekeeping' => 'Housekeeping Module',
-            'outlet_pos' => 'Outlet / POS Management',
-            'invoicing' => 'Invoice & Voucher Management',
-            'api_access' => 'API Access',
             'custom_branding' => 'Custom Branding (White-label)',
         ];
     }

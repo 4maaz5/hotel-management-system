@@ -339,11 +339,21 @@ class BookingEngineController extends Controller
                     throw new \RuntimeException($availabilityChangedMessage);
                 }
 
-                $guest = $this->findOrCreateGuest($validated['full_name'], $validated['phone'], $validated['email'] ?? null);
+                $companyId = $property?->company_id;
+                $branchId = $property?->branch_id;
+
+                $guest = $this->findOrCreateGuest(
+                    $validated['full_name'],
+                    $validated['phone'],
+                    $validated['email'] ?? null,
+                    $companyId,
+                    $branchId
+                );
 
                 $reservation = Reservation::create([
+                    'company_id' => $companyId,
                     'reservation_number' => Reservation::generateReservationNumber(),
-                    'property_id' => $property?->id,
+                    'branch_id' => $branchId,
                     'guest_id' => $guest->id,
                     'unit_id' => $lockedUnit->id,
                     'source_id' => $this->websiteSourceId(),
@@ -373,7 +383,17 @@ class BookingEngineController extends Controller
                     'notes' => $validated['notes'] ?? null,
                 ]);
 
+                $reservation->reservationGuests()->create([
+                    'company_id' => $companyId,
+                    'branch_id' => $branchId,
+                    'guest_id' => $guest->id,
+                    'is_primary' => true,
+                    'relationship' => 'primary',
+                ]);
+
                 $invoice = Invoice::create([
+                    'company_id' => $companyId,
+                    'branch_id' => $branchId,
                     'reservation_id' => $reservation->id,
                     'invoice_number' => Invoice::generateInvoiceNumber(),
                     'issue_date' => now()->toDateString(),
@@ -392,6 +412,7 @@ class BookingEngineController extends Controller
                 ]);
 
                 InvoiceItem::create([
+                    'company_id' => $companyId,
                     'invoice_id' => $invoice->id,
                     'description' => 'Unit Charges ('.$quote['nights'].' night'.($quote['nights'] > 1 ? 's' : '').')',
                     'quantity' => $quote['nights'],
@@ -401,6 +422,7 @@ class BookingEngineController extends Controller
 
                 foreach ($quote['tax_breakdown'] as $taxItem) {
                     InvoiceItem::create([
+                        'company_id' => $companyId,
                         'invoice_id' => $invoice->id,
                         'description' => $taxItem['name'],
                         'quantity' => 1,
@@ -915,7 +937,7 @@ class BookingEngineController extends Controller
             $property = $this->property();
 
             $this->bookedUnitIdsCache[$cacheKey] = Reservation::query()
-                ->when($property, fn ($query) => $query->where('property_id', $property->id))
+                ->when($property, fn ($query) => $query->where('branch_id', $property->branch_id))
                 ->whereNotIn('status', ['cancelled', 'checked_out', 'no_show'])
                 ->where('check_in_date', '<', $checkOut->toDateString())
                 ->where('check_out_date', '>', $checkIn->toDateString())
@@ -1223,12 +1245,20 @@ class BookingEngineController extends Controller
         ];
     }
 
-    private function findOrCreateGuest(string $fullName, string $phone, ?string $email = null): Guest
+    private function findOrCreateGuest(
+        string $fullName,
+        string $phone,
+        ?string $email = null,
+        ?int $companyId = null,
+        ?int $branchId = null
+    ): Guest
     {
         [$dialCode, $mobileNumber] = $this->splitPhone($phone);
         [$firstName, $secondName, $lastName] = $this->splitName($fullName);
 
         $guest = Guest::query()
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->where('mobile_number', $mobileNumber)
             ->when($dialCode, fn ($query) => $query->where('mobile_dial_code', $dialCode))
             ->first();
@@ -1247,6 +1277,8 @@ class BookingEngineController extends Controller
         }
 
         return Guest::create([
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
             'first_name' => $firstName,
             'second_name' => $secondName ?: null,
             'last_name' => $lastName,

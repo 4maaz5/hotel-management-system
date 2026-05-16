@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'super.admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
             'current.property' => \App\Http\Middleware\SetCurrentProperty::class,
             'mobile.auth' => \App\Http\Middleware\AuthenticateMobileApi::class,
+            'chatify.api.tenant' => \App\Http\Middleware\EnsureChatifyApiTenantAccess::class,
             'booking.tenant' => \App\Http\Middleware\ResolveBookingTenant::class,
         ]);
         $middleware->web([

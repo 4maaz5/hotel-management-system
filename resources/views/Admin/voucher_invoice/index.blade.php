@@ -312,7 +312,7 @@
             <ul class="dropdown-menu">
                 @can('invoice.print')
                    <li>
-                    <a class="dropdown-item" href="#" onclick="printInvoice({{ $invoice->id }})">
+                    <a class="dropdown-item" href="javascript:void(0)" onclick="printInvoice({{ $invoice->id }})">
                         <i class="fas fa-print me-2"></i> {{__('dashboard.print')}}
                     </a>
                 </li>
@@ -320,7 +320,7 @@
 
 @can('invoice.edit')
     <li>
-                    <a class="dropdown-item" href="#" onclick="editInvoice({{ $invoice->id }})">
+                    <a class="dropdown-item" href="javascript:void(0)" onclick="editInvoice({{ $invoice->id }})">
                         <i class="fas fa-edit me-2"></i> {{__('dashboard.edit')}}
                     </a>
                 </li>
@@ -328,7 +328,7 @@
 
 @can('invoice.email')
       <li>
-                    <a class="dropdown-item" href="#" onclick="sendInvoice({{ $invoice->id }})">
+                    <a class="dropdown-item" href="javascript:void(0)" onclick="sendInvoice({{ $invoice->id }})">
                         <i class="fas fa-envelope me-2"></i> {{__('dashboard.send_email')}}
                     </a>
                 </li>
@@ -457,11 +457,34 @@
             }
         });
 
-        const invoiceBaseUrl = @json(url('/app/dashboard/vouchers-invoice'));
+        const invoiceShowUrlTemplate = @json(route('dashboard.invoice.show', ['id' => '__INVOICE__']));
+        const invoicePrintUrlTemplate = @json(route('dashboard.invoice.print', ['id' => '__INVOICE__']));
+        const invoiceUpdateUrlTemplate = @json(route('dashboard.invoice.update', ['id' => '__INVOICE__']));
+        const invoiceSendUrlTemplate = @json(route('dashboard.invoice.send', ['id' => '__INVOICE__']));
+
+        function invoiceUrl(template, id) {
+            return template.replace('__INVOICE__', encodeURIComponent(id));
+        }
+
+        function requestJson(url, options = {}) {
+            return fetch(url, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(options.headers || {}),
+                },
+                ...options,
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error(`Request failed (${response.status})`);
+                }
+
+                return response.json();
+            });
+        }
 
         function viewInvoice(id) {
-            fetch(`${invoiceBaseUrl}/${id}`)
-                .then(response => response.json())
+            requestJson(invoiceUrl(invoiceShowUrlTemplate, id))
                 .then(data => {
                     const invoice = data.invoice;
                     let html = `
@@ -574,7 +597,7 @@
         }
 
         function printInvoice(id) {
-            const printUrl = `${invoiceBaseUrl}/${id}/print`;
+            const printUrl = invoiceUrl(invoicePrintUrlTemplate, id);
             document.getElementById('printIframe').src = printUrl;
             var modal = new bootstrap.Modal(document.getElementById('printModal'));
             modal.show();
@@ -599,7 +622,6 @@
                     }, 500);
                 }
             } catch(e) {
-                console.log('Error:', e);
             }
         }
 
@@ -611,8 +633,7 @@
         }
 
         function editInvoice(id) {
-            fetch(`${invoiceBaseUrl}/${id}`)
-                .then(response => response.json())
+            requestJson(invoiceUrl(invoiceShowUrlTemplate, id))
                 .then(data => {
                     const invoice = data.invoice;
 
@@ -634,7 +655,7 @@
                 status: document.getElementById('editInvoiceStatus').value,
             };
 
-            fetch(`${invoiceBaseUrl}/${id}`, {
+            requestJson(invoiceUrl(invoiceUpdateUrlTemplate, id), {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -642,7 +663,6 @@
                 },
                 body: JSON.stringify(formData)
             })
-            .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     var modal = bootstrap.Modal.getInstance(document.getElementById('editInvoiceModal'));
@@ -661,8 +681,7 @@
 
         function sendInvoice(id) {
             // First get the invoice to get guest or corporate email
-            fetch(`${invoiceBaseUrl}/${id}`)
-                .then(response => response.json())
+            requestJson(invoiceUrl(invoiceShowUrlTemplate, id))
                 .then(data => {
                     const invoice = data.invoice;
 
@@ -688,19 +707,13 @@
         }
 
         function sendEmailRequest(id, email) {
-            fetch(`${invoiceBaseUrl}/${id}/send`, {
+            requestJson(invoiceUrl(invoiceSendUrlTemplate, id), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
                 body: JSON.stringify({ email: email })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
             })
             .then(data => {
                 if (data.success) {
