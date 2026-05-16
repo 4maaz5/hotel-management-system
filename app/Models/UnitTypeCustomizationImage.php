@@ -11,7 +11,7 @@ class UnitTypeCustomizationImage extends Model
     use BelongsToTenant, HasFactory;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'type_customization_id',
         'image_path',
         'is_primary',

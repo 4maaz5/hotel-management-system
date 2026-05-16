@@ -12,8 +12,8 @@ class NtmpSetting extends Model
     use BelongsToCurrentProperty, BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
-        'property_id',
+        'company_id',
+        'branch_id',
         'enabled',
         'mode',
         'driver',
@@ -39,12 +39,12 @@ class NtmpSetting extends Model
 
     public static function current(): self
     {
-        $propertyId = app(PropertyContext::class)->id();
+        $branchId = app(PropertyContext::class)->branchId();
 
-        abort_unless($propertyId, 422, 'Please select or create a branch first.');
+        abort_unless($branchId, 422, 'Please select or create a branch first.');
 
         return static::firstOrCreate(
-            ['property_id' => $propertyId],
+            ['branch_id' => $branchId],
             [
                 'enabled' => false,
                 'mode' => config('services.ntmp.default_mode', 'simulation'),

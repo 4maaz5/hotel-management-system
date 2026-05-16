@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers\Finance;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\AdministrativeExpense;
 use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class ExpenseController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         $user = Auth::user();
@@ -43,7 +47,10 @@ class ExpenseController extends Controller
             'invoice_number.*' => 'required|numeric',
             'name.*' => 'required|string|max:255',
             'item_quantity.*' => 'required|numeric',
-            'branch_id.*' => 'required|exists:branches,id',
+            'branch_id.*' => [
+                'required',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
             'amount.*' => 'required|numeric',
             'purchase_date.*' => 'required|date',
             'file.*' => 'nullable|file|mimes:jpg,png,pdf,docx',
@@ -68,7 +75,7 @@ class ExpenseController extends Controller
                 'item_name' => $request->name[$index],
                 'amount' => $request->amount[$index],
                 'expense_date' => $request->purchase_date[$index],
-                'description' => $request->description[$index],
+                'description' => $request->description[$index] ?? null,
                 'file' => $fileName,
                 'created_by' => $user,
             ]);
@@ -86,14 +93,18 @@ class ExpenseController extends Controller
         $request->validate([
             'id' => 'required|exists:administrative_expenses,id',
             'item_name' => 'required|string|max:255',
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => [
+                'required',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
             'amount' => 'required|numeric',
             'expense_date' => 'required|date',
             'description' => 'nullable|string',
         ]);
 
         // Find the expense
-        $expense = \App\Models\AdministrativeExpense::findOrFail($request->id);
+        $expense = $this->scopeExpensesForUser(AdministrativeExpense::query(), $request->user())
+            ->findOrFail($request->id);
 
         // Update fields
         $expense->item_name = $request->item_name;
@@ -126,7 +137,8 @@ class ExpenseController extends Controller
 
     public function destroy($id)
     {
-        $expense = AdministrativeExpense::find($id);
+        $expense = $this->scopeExpensesForUser(AdministrativeExpense::query(), Auth::user())
+            ->find($id);
 
         if (! $expense) {
             return response()->json([
@@ -193,7 +205,7 @@ class ExpenseController extends Controller
     {
         $user = Auth::user();
 
-        $query = AdministrativeExpense::with('branch');
+        $query = $this->scopeExpensesForUser(AdministrativeExpense::with('branch'), $user);
 
         if ($user->hasRole('super_admin')) {
             // Super admin → optional branch filter
@@ -206,7 +218,13 @@ class ExpenseController extends Controller
                 $query->where('branch_id', $user->branch_id);
             } else {
                 // No branch assigned → return empty
-                return response()->json(['html' => '']);
+                if ($request->filled('branch_id')) {
+                    if (! $this->userCanAccessBranch((int) $request->branch_id, $user)) {
+                        return response()->json(['html' => ''], 403);
+                    }
+
+                    $query->where('branch_id', $request->branch_id);
+                }
             }
         }
 
@@ -231,5 +249,20 @@ class ExpenseController extends Controller
         return response()->json([
             'html' => $html,
         ]);
+    }
+
+    private function scopeExpensesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        $branchIds = Branch::where('company_id', $user->company_id)->pluck('id');
+
+        return $query->whereIn('branch_id', $branchIds);
     }
 }

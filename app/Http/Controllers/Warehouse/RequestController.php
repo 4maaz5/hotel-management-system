@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Warehouse;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory;
 use App\Models\Product;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 
 class RequestController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         $user = Auth::user();
@@ -24,13 +27,7 @@ class RequestController extends Controller
         $requestsQuery = StockRequest::with('items.product', 'branch')
             ->orderBy('created_at', 'desc');
 
-        if ($user->hasRole('super_admin')) {
-            // no filter
-        } elseif ($user->branch_id) {
-            $requestsQuery->where('branch_id', $user->branch_id);
-        } else {
-            $requestsQuery->whereHas('branch', fn ($q) => $q->where('company_id', $user->company_id));
-        }
+        $this->scopeStockRequestsForUser($requestsQuery, $user);
 
         $requests = $requestsQuery->get();
 
@@ -76,7 +73,8 @@ class RequestController extends Controller
 
     public function approve($id)
     {
-        $request = StockRequest::findOrFail($id);
+        $user = Auth::user();
+        $request = $this->scopeStockRequestsForUser(StockRequest::query(), $user)->findOrFail($id);
 
         if ($request->status !== 'pending') {
             return redirect()->back()->with('error', 'Only pending requests can be approved.');
@@ -107,7 +105,6 @@ class RequestController extends Controller
     //     $branchWarehouse = Warehouse::where('branch_id', $request->branch_id)
     //         ->where('type', 'branch')
     //         ->firstOrFail();
-    //     // dd($request->items);
     //     foreach ($request->items as $item) {
 
     //         //  Deduct from main warehouse
@@ -145,7 +142,9 @@ class RequestController extends Controller
 
     public function dispatch($id)
     {
-        $request = StockRequest::with(['items.product', 'branch'])->findOrFail($id);
+        $user = Auth::user();
+        $requestQuery = StockRequest::with(['items.product', 'branch']);
+        $request = $this->scopeStockRequestsForUser($requestQuery, $user)->findOrFail($id);
 
         if ($request->status !== 'approved') {
             return back()->with('delete', __('messages.only_approve_request'));
@@ -153,7 +152,7 @@ class RequestController extends Controller
 
         // Check main warehouse existence
         $mainWarehouse = Warehouse::where('type', 'main')
-            ->whereNull('branch_id')
+            ->where('company_id', $request->branch->company_id)
             ->first();
 
         if (! $mainWarehouse) {
@@ -234,11 +233,26 @@ class RequestController extends Controller
 
     public function print($id)
     {
-        $request = StockRequest::with([
+        $user = Auth::user();
+        $requestQuery = StockRequest::with([
             'branch',
             'items.product',
-        ])->findOrFail($id);
+        ]);
+        $request = $this->scopeStockRequestsForUser($requestQuery, $user)->findOrFail($id);
 
         return view('Admin.Backend.partials.warehouse-print', compact('request'));
+    }
+
+    private function scopeStockRequestsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->whereHas('branch', fn ($branchQuery) => $branchQuery->where('company_id', $user->company_id));
     }
 }

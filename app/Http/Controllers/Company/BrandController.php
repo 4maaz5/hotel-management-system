@@ -2,19 +2,23 @@
 
 namespace App\Http\Controllers\Company;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Company;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class BrandController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         $user = auth()->user();
-        $brands = Brand::all();
-        $brandCards = Brand::paginate(10);
+        $brands = $this->scopeBrandsForUser(Brand::query(), $user)->get();
+        $brandCards = $this->scopeBrandsForUser(Brand::query(), $user)->paginate(10);
         $companies = $user->isSuperAdmin() ? Company::all() : Company::whereKey($user->company_id)->get();
 
         return view('Admin.Backend.Brand.index', compact('brands', 'companies', 'brandCards'));
@@ -23,13 +27,18 @@ class BrandController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'company_id' => 'required|exists:companies,id',
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
             'brand_name' => 'required|string|max:255',
             'brand_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
         $brand = new Brand;
-        $brand->company_id = $request->company_id;
+        $brand->company_id = $this->isSuperAdmin($request->user()) ? $request->company_id : $request->user()->company_id;
         $brand->name = $request->brand_name;
 
         if ($request->hasFile('brand_logo')) {
@@ -56,13 +65,18 @@ class BrandController extends Controller
     {
         $request->validate([
             'brandId' => 'required|exists:brands,id',
-            'company_id' => 'required|exists:companies,id',
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
             'brand_name' => 'required|string|max:255',
             'brand_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        $brand = Brand::findOrFail($request->brandId);
-        $brand->company_id = $request->company_id;
+        $brand = $this->scopeBrandsForUser(Brand::query(), $request->user())->findOrFail($request->brandId);
+        $brand->company_id = $this->isSuperAdmin($request->user()) ? $request->company_id : $request->user()->company_id;
         $brand->name = $request->brand_name;
 
         if ($request->hasFile('brand_logo')) {
@@ -90,7 +104,7 @@ class BrandController extends Controller
             'brandId' => 'required|exists:brands,id',
         ]);
 
-        $brand = Brand::findOrFail($request->brandId);
+        $brand = $this->scopeBrandsForUser(Brand::query(), $request->user())->findOrFail($request->brandId);
 
         // Delete logo from public disk if exists
         if ($brand->logo && Storage::disk('public')->exists($brand->logo)) {
@@ -108,8 +122,19 @@ class BrandController extends Controller
 
     public function getBrands($company_id)
     {
-        $brands = Brand::where('company_id', $company_id)->get();
+        abort_unless($this->isSuperAdmin(auth()->user()) || (int) $company_id === (int) auth()->user()->company_id, 403);
+
+        $brands = $this->scopeBrandsForUser(Brand::where('company_id', $company_id), auth()->user())->get();
 
         return response()->json($brands);
+    }
+
+    private function scopeBrandsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->where('company_id', $user->company_id);
     }
 }

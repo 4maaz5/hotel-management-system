@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Attendance;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\Leave;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Validator;
 
 class LeaveRequestController extends Controller
 {
+    use ScopesTenantAccess;
+
     // public function index()
     // {
     //     $user = Auth::user();
@@ -98,8 +101,8 @@ class LeaveRequestController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $employee = Employee::find($request->employee_id);
-        if (!$employee || (!$user->isSuperAdmin() && $employee->company_id !== $user->company_id)) {
+        $employee = $this->scopeEmployeesForUser(Employee::query(), $user)->find($request->employee_id);
+        if (! $employee) {
             return response()->json(['errors' => ['employee_id' => ['Invalid employee.']]], 403);
         }
 
@@ -154,12 +157,13 @@ class LeaveRequestController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $employee = Employee::find($request->employee_id);
-        if (!$employee || (!$user->isSuperAdmin() && $employee->company_id !== $user->company_id)) {
+        $employee = $this->scopeEmployeesForUser(Employee::query(), $user)->find($request->employee_id);
+        if (! $employee) {
             return response()->json(['errors' => ['employee_id' => ['Invalid employee.']]], 403);
         }
 
-        $leave = Leave::find($request->leave_id);
+        $leave = Leave::whereHas('employee', fn ($query) => $this->scopeEmployeesForUser($query, $user))
+            ->find($request->leave_id);
 
         if (! $leave) {
             return response()->json(['error' => 'Leave record not found.'], 404);
@@ -187,17 +191,11 @@ class LeaveRequestController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        $leave = Leave::find($id);
+        $leave = Leave::whereHas('employee', fn ($query) => $this->scopeEmployeesForUser($query, $user))
+            ->find($id);
 
         if (! $leave) {
             return response()->json(['status' => 'error', 'message' => 'Leave not found.'], 404);
-        }
-
-        if (!$user->isSuperAdmin()) {
-            $employee = Employee::find($leave->employee_id);
-            if (!$employee || $employee->company_id !== $user->company_id) {
-                return response()->json(['status' => 'error', 'message' => 'Forbidden.'], 403);
-            }
         }
 
         $leave->delete();
@@ -249,16 +247,14 @@ class LeaveRequestController extends Controller
                     $q->where('branch_id', $request->branch_id);
                 });
             }
+        } elseif ($user->branch_id) {
+            $query->whereHas('employee', function ($q) use ($user) {
+                $q->where('branch_id', $user->branch_id);
+            });
         } else {
-            // Other roles → only their branch
-            if ($user->branch_id) {
-                $query->whereHas('employee', function ($q) use ($user) {
-                    $q->where('branch_id', $user->branch_id);
-                });
-            } else {
-                // No branch assigned → return empty view
-                return view('Admin.Backend.partials.leaves', ['leaves' => collect()]);
-            }
+            $query->whereHas('employee', function ($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
         }
 
         // Existing filters
@@ -287,5 +283,18 @@ class LeaveRequestController extends Controller
         }
 
         return view('Admin.Backend.partials.leaves', compact('leaves'));
+    }
+
+    private function scopeEmployeesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
     }
 }

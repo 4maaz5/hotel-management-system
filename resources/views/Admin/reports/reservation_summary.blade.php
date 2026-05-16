@@ -74,7 +74,7 @@
                                         {{ ucfirst(str_replace('_', ' ', $reservation->status)) }}
                                     </span>
                                 </td>
-                                <td class="text-end">SAR {{ number_format($reservation->total_amount, 2) }}</td>
+                                <td class="text-end">SAR {{ number_format($reservation->grand_total, 2) }}</td>
                             </tr>
                         @empty
                             <tr>
@@ -135,7 +135,7 @@
                     <td>{{ $reservation->check_in_date->format('Y-m-d') }}</td>
                     <td>{{ $reservation->check_out_date->format('Y-m-d') }}</td>
                     <td>{{ ucfirst(str_replace('_', ' ', $reservation->status)) }}</td>
-                    <td class="text-end">SAR {{ number_format($reservation->total_amount, 2) }}</td>
+                    <td class="text-end">SAR {{ number_format($reservation->grand_total, 2) }}</td>
                 </tr>
             @empty
                 <tr><td colspan="7" class="text-center">{{ __('dashboard.no_records_found') }}</td></tr>
@@ -189,7 +189,7 @@
                     <td>{{ $reservation->check_in_date->format('Y-m-d') }}</td>
                     <td>{{ $reservation->check_out_date->format('Y-m-d') }}</td>
                     <td>{{ ucfirst(str_replace('_', ' ', $reservation->status)) }}</td>
-                    <td class="text-end">ر.س {{ number_format($reservation->total_amount, 2) }}</td>
+                    <td class="text-end">ر.س {{ number_format($reservation->grand_total, 2) }}</td>
                 </tr>
             @empty
                 <tr><td colspan="7" class="text-center">{{ __('dashboard.no_records_found_ar') }}</td></tr>

@@ -99,8 +99,10 @@ class PropertyInfoController extends Controller
             'photos',
         ]));
         $propertyId = $property->id;
+        $companyId = $property->company_id;
+        $branchId = $property->branch_id;
 
-        DB::transaction(function () use ($request, $propertyId) {
+        DB::transaction(function () use ($request, $companyId, $branchId) {
 
             $tourismFilePath = null;
 
@@ -110,8 +112,9 @@ class PropertyInfoController extends Controller
             }
 
             PropertyTourismLicense::updateOrCreate(
-                ['property_id' => $propertyId],
+                ['branch_id' => $branchId],
                 [
+                    'company_id' => $companyId,
                     'tourism_activity_type' => $request->unitClass,
                     'license_number' => $request->Tourismlicensenumber,
                     'license_expiry_date' => $request->tourismLicenseExpDate,
@@ -129,8 +132,9 @@ class PropertyInfoController extends Controller
             }
 
             PropertyCommercialDetail::updateOrCreate(
-                ['property_id' => $propertyId],
+                ['branch_id' => $branchId],
                 [
+                    'company_id' => $companyId,
                     'registration_number' => $request->CommercialRegistrationNumber,
                     'activity_license_number' => $request->CommActivityLicenseNo,
                     'vat_registration_number' => $request->taxRegistrationNo,
@@ -139,8 +143,9 @@ class PropertyInfoController extends Controller
             );
 
             PropertyAdditionalDetail::updateOrCreate(
-                ['property_id' => $propertyId],
+                ['branch_id' => $branchId],
                 [
+                    'company_id' => $companyId,
                     'distance_from_haram_km' => $request->distancefromHaram,
                     'description_en' => $request->description,
                     'description_ar' => $request->description,
@@ -157,7 +162,8 @@ class PropertyInfoController extends Controller
                     );
 
                     PropertyPhoto::create([
-                        'property_id' => $propertyId,
+                        'company_id' => $companyId,
+                        'branch_id' => $branchId,
                         'photo_path' => $photoPath,
                         'photo_order' => $index,
                         'is_main' => $index === 0,

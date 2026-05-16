@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class ThemeCustomization extends Model
 {
@@ -45,12 +46,25 @@ class ThemeCustomization extends Model
 
     public static function getTheme()
     {
+        if (! Schema::hasTable((new self)->getTable())) {
+            return new self(self::defaultAttributes());
+        }
+
         return self::first() ?? self::createDefault();
     }
 
     public static function createDefault()
     {
-        return self::create([
+        if (! Schema::hasTable((new self)->getTable())) {
+            return new self(self::defaultAttributes());
+        }
+
+        return self::create(self::defaultAttributes());
+    }
+
+    public static function defaultAttributes(): array
+    {
+        return [
             'sidebar_bg_color' => '#1a237e',
             'sidebar_text_color' => '#e8eaf6',
             'sidebar_active_color' => '#3949ab',
@@ -78,6 +92,6 @@ class ThemeCustomization extends Model
             'dashboard_icon_color' => '#1a237e',
             'dashboard_card_title_color' => '#212529',
             'dashboard_card_text_color' => '#6c757d',
-        ]);
+        ];
     }
 }

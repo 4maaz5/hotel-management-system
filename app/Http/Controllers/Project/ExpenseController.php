@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers\Project;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\ProjectExpense;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class ExpenseController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
-        $projects = Project::all();
-        $expenses = ProjectExpense::with('project')->get();
+        $projects = $this->scopeProjectsForUser(Project::query(), auth()->user())->get();
+        $expenses = $this->scopeProjectExpensesForUser(ProjectExpense::with('project'), auth()->user())->get();
 
         return view('Admin.Backend.Projects.expense', compact('projects', 'expenses'));
     }
@@ -22,7 +26,10 @@ class ExpenseController extends Controller
     {
         // Validate request
         $validated = $request->validate([
-            'project_id' => 'required|exists:projects,id',
+            'project_id' => [
+                'required',
+                Rule::exists('projects', 'id')->where(fn ($query) => $this->scopeProjectsForUser($query, $request->user())),
+            ],
             'expense_date' => 'required|date',
             'amount' => 'required|numeric|min:0',
             'category' => 'required|string|max:255',
@@ -52,11 +59,14 @@ class ExpenseController extends Controller
 
     public function update(Request $request, $id)
     {
-        $expense = ProjectExpense::findOrFail($id);
+        $expense = $this->scopeProjectExpensesForUser(ProjectExpense::query(), $request->user())->findOrFail($id);
 
         // Validate request
         $validated = $request->validate([
-            'project_id' => 'required|exists:projects,id',
+            'project_id' => [
+                'required',
+                Rule::exists('projects', 'id')->where(fn ($query) => $this->scopeProjectsForUser($query, $request->user())),
+            ],
             'expense_date' => 'required|date',
             'amount' => 'required|numeric|min:0',
             'category' => 'required|string|max:255',
@@ -86,7 +96,7 @@ class ExpenseController extends Controller
 
     public function destroy($id)
     {
-        $expense = ProjectExpense::findOrFail($id);
+        $expense = $this->scopeProjectExpensesForUser(ProjectExpense::query(), auth()->user())->findOrFail($id);
 
         // Delete associated documents from storage
         if ($expense->documents) {
@@ -102,5 +112,23 @@ class ExpenseController extends Controller
         $expense->delete();
 
         return redirect()->back()->with('delete', __('messages.project_expense_deleted_successfully'));
+    }
+
+    private function scopeProjectsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function scopeProjectExpensesForUser($query, $user)
+    {
+        return $query->whereHas('project', fn ($projectQuery) => $this->scopeProjectsForUser($projectQuery, $user));
     }
 }

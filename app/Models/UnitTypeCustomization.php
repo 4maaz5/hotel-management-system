@@ -14,7 +14,6 @@ class UnitTypeCustomization extends Model
 
     protected $fillable = [
         'company_id',
-        'tenant_id',
         'unit_type_id',
         'name',
         'website_name_en',

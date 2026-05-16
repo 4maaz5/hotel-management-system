@@ -361,7 +361,6 @@
                         $('#employeePagination').html(response.pagination);
                     },
                     error: function(xhr) {
-                        console.log(xhr.responseText);
                     }
                 });
             }

@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers\Project;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ProjectController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
-        $projects = Project::all();
+        $projects = $this->scopeProjectsForUser(Project::query(), Auth::user())->get();
 
         return view('Admin.Backend.Projects.index', compact('projects'));
     }
@@ -38,17 +42,20 @@ class ProjectController extends Controller
             }
         }
 
-        //  Save project data
-        $project = new \App\Models\Project;
-        $project->name = $request->name;
-        $project->location = $request->location;
-        $project->project_manager = $request->project_manager;
-        $project->value = $request->value;
-        $project->timeline_type = $request->timeline_type;
-        $project->start_date = $request->start_date;
-        $project->end_date = $request->end_date;
-        $project->documents = json_encode($documentPaths);
-        $project->save();
+        $user = Auth::user();
+
+        Project::create([
+            'company_id' => $this->companyIdForUser($user),
+            'branch_id' => $this->branchIdForUser($user),
+            'name' => $request->name,
+            'location' => $request->location,
+            'project_manager' => $request->project_manager,
+            'value' => $request->value,
+            'timeline_type' => $request->timeline_type,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'documents' => $documentPaths,
+        ]);
 
         //  Redirect with success message
         return redirect()->back()->with('success', __('messages.project_added_successfully'));
@@ -56,8 +63,7 @@ class ProjectController extends Controller
 
     public function update(Request $request, $project)
     {
-        // Find the project
-        $project = \App\Models\Project::findOrFail($project);
+        $project = $this->scopeProjectsForUser(Project::query(), Auth::user())->findOrFail($project);
 
         // 1. Validate request
         $request->validate([
@@ -72,7 +78,7 @@ class ProjectController extends Controller
         ]);
 
         // 2. Handle multiple file uploads
-        $existingDocs = $project->documents ? json_decode($project->documents, true) : [];
+        $existingDocs = $project->documents ?: [];
         $newDocs = [];
 
         if ($request->hasFile('documents')) {
@@ -94,7 +100,7 @@ class ProjectController extends Controller
             'timeline_type' => $request->timeline_type,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
-            'documents' => json_encode($allDocs),
+            'documents' => $allDocs,
         ]);
 
         // 4. Redirect back with success message
@@ -103,11 +109,11 @@ class ProjectController extends Controller
 
     public function destroy($id)
     {
-        $project = Project::findOrFail($id);
+        $project = $this->scopeProjectsForUser(Project::query(), Auth::user())->findOrFail($id);
 
         // Delete files from storage
         if ($project->documents) {
-            foreach (json_decode($project->documents) as $doc) {
+            foreach ((array) $project->documents as $doc) {
                 if (\Storage::disk('public')->exists($doc)) {
                     \Storage::disk('public')->delete($doc);
                 }
@@ -118,5 +124,30 @@ class ProjectController extends Controller
         $project->delete();
 
         return redirect()->back()->with('delete', __('messages.project_deleted_successfully'));
+    }
+
+    protected function scopeProjectsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        $query->where('company_id', $this->companyIdForUser($user));
+
+        if ($user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query;
+    }
+
+    protected function companyIdForUser($user): ?int
+    {
+        return $user?->company_id ?: $user?->branch?->company_id;
+    }
+
+    protected function branchIdForUser($user): ?int
+    {
+        return $user?->branch_id;
     }
 }

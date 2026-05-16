@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers\Clients;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\ClientDocument;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ClientController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
-        $clients = Client::all();
+        $clients = $this->scopeClientsForUser(Client::query(), Auth::user())->get();
 
         return view('Admin.Backend.Client.index', compact('clients'));
     }
@@ -36,7 +40,10 @@ class ClientController extends Controller
         ]);
 
         //  Create client
+        $user = Auth::user();
         $client = Client::create([
+            'company_id' => $this->companyIdForUser($user),
+            'branch_id' => $this->branchIdForUser($user),
             'company_name' => $request->company_name,
             'client_name' => $request->client_name,
             'cr_number' => $request->cr_number,
@@ -68,6 +75,8 @@ class ClientController extends Controller
 
     public function update(Request $request, Client $client)
     {
+        $client = $this->scopeClientsForUser(Client::query(), Auth::user())->findOrFail($client->id);
+
         // Validate basic client info
         $request->validate([
             'company_name' => 'required|string|max:255',
@@ -102,7 +111,7 @@ class ClientController extends Controller
         // Update existing documents (if you sent document IDs)
         if ($request->filled('document_ids')) {
             foreach ($request->document_ids as $index => $docId) {
-                $document = ClientDocument::find($docId);
+                $document = $client->documents()->whereKey($docId)->first();
                 if ($document) {
                     // If a new file is uploaded, replace it
                     if ($request->hasFile('files') && isset($request->file('files')[$index])) {
@@ -144,6 +153,8 @@ class ClientController extends Controller
 
     public function destroy(Client $client)
     {
+        $client = $this->scopeClientsForUser(Client::query(), Auth::user())->findOrFail($client->id);
+
         // Delete all related documents from storage
         foreach ($client->documents as $doc) {
             if (\Storage::disk('public')->exists($doc->file_path)) {
@@ -158,5 +169,30 @@ class ClientController extends Controller
         $client->delete();
 
         return redirect()->back()->with('delete', __('messages.client_deleted_successfully'));
+    }
+
+    protected function scopeClientsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        $query->where('company_id', $this->companyIdForUser($user));
+
+        if ($user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query;
+    }
+
+    protected function companyIdForUser($user): ?int
+    {
+        return $user?->company_id ?: $user?->branch?->company_id;
+    }
+
+    protected function branchIdForUser($user): ?int
+    {
+        return $user?->branch_id;
     }
 }

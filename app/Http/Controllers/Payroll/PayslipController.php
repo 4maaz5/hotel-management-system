@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payroll;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\Income;
@@ -10,9 +11,12 @@ use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class PayslipController extends Controller
 {
+    use ScopesTenantAccess;
+
     // public function index()
     // {
     //     $user = Auth::user();
@@ -102,7 +106,10 @@ class PayslipController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'employee_id' => 'required',
+            'employee_id' => [
+                'required',
+                Rule::exists('employees', 'id')->where(fn ($query) => $this->scopeEmployeesForUser($query, $request->user())),
+            ],
             'month' => 'required',
             'commission' => 'required',
             'total_amount' => 'required|numeric',
@@ -112,6 +119,12 @@ class PayslipController extends Controller
             'net_pay' => 'required|numeric',
             'status' => 'required|in:Pending,Paid,Cancelled',
         ]);
+        $employee = $this->scopeEmployeesForUser(Employee::query(), $request->user())
+            ->findOrFail($validated['employee_id']);
+        $validated['employee_id'] = $employee->id;
+        $validated['commission_amount'] = $validated['commission'];
+        unset($validated['commission']);
+
         //  Check if payroll already exists for this employee + month
         $exists = Payroll::where('employee_id', $request->employee_id)
             ->where('month', $request->month)
@@ -154,7 +167,7 @@ class PayslipController extends Controller
             'status' => 'required|in:Pending,Paid,Cancelled',
         ]);
 
-        $payroll = Payroll::findOrFail($id);
+        $payroll = $this->scopePayrollsForUser(Payroll::query(), $request->user())->findOrFail($id);
 
         // Store the old status before update
         $oldStatus = $payroll->status;
@@ -183,7 +196,7 @@ class PayslipController extends Controller
 
     public function destroy($id)
     {
-        Payroll::findOrFail($id)->delete();
+        $this->scopePayrollsForUser(Payroll::query(), request()->user())->findOrFail($id)->delete();
 
         return response()->json(['status' => 'success', 'message' => __('messages.payroll_deleted_successfully')]);
     }
@@ -200,7 +213,7 @@ class PayslipController extends Controller
 
     public function getEmployeePayrollData($employeeId, $month)
     {
-        $employee = Employee::findOrFail($employeeId);
+        $employee = $this->scopeEmployeesForUser(Employee::query(), request()->user())->findOrFail($employeeId);
 
         // Parse month into start and end date
         $startDate = $month.'-01';
@@ -221,5 +234,23 @@ class PayslipController extends Controller
             'commission' => $commission,
             'net_pay' => $netPay,
         ]);
+    }
+
+    private function scopeEmployeesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function scopePayrollsForUser($query, $user)
+    {
+        return $query->whereHas('employee', fn ($employeeQuery) => $this->scopeEmployeesForUser($employeeQuery, $user));
     }
 }

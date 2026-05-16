@@ -49,11 +49,11 @@ class AttendanceController extends Controller
         $validated = $this->validateLocation($request);
         $user = $request->user();
         $property = $this->currentProperty();
-        $housekeeper = $this->currentHousekeeper($user->id, $property->id);
+        $housekeeper = $this->currentHousekeeper($user->id, (int) $property->branch_id);
         $now = $this->nowForProperty($property);
 
         $openAttendance = StaffAttendance::where('user_id', $user->id)
-            ->where('property_id', $property->id)
+            ->where('branch_id', $property->branch_id)
             ->whereNull('check_out_at')
             ->where('status', 'checked_in')
             ->latest('check_in_at')
@@ -69,8 +69,8 @@ class AttendanceController extends Controller
         $this->ensureGeofenceAllowed($geo);
 
         $attendance = StaffAttendance::create([
-            'tenant_id' => $user->tenant_id,
-            'property_id' => $property->id,
+            'company_id' => $user->company_id,
+            'branch_id' => $property->branch_id,
             'user_id' => $user->id,
             'housekeeper_id' => $housekeeper->id,
             'attendance_date' => $now->toDateString(),
@@ -98,7 +98,7 @@ class AttendanceController extends Controller
         $now = $this->nowForProperty($property);
 
         $attendance = StaffAttendance::where('user_id', $user->id)
-            ->where('property_id', $property->id)
+            ->where('branch_id', $property->branch_id)
             ->whereNull('check_out_at')
             ->where('status', 'checked_in')
             ->latest('check_in_at')
@@ -151,11 +151,11 @@ class AttendanceController extends Controller
         return $property;
     }
 
-    protected function currentHousekeeper(int $userId, int $propertyId): Housekeeper
+    protected function currentHousekeeper(int $userId, int $branchId): Housekeeper
     {
         $housekeeper = Housekeeper::withoutGlobalScopes()
             ->where('user_id', $userId)
-            ->where('property_id', $propertyId)
+            ->where('branch_id', $branchId)
             ->where('is_active', true)
             ->first();
 
@@ -228,7 +228,7 @@ class AttendanceController extends Controller
     {
         return [
             'id' => $attendance->id,
-            'property_id' => $attendance->property_id,
+            'branch_id' => $attendance->branch_id,
             'attendance_date' => optional($attendance->attendance_date)->toDateString(),
             'status' => $attendance->status,
             'check_in_at' => optional($attendance->check_in_at)->toISOString(),

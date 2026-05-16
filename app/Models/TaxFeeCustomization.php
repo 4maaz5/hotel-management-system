@@ -10,7 +10,7 @@ class TaxFeeCustomization extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'is_expenses',
         'type',
         'custom_name',

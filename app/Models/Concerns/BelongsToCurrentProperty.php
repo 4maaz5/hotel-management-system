@@ -43,7 +43,7 @@ trait BelongsToCurrentProperty
         });
     }
 
-    protected static function getPropertyColumn(): string
+    public static function getPropertyColumn(): string
     {
         return defined('static::PROPERTY_COLUMN') ? static::PROPERTY_COLUMN : 'branch_id';
     }

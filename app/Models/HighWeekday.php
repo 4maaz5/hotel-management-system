@@ -9,5 +9,5 @@ class HighWeekday extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['tenant_id', 'day_name'];
+    protected $fillable = ['company_id', 'day_name'];
 }

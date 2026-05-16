@@ -4,6 +4,7 @@ use App\Http\Controllers\Attendance\AbsentController;
 use App\Http\Controllers\Attendance\LeaveRequestController;
 use App\Http\Controllers\Attendance\MarkAttendanceController;
 use App\Http\Controllers\Attendance\OverTimeController;
+use App\Http\Controllers\AppHomeController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
@@ -45,8 +46,11 @@ use App\Http\Controllers\Project\TrackerController;
 use App\Http\Controllers\RoleAndPermissions\RoleController;
 use App\Http\Controllers\Settings\BackupController;
 use App\Http\Controllers\Settings\GeneralSettingController;
+use App\Http\Controllers\Settings\PropertyFacilityController;
 use App\Http\Controllers\Settings\ShiftController;
 use App\Http\Controllers\Settings\UserController;
+use App\Http\Controllers\Outlets\ItemsController;
+use App\Http\Controllers\ReservationController as ReservationDashboardController;
 use App\Http\Controllers\Auth\RegisterTenantController;
 use App\Http\Controllers\SuperAdmin\ActivityController as SuperAdminActivityController;
 use App\Http\Controllers\SuperAdmin\AnalyticsController as SuperAdminAnalyticsController;
@@ -54,6 +58,7 @@ use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardCo
 use App\Http\Controllers\SuperAdmin\PlanController as SuperAdminPlanController;
 use App\Http\Controllers\SuperAdmin\SupportController as SuperAdminSupportController;
 use App\Http\Controllers\SuperAdmin\TenantController as SuperAdminTenantController;
+use App\Http\Controllers\Support\TicketController as SupportTicketController;
 use App\Http\Controllers\Vehicles\AccidentController;
 use App\Http\Controllers\Vehicles\DriverController;
 use App\Http\Controllers\Vehicles\VehicleController;
@@ -88,8 +93,8 @@ Route::middleware(['guest'])->group(function () {
         ->name('password.store');
 });
 
-//  Tenant Settings (accessible by tenant owners and super admin via permission)
-Route::middleware(['auth', 'permission:manage_setting'])->group(function () {
+// Tenant settings
+Route::middleware(['auth', 'tenant.subscription', 'current.property', 'permission:manage_setting'])->group(function () {
     Route::get('dashboard/setting/general', [GeneralSettingController::class, 'index'])->name('dashboard.setting.general.index');
     Route::post('/settings/update', [GeneralSettingController::class, 'update'])->name('settings.update');
     Route::get('dashboard/setting/role', [RoleController::class, 'index'])->name('dashboard.setting.role.index');
@@ -99,7 +104,9 @@ Route::middleware(['auth', 'permission:manage_setting'])->group(function () {
     Route::put('/roles/{id}', [RoleController::class, 'update'])->name('dashboard.setting.role.update');
     Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('dashboard.setting.role.destroy');
     Route::get('dashboard/setting/user', [UserController::class, 'index'])->name('dashboard.setting.user.index');
-    Route::post('dashboard/setting/user/store', [UserController::class, 'store'])->name('dashboard.setting.user.store');
+    Route::post('dashboard/setting/user/store', [UserController::class, 'store'])
+        ->middleware('plan.limit:max_users')
+        ->name('dashboard.setting.user.store');
     Route::put('dashboard/setting/user/update/{id}', [UserController::class, 'update'])->name('dashboard.setting.user.update');
     Route::delete('dashboard/setting/user/delete', [UserController::class, 'destroy'])->name('dashboard.setting.user.delete');
 });
@@ -114,14 +121,44 @@ Route::middleware(['role:super_admin', 'auth'])->group(function () {
         Route::resource('tenants', SuperAdminTenantController::class)->except('destroy');
         Route::resource('plans', SuperAdminPlanController::class)->except('show');
         Route::get('support', [SuperAdminSupportController::class, 'index'])->name('support.index');
+        Route::get('support/tickets/{ticket}', [SuperAdminSupportController::class, 'show'])->name('support.show');
+        Route::post('support/tickets/{ticket}/reply', [SuperAdminSupportController::class, 'reply'])->name('support.reply');
+        Route::patch('support/tickets/{ticket}/status', [SuperAdminSupportController::class, 'updateStatus'])->name('support.status');
+        Route::get('support/attachments/{attachment}', [SuperAdminSupportController::class, 'download'])->name('support.attachments.download');
         Route::get('analytics', [SuperAdminAnalyticsController::class, 'index'])->name('analytics.index');
         Route::get('activity', [SuperAdminActivityController::class, 'index'])->name('activity.index');
     });
 });
 
+Route::middleware(['auth', 'tenant.subscription'])
+    ->prefix('support')
+    ->name('support.tickets.')
+    ->group(function () {
+        Route::get('/', [SupportTicketController::class, 'index'])->name('index');
+        Route::get('/create', [SupportTicketController::class, 'create'])->name('create');
+        Route::post('/', [SupportTicketController::class, 'store'])->name('store');
+        Route::get('/attachments/{attachment}', [SupportTicketController::class, 'download'])->name('attachments.download');
+        Route::get('/{ticket}', [SupportTicketController::class, 'show'])->name('show');
+        Route::post('/{ticket}/reply', [SupportTicketController::class, 'reply'])->name('reply');
+    });
+
+Route::middleware(['auth', 'tenant.subscription'])
+    ->prefix('dashboard/support')
+    ->name('dashboard.support.tickets.')
+    ->group(function () {
+        Route::get('/', [SupportTicketController::class, 'hrIndex'])->name('index');
+        Route::get('/create', [SupportTicketController::class, 'hrCreate'])->name('create');
+        Route::post('/', [SupportTicketController::class, 'hrStore'])->name('store');
+        Route::get('/attachments/{attachment}', [SupportTicketController::class, 'download'])->name('attachments.download');
+        Route::get('/{ticket}', [SupportTicketController::class, 'hrShow'])->name('show');
+        Route::post('/{ticket}/reply', [SupportTicketController::class, 'hrReply'])->name('reply');
+    });
+
 // Permission-Based Routes
 Route::middleware([
     'auth',
+    'tenant.subscription',
+    'current.property',
     'permission:manage_employee',
 ])->group(function () {
     Route::post('/dashboard/employee/check-email', [EmployeeController::class, 'checkEmail']);
@@ -171,6 +208,8 @@ Route::middleware([
 });
 Route::middleware([
     'auth',
+    'tenant.subscription',
+    'current.property',
     'permission:manage_branch',
 ])->group(function () {
 
@@ -336,6 +375,8 @@ Route::middleware([
 
 Route::middleware([
     'auth',
+    'tenant.subscription',
+    'current.property',
     'permission:manage_attendance',
 ])->group(function () {
     // Attendance
@@ -363,6 +404,8 @@ Route::middleware([
 
 Route::middleware([
     'auth',
+    'tenant.subscription',
+    'current.property',
     'permission:manage_payroll',
 ])->group(function () {
 
@@ -392,6 +435,8 @@ Route::middleware([
 
 Route::middleware([
     'auth',
+    'tenant.subscription',
+    'current.property',
     'permission:manage_finance',
 ])->group(function () {
     // Finance
@@ -466,6 +511,8 @@ Route::middleware([
 
 Route::middleware([
     'auth',
+    'tenant.subscription',
+    'current.property',
     'permission:manage_documents',
 ])->group(function () {
     // Documents
@@ -473,6 +520,10 @@ Route::middleware([
     Route::post('dashboard/document/employee/store', [EmployeeDocumentController::class, 'store'])->name('dashboard.document.employee.store');
     Route::post('/dashboard/document/employee/update/{id}', [EmployeeDocumentController::class, 'update'])->name('employee-doc.update');
     Route::delete('/dashboard/document/employee/delete/{id}', [EmployeeDocumentController::class, 'destroy']);
+    Route::get('/dashboard/document/employee/{document}/file', [EmployeeDocumentController::class, 'file'])
+        ->name('dashboard.document.employee.file');
+    Route::get('/dashboard/document/employee/{document}/image', [EmployeeDocumentController::class, 'image'])
+        ->name('dashboard.document.employee.image');
     Route::get('/expiration-documents', [ExpiredDocumentController::class, 'filteredDocuments'])
         ->name('dashboard.expiration.filtered');
 
@@ -491,6 +542,8 @@ Route::middleware([
 });
 Route::middleware([
     'auth',
+    'tenant.subscription',
+    'current.property',
     'permission:manage_notification',
 ])->group(function () {
     // Notifications
@@ -506,6 +559,8 @@ Route::middleware([
 Route::get('locale/{locale}', [\App\Http\Controllers\Lang\LocaleController::class, 'switch'])->name('locale.switch');
 Route::middleware([
     'auth',
+    'tenant.subscription',
+    'current.property',
     'permission:manage_warehouse',
 ])->group(function () {
 
@@ -549,10 +604,11 @@ Route::middleware([
     Route::get('/warehouse-requests/{id}/print', [RequestController::class, 'print'])->name('warehouse-request.print');
 
 });
-Route::get('/notifications/unread', [App\Http\Controllers\Notifications\DashboardController::class, 'unreadForCurrentUser']);
+Route::middleware(['auth', 'tenant.subscription', 'current.property'])
+    ->get('/notifications/unread', [App\Http\Controllers\Notifications\DashboardController::class, 'unreadForCurrentUser']);
 
 // Authenticated Dashboard Routes
-Route::middleware('auth')->prefix('dashboard')->name('dashboard.')->group(function () {
+Route::middleware(['auth', 'tenant.subscription', 'current.property'])->prefix('dashboard')->name('dashboard.')->group(function () {
     //
 });
 
@@ -571,7 +627,7 @@ Route::middleware(['auth', 'throttle:6,1'])->post('email/verification-notificati
 // Password update (Breeze compat)
 Route::middleware('auth')->put('password', [UserController::class, 'updatePassword'])->name('password.update');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'tenant.subscription', 'current.property'])->group(function () {
     Route::get('dashboard/attendance/scan', [MarkAttendanceController::class, 'scanView'])
         ->name('employee.card.scan');
 
@@ -595,10 +651,16 @@ Route::middleware('auth')->group(function () {
 Route::get('/meetings/{meeting}/join', [App\Http\Controllers\Meetings\MeetingController::class, 'join'])
     ->name('meetings.join');
 
-Route::get('dashboard/programs', [DashboardController::class, 'program'])->middleware('auth')->name('dashboard.program');
-Route::middleware(['auth', 'verified'])->get('/home', function () {
+Route::get('dashboard/programs', [DashboardController::class, 'program'])
+    ->middleware(['auth', 'tenant.subscription', 'current.property'])
+    ->name('dashboard.program');
+Route::middleware(['auth', 'verified', 'tenant.subscription', 'current.property'])->get('/home', function () {
     return view('landing');
 })->name('home');
+
+Route::get('/app', AppHomeController::class)
+    ->middleware(['auth', 'tenant.subscription', 'current.property'])
+    ->name('app.home');
 
 // public routes
 Route::domain(config('app.secondary_domain'))
@@ -625,6 +687,12 @@ Route::get('lang/{locale}', function ($locale) {
 // ===== Reservation System Routes =====
 require __DIR__.'/booking_website.php';
 
-Route::prefix('reservation')->middleware(['auth', 'verified'])->group(function () {
+Route::prefix('app')->middleware(['auth', 'tenant.subscription', 'current.property'])->group(function () {
+    Route::get('admin/get-facilities', [PropertyFacilityController::class, 'getFacilities']);
+    Route::get('outlet/{outlet}/categories', [ItemsController::class, 'getCategories']);
+    Route::get('cancel-reason/{id}/penalties', [ReservationDashboardController::class, 'getPenalties']);
+});
+
+Route::prefix('reservation')->middleware(['auth', 'verified', 'tenant.subscription', 'current.property'])->group(function () {
     require __DIR__.'/reservation.php';
 });

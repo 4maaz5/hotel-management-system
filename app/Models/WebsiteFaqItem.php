@@ -10,7 +10,7 @@ class WebsiteFaqItem extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'question_en',
         'question_ar',
         'answer_en',

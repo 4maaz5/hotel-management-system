@@ -100,7 +100,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
+Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('reservation.locale.switch');
 
 Route::middleware(['auth'])->group(function () {
 
@@ -122,6 +122,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('setup-sidebar.property.create');
 
         Route::post('/dashboard/setup-sidebar/property-store', [PropertyController::class, 'store'])
+            ->middleware('plan.limit:max_properties')
             ->name('setup-sidebar.property.store');
     });
 
@@ -166,6 +167,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('setup-sidebar.property-user.create');
 
         Route::post('/dashboard/setup-sidebar/property-user-store', [UserController::class, 'store'])
+            ->middleware('plan.limit:max_users')
             ->name('setup-sidebar.property-user.store');
     });
 
@@ -868,7 +870,8 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('setup-sidebar/item/delete/{id}', [ItemsController::class, 'delete'])
             ->name('setup-sidebar.items.delete');
     });
-    Route::get('/outlet/{outlet}/categories', [ItemsController::class, 'getCategories']);
+    Route::get('/outlet/{outlet}/categories', [ItemsController::class, 'getCategories'])
+        ->name('setup-sidebar.items.categories');
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -1197,7 +1200,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('dashboard/reservation/cancel', [ReservationController::class, 'cancelReservation'])
         ->name('dashboard.reservation.cancel');
 
-    Route::get('/cancel-reason/{id}/penalties', [ReservationController::class, 'getPenalties']);
+    Route::get('/cancel-reason/{id}/penalties', [ReservationController::class, 'getPenalties'])
+        ->name('dashboard.reservation.cancel_reason.penalties');
 
     Route::get('dashboard/reservation/available-units', [ReservationController::class, 'getAvailableUnits'])
         ->name('dashboard.reservation.available_units');

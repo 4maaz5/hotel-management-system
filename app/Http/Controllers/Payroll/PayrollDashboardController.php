@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payroll;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Employee;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 
 class PayrollDashboardController extends Controller
 {
+    use ScopesTenantAccess;
+
     // public function PayrollDashboard()
     // {
     //     $user = Auth::user();
@@ -228,7 +231,7 @@ class PayrollDashboardController extends Controller
         $perPage = $request->input('per_page', 15);
 
         // Base query
-        $query = Payroll::with(['employee', 'employee.branch']);
+        $query = $this->scopePayrollsForUser(Payroll::with(['employee', 'employee.branch']), $user);
 
         // Role-based filtering
         if ($user->hasRole('manager') && $user->branch_id) {
@@ -243,6 +246,7 @@ class PayrollDashboardController extends Controller
 
         // Apply filters
         if ($employeeId) {
+            $this->scopeEmployeesForUser(Employee::query(), $user)->findOrFail($employeeId);
             $query->where('employee_id', $employeeId);
         }
 
@@ -290,11 +294,29 @@ class PayrollDashboardController extends Controller
         }
 
         // Normal full-page render
-        $employees = Employee::select('id', 'first_name', 'last_name')->get();
-        $branches = Branch::select('id', 'name')->get();
+        $employees = $this->scopeEmployeesForUser(Employee::select('id', 'first_name', 'last_name'), $user)->get();
+        $branches = $this->scopeBranchesForUser(Branch::select('id', 'name'), $user)->get();
 
         return view('Admin.Backend.partials.filter-results', compact(
             'payrolls', 'employees', 'branches', 'summary'
         ));
+    }
+
+    private function scopeEmployeesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function scopePayrollsForUser($query, $user)
+    {
+        return $query->whereHas('employee', fn ($employeeQuery) => $this->scopeEmployeesForUser($employeeQuery, $user));
     }
 }

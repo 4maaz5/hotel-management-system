@@ -12,7 +12,7 @@ class KnowledgeBase extends Model
     protected $table = 'knowledge_base';
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'title',
         'title_ar',
         'content',

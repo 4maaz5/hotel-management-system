@@ -1550,7 +1550,6 @@
                         $('#employeeTableBody').html(response);
                     },
                     error: function(xhr) {
-                        console.log(xhr.responseText);
                     }
                 });
             }

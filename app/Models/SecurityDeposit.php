@@ -11,7 +11,7 @@ class SecurityDeposit extends Model
     use BelongsToTenant, HasFactory;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'unit_type_id',
         'deposit_amount',
     ];

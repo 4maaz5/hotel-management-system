@@ -10,7 +10,7 @@ class FeedbackMetric extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'name',
         'is_active',
     ];

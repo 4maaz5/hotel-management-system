@@ -11,8 +11,8 @@ class PropertyAdditionalDetail extends Model
     use BelongsToCurrentProperty, BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
-        'property_id',
+        'company_id',
+        'branch_id',
         'distance_from_haram_km',
         'description_en',
         'description_ar',
@@ -20,6 +20,6 @@ class PropertyAdditionalDetail extends Model
 
     public function property()
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 }

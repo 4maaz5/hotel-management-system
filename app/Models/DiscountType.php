@@ -10,7 +10,7 @@ class DiscountType extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'type',
         'is_active',
         'report_name',

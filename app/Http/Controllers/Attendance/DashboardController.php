@@ -169,37 +169,36 @@ class DashboardController extends Controller
 
             $employees = Employee::where('branch_id', $branchId)->get();
         } else {
-            // Owner (no branch_id): TenantScope on Employee handles company scoping
-            $attendances = Attendance::whereHas('employee', function ($query) {
-                // TenantScope auto-scopes Employee by company_id
+            $attendances = Attendance::whereHas('employee', function ($query) use ($user) {
+                $query->where('company_id', $user->company_id);
             })
                 ->with('employee')
                 ->latest()
                 ->get();
 
-            $attendancesCards = Attendance::whereHas('employee', function ($query) {
-                // TenantScope auto-scopes Employee by company_id
+            $attendancesCards = Attendance::whereHas('employee', function ($query) use ($user) {
+                $query->where('company_id', $user->company_id);
             })
                 ->with('employee')
                 ->latest()
                 ->paginate(10);
 
-            $totalEmployees = Employee::count();
+            $totalEmployees = Employee::where('company_id', $user->company_id)->count();
 
             $presentToday = Attendance::whereDate('date', $today)
                 ->whereNotNull('check_in')
-                ->whereHas('employee', function ($query) {
-                    // TenantScope auto-scopes Employee by company_id
+                ->whereHas('employee', function ($query) use ($user) {
+                    $query->where('company_id', $user->company_id);
                 })
                 ->count();
 
             $totalAttendance = Attendance::whereDate('date', $today)
-                ->whereHas('employee', function ($query) {
-                    // TenantScope auto-scopes Employee by company_id
+                ->whereHas('employee', function ($query) use ($user) {
+                    $query->where('company_id', $user->company_id);
                 })
                 ->count();
 
-            $employees = Employee::all();
+            $employees = Employee::where('company_id', $user->company_id)->get();
         }
 
         // Common Calculations

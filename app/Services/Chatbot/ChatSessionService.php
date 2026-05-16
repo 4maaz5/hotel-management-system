@@ -3,6 +3,7 @@
 namespace App\Services\Chatbot;
 
 use App\Models\ChatSession;
+use App\Models\Property;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -64,7 +65,9 @@ class ChatSessionService
                 ->whereNull('user_id')
                 ->first();
 
-            if ($session && ($propertyId === null || $session->property_id === null || (int) $session->property_id === $propertyId)) {
+            $branchId = $this->propertyIdToBranchId($propertyId);
+
+            if ($session && ($branchId === null || $session->branch_id === null || (int) $session->branch_id === $branchId)) {
                 return $session;
             }
         }
@@ -111,9 +114,14 @@ class ChatSessionService
 
     private function create(User $user, ?Request $request = null): ChatSession
     {
+        $propertyId = $request?->session()->get('current_property_id')
+            ?: $request?->session()->get('property_id');
+        $property = $propertyId ? Property::query()->find((int) $propertyId) : null;
+
         return ChatSession::create([
+            'company_id' => $property?->company_id ?: $user->company_id,
             'user_id' => $user->id,
-            'property_id' => $request?->session()->get('property_id') ?: $user->property_id,
+            'branch_id' => $property?->branch_id ?: $user->branch_id,
             'language' => app()->getLocale() === 'ar' ? 'ar' : 'en',
             'status' => 'open',
             'context' => [],
@@ -123,9 +131,16 @@ class ChatSessionService
 
     private function createGuest(Request $request, ?int $propertyId = null): ChatSession
     {
+        $property = Property::query()
+            ->whereKey((int) ($propertyId
+                ?: $request->session()->get('current_property_id')
+                ?: $request->session()->get('property_id')))
+            ->first();
+
         return ChatSession::create([
+            'company_id' => $property?->company_id,
             'user_id' => null,
-            'property_id' => $propertyId ?: $request->session()->get('property_id'),
+            'branch_id' => $property?->branch_id,
             'language' => app()->getLocale() === 'ar' ? 'ar' : 'en',
             'status' => 'open',
             'context' => [
@@ -133,5 +148,18 @@ class ChatSessionService
             ],
             'last_message_at' => now(),
         ]);
+    }
+
+    private function propertyIdToBranchId(null|int|string $propertyId): ?int
+    {
+        if (! $propertyId) {
+            return null;
+        }
+
+        $branchId = Property::query()
+            ->whereKey((int) $propertyId)
+            ->value('branch_id');
+
+        return $branchId ? (int) $branchId : null;
     }
 }

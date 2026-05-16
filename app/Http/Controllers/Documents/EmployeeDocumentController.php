@@ -2,15 +2,26 @@
 
 namespace App\Http\Controllers\Documents;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\Response;
 
 class EmployeeDocumentController extends Controller
 {
+    use ScopesTenantAccess;
+
+    private const DOCUMENT_DISK = 'local';
+
+    private const DOCUMENT_DIRECTORY = 'employee_documents';
+
+    private const IMAGE_DIRECTORY = 'employee_documents/images';
+
     // public function index()
     // {
     //     $user = auth()->user();
@@ -70,9 +81,13 @@ class EmployeeDocumentController extends Controller
                     $q->where('branch_id', $branchId);
                 })->paginate(10);
             } else {
-                $employees = Employee::all();
-                $employeeDocs = EmployeeDocument::all();
-                $employeeDocsCard = EmployeeDocument::paginate(10);
+                $employees = Employee::where('company_id', $user->company_id)->get();
+                $employeeDocs = EmployeeDocument::whereHas('employee', function ($q) use ($user) {
+                    $q->where('company_id', $user->company_id);
+                })->get();
+                $employeeDocsCard = EmployeeDocument::whereHas('employee', function ($q) use ($user) {
+                    $q->where('company_id', $user->company_id);
+                })->paginate(10);
             }
         }
 
@@ -87,7 +102,10 @@ class EmployeeDocumentController extends Controller
     {
         //  Validate the incoming data
         $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
+            'employee_id' => [
+                'required',
+                Rule::exists('employees', 'id')->where(fn ($query) => $this->scopeEmployeesForUser($query, $request->user())),
+            ],
             'type' => 'required|string|max:255',
             'issue_date' => 'required|date',
             'expiry_date' => 'required|date',
@@ -99,23 +117,23 @@ class EmployeeDocumentController extends Controller
         //  Handle file upload (document)
         $filePath = null;
         if ($request->hasFile('file')) {
-            $filePath = $request->file('file')->store('employee_documents', 'public');
+            $filePath = $request->file('file')->store(self::DOCUMENT_DIRECTORY, self::DOCUMENT_DISK);
         }
 
         //  Handle image upload
         $imagePath = null;
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('employee_documents/images', 'public');
+            $imagePath = $request->file('image')->store(self::IMAGE_DIRECTORY, self::DOCUMENT_DISK);
         }
 
         // Store in database
         $document = EmployeeDocument::create([
-            'employee_id' => $request->employee_id,
-            'type' => $request->type,
+            'employee_id' => $validated['employee_id'],
+            'type' => $validated['type'],
             'file_path' => $filePath,
-            'issue_date' => $request->issue_date,
-            'document_number' => $request->doc_number,
-            'expiration_date' => $request->expiry_date,
+            'issue_date' => $validated['issue_date'],
+            'document_number' => $validated['doc_number'],
+            'expiration_date' => $validated['expiry_date'],
             'image' => $imagePath,
         ]);
 
@@ -123,17 +141,20 @@ class EmployeeDocumentController extends Controller
         return response()->json([
             'success' => true,
             'message' => __('messages.employee_document_added_successfully'),
-            'data' => $document->load('employee:id,first_name,last_name'),
+            'data' => $this->documentPayload($document->load('employee:id,first_name,last_name,employee_id')),
         ]);
 
     }
 
     public function update(Request $request, $id)
     {
-        $document = EmployeeDocument::findOrFail($id);
+        $document = $this->scopeEmployeeDocumentsForUser(EmployeeDocument::query(), $request->user())->findOrFail($id);
 
         $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
+            'employee_id' => [
+                'required',
+                Rule::exists('employees', 'id')->where(fn ($query) => $this->scopeEmployeesForUser($query, $request->user())),
+            ],
             'type' => 'required|string|max:255',
             'issue_date' => 'required|date',
             'expiry_date' => 'required|date|after_or_equal:issue_date',
@@ -143,11 +164,13 @@ class EmployeeDocumentController extends Controller
         ]);
 
         if ($request->hasFile('file')) {
-            $validated['file_path'] = $request->file('file')->store('employee_documents', 'public');
+            $this->deleteStoredAsset($document->file_path);
+            $validated['file_path'] = $request->file('file')->store(self::DOCUMENT_DIRECTORY, self::DOCUMENT_DISK);
         }
 
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('employee_documents/images', 'public');
+            $this->deleteStoredAsset($document->image);
+            $validated['image'] = $request->file('image')->store(self::IMAGE_DIRECTORY, self::DOCUMENT_DISK);
         }
 
         // update document
@@ -166,59 +189,48 @@ class EmployeeDocumentController extends Controller
         return response()->json([
             'success' => true,
             'message' => __('messages.employee_document_updated_successfully'),
-            'data' => [
-                'id' => $document->id,
-                'employee_id' => $document->employee_id,
-                'type' => $document->type,
-                'document_number' => $document->document_number,
-                'issue_date' => $document->issue_date,
-                'expiration_date' => $document->expiration_date,
-                'employee' => [
-                    'id' => $document->employee->id,
-                    'first_name' => $document->employee->first_name,
-                    'employee_id' => $document->employee->employee_id,
-                ],
-            ],
+            'data' => $this->documentPayload($document),
         ]);
     }
 
     public function destroy($id)
     {
-        $doc = EmployeeDocument::find($id);
+        $doc = $this->scopeEmployeeDocumentsForUser(EmployeeDocument::query(), Auth::user())->find($id);
 
         if (! $doc) {
             return response()->json(['success' => false, 'message' => 'Document not found.']);
         }
 
-        // Delete files if exist
-        if ($doc->file_path && Storage::disk('public')->exists($doc->file_path)) {
-            Storage::disk('public')->delete($doc->file_path);
-        }
-
-        if ($doc->image && Storage::disk('public')->exists($doc->image)) {
-            Storage::disk('public')->delete($doc->image);
-        }
+        $this->deleteStoredAsset($doc->file_path);
+        $this->deleteStoredAsset($doc->image);
 
         $doc->delete();
 
         return response()->json(['success' => true, 'message' => __('messages.employee_document_deleted_successfully')]);
     }
 
+    public function file(Request $request, EmployeeDocument $document): Response
+    {
+        return $this->streamDocumentAsset($request, $document, 'file_path');
+    }
+
+    public function image(Request $request, EmployeeDocument $document): Response
+    {
+        return $this->streamDocumentAsset($request, $document, 'image');
+    }
+
     public function filter(Request $request)
     {
         $user = Auth::user();
 
-        $query = EmployeeDocument::with('employee');
-
-        // Non-super-admin: scope by branch if assigned
-        if (!$user->hasRole('super_admin') && $user->branch_id) {
-            $query->whereHas('employee', function ($q) use ($user) {
-                $q->where('branch_id', $user->branch_id);
-            });
-        }
+        $query = $this->scopeEmployeeDocumentsForUser(EmployeeDocument::with('employee'), $user);
 
         // Filter: employee
         if ($request->filled('employee_id')) {
+            if (! $this->scopeEmployeesForUser(Employee::whereKey($request->employee_id), $user)->exists()) {
+                return response()->json(['html' => ''], 403);
+            }
+
             $query->where('employee_id', $request->employee_id);
         }
 
@@ -246,5 +258,82 @@ class EmployeeDocumentController extends Controller
         $html = view('Admin.Backend.partials.employee_docs_rows', compact('employeeDocs'))->render();
 
         return response()->json(['html' => $html]);
+    }
+
+    private function scopeEmployeeDocumentsForUser($query, $user)
+    {
+        return $query->whereHas('employee', fn ($employeeQuery) => $this->scopeEmployeesForUser($employeeQuery, $user));
+    }
+
+    private function scopeEmployeesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function streamDocumentAsset(Request $request, EmployeeDocument $document, string $column): Response
+    {
+        $document = $this->scopeEmployeeDocumentsForUser(EmployeeDocument::query(), $request->user())
+            ->findOrFail($document->id);
+
+        $path = $document->{$column};
+
+        abort_unless($path && Storage::disk(self::DOCUMENT_DISK)->exists($path), 404);
+
+        $filename = basename($path);
+
+        if ($request->boolean('download')) {
+            return Storage::disk(self::DOCUMENT_DISK)->download($path, $filename);
+        }
+
+        return Storage::disk(self::DOCUMENT_DISK)->response($path, $filename, [
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    private function deleteStoredAsset(?string $path): void
+    {
+        if (! $path) {
+            return;
+        }
+
+        foreach ([self::DOCUMENT_DISK, 'public'] as $disk) {
+            if (Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
+            }
+        }
+    }
+
+    private function documentPayload(EmployeeDocument $document): array
+    {
+        return [
+            'id' => $document->id,
+            'employee_id' => $document->employee_id,
+            'type' => $document->type,
+            'document_number' => $document->document_number,
+            'issue_date' => $document->issue_date,
+            'expiration_date' => $document->expiration_date,
+            'file_path' => $document->file_path,
+            'file_url' => $document->file_path
+                ? route('dashboard.document.employee.file', $document)
+                : null,
+            'image' => $document->image,
+            'image_url' => $document->image
+                ? route('dashboard.document.employee.image', $document)
+                : null,
+            'employee' => $document->employee ? [
+                'id' => $document->employee->id,
+                'first_name' => $document->employee->first_name,
+                'last_name' => $document->employee->last_name,
+                'employee_id' => $document->employee->employee_id,
+            ] : null,
+        ];
     }
 }

@@ -42,7 +42,7 @@
                                 <option value="">— Select Plan —</option>
                                 @foreach ($plans as $plan)
                                     <option value="{{ $plan->id }}" @selected(old('subscription_plan_id') == $plan->id)>
-                                        {{ $plan->name }} (${{ $plan->formattedPrice() }}/{{ $plan->billing_period }})
+                                        {{ $plan->name }} (SAR {{ $plan->formattedPrice() }}/{{ $plan->billing_period }})
                                     </option>
                                 @endforeach
                             </select>

@@ -10,25 +10,54 @@ class FacilitySeeder extends Seeder
 {
     public function run(): void
     {
-        $recreation = FacilityCategory::where('name', 'Recreation')->first();
-        $fitness = FacilityCategory::where('name', 'Fitness')->first();
+        $categories = FacilityCategory::whereIn('name', [
+            'Recreation',
+            'Fitness',
+            'Food & Beverage',
+            'Business Services',
+            'Parking',
+        ])->get()->keyBy('name');
 
-        Facility::insert([
-            [
-                'facility_category_id' => $recreation->id,
-                'name' => 'Swimming Pool',
-                'status' => true,
+        foreach ([
+            'Recreation' => [
+                'Swimming Pool',
+                'Kids Play Area',
+                'Spa',
+                'Sauna',
             ],
-            [
-                'facility_category_id' => $recreation->id,
-                'name' => 'Kids Play Area',
-                'status' => true,
+            'Fitness' => [
+                'Gym',
+                'Yoga Room',
             ],
-            [
-                'facility_category_id' => $fitness->id,
-                'name' => 'Gym',
-                'status' => true,
+            'Food & Beverage' => [
+                'Restaurant',
+                'Coffee Shop',
+                'Room Service',
             ],
-        ]);
+            'Business Services' => [
+                'Meeting Room',
+                'Business Center',
+            ],
+            'Parking' => [
+                'Valet Parking',
+                'Self Parking',
+            ],
+        ] as $categoryName => $facilityNames) {
+            $category = $categories->get($categoryName);
+
+            if (! $category) {
+                continue;
+            }
+
+            foreach ($facilityNames as $facilityName) {
+                Facility::updateOrCreate(
+                    [
+                        'facility_category_id' => $category->id,
+                        'name' => $facilityName,
+                    ],
+                    ['status' => true]
+                );
+            }
+        }
     }
 }

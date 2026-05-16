@@ -30,9 +30,9 @@
                                 <td>{{ $reservation->unit->unit_number ?? '-' }}</td>
                                 <td>{{ $reservation->check_in_date->format('Y-m-d') }}</td>
                                 <td>{{ $reservation->check_out_date->format('Y-m-d') }}</td>
-                                <td class="text-end">SAR {{ number_format($reservation->total_amount, 2) }}</td>
-                                <td class="text-end {{ $reservation->total_amount - $reservation->invoice?->total ?? 0 > 0 ? 'text-danger' : 'text-success' }}">
-                                    SAR {{ number_format($reservation->total_amount - $reservation->invoice?->total ?? 0, 2) }}
+                                <td class="text-end">SAR {{ number_format($reservation->grand_total, 2) }}</td>
+                                <td class="text-end {{ $reservation->grand_total - $reservation->invoice?->total ?? 0 > 0 ? 'text-danger' : 'text-success' }}">
+                                    SAR {{ number_format($reservation->grand_total - $reservation->invoice?->total ?? 0, 2) }}
                                 </td>
                                 <td>
                                     <span class="badge bg-{{ $reservation->status === 'checked_out' ? 'info' : 'warning' }}">
@@ -82,8 +82,8 @@
                     <td>{{ $reservation->unit->unit_number ?? '-' }}</td>
                     <td>{{ $reservation->check_in_date->format('Y-m-d') }}</td>
                     <td>{{ $reservation->check_out_date->format('Y-m-d') }}</td>
-                    <td class="text-end">SAR {{ number_format($reservation->total_amount, 2) }}</td>
-                    <td class="text-end">SAR {{ number_format($reservation->total_amount - $reservation->invoice?->total ?? 0, 2) }}</td>
+                    <td class="text-end">SAR {{ number_format($reservation->grand_total, 2) }}</td>
+                    <td class="text-end">SAR {{ number_format($reservation->grand_total - $reservation->invoice?->total ?? 0, 2) }}</td>
                     <td>{{ ucfirst(str_replace('_', ' ', $reservation->status)) }}</td>
                 </tr>
             @empty
@@ -116,8 +116,8 @@
                     <td>{{ $reservation->unit->unit_number ?? '-' }}</td>
                     <td>{{ $reservation->check_in_date->format('Y-m-d') }}</td>
                     <td>{{ $reservation->check_out_date->format('Y-m-d') }}</td>
-                    <td class="text-end">ر.س {{ number_format($reservation->total_amount, 2) }}</td>
-                    <td class="text-end">ر.س {{ number_format($reservation->total_amount - $reservation->invoice?->total ?? 0, 2) }}</td>
+                    <td class="text-end">ر.س {{ number_format($reservation->grand_total, 2) }}</td>
+                    <td class="text-end">ر.س {{ number_format($reservation->grand_total - $reservation->invoice?->total ?? 0, 2) }}</td>
                     <td>{{ ucfirst(str_replace('_', ' ', $reservation->status)) }}</td>
                 </tr>
             @empty

@@ -12,7 +12,8 @@ class ReceiptVoucher extends Model
     use BelongsToStaffCurrentProperty, BelongsToTenant;
 
     protected $fillable = [
-        'property_id',
+        'company_id',
+        'branch_id',
         'reservation_id',
         'guest_id',
         'corporate_id',
@@ -72,7 +73,7 @@ class ReceiptVoucher extends Model
 
     public function property()
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 
     public static function generateVoucherNumber()

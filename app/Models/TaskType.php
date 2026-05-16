@@ -12,7 +12,7 @@ class TaskType extends Model
     protected $table = 'housekeeping_task_types';
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'name',
         'is_active',
         'is_routine',

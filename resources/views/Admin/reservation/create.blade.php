@@ -1763,21 +1763,17 @@
                 const reservationType = document.getElementById('reservationType').value;
                 const checkInDate = document.getElementById('checkInDate').value;
                 const checkOutDate = document.getElementById('checkOutDate').value;
-                console.log('Fetching rates for unit:', unitId);
                 let ratesUrl = '{{ route('dashboard.reservation.get_rates') }}?unit_id=' + unitId +
                     '&reservation_type=' + reservationType;
                 if (checkInDate) ratesUrl += '&check_in=' + checkInDate;
                 if (checkOutDate) ratesUrl += '&check_out=' + checkOutDate;
                 fetch(ratesUrl)
                     .then(response => {
-                        console.log('Response status:', response.status);
                         return response.json();
                     })
                     .then(data => {
-                        console.log('Rates fetched:', data);
                         // Store unit rates globally for use in rate calculations
                         window.selectedUnitRates = data;
-                        console.log('window.selectedUnitRates stored:', window.selectedUnitRates);
 
                         // Update rate display
                         updateRateDisplay();
@@ -1889,7 +1885,6 @@
 
         // Rate data from backend
         const highWeekdays = {!! json_encode($highWeekdays) !!};
-        console.log('HighWeekdays from DB:', highWeekdays);
         const seasonalRates = {!! json_encode(
             $seasonalRates->map(function ($s) {
                     return [
@@ -1984,7 +1979,6 @@
                     });
                 })->values()->toArray(),
         ) !!};
-        console.log('ratePlanUnitTypes loaded:', ratePlanUnitTypes);
 
         function getSelectedUnitTypeIdsForRatePlan() {
             const unitId = document.getElementById('selectedUnitId')?.value;
@@ -2083,13 +2077,11 @@
         function isHighWeekday(date) {
             const dayName = getDayName(date).toLowerCase();
             const highDays = highWeekdays.map(d => d.toLowerCase());
-            console.log('Day:', dayName, 'HighWeekdays:', highDays, 'Is High:', highDays.includes(dayName));
             return highDays.includes(dayName);
         }
 
         // Get rate for a specific unit and date
         function getRateForDate(unitId, unitTypeId, date) {
-            console.log('getRateForDate called', unitId, unitTypeId, window.selectedUnitRates);
 
             const dateStr = formatDateInput(date);
 
@@ -2098,7 +2090,6 @@
                 const rate = isHighWeekday(date) ?
                     window.selectedUnitRates.unit_custom_rate.high_weekday_rate :
                     window.selectedUnitRates.unit_custom_rate.low_weekday_rate;
-                console.log('Using API custom rate:', rate);
                 return rate;
             }
 
@@ -2106,7 +2097,6 @@
             if (window.selectedUnitRates && window.selectedUnitRates.special_rates) {
                 for (const special of window.selectedUnitRates.special_rates) {
                     if (dateStr >= special.start_date && dateStr <= special.end_date && special.rate) {
-                        console.log('Using API special rate:', special.rate.rate);
                         return special.rate.rate || 0;
                     }
                 }
@@ -2119,7 +2109,6 @@
                         const rate = isHighWeekday(date) ?
                             seasonal.rate.high_weekday_rate :
                             seasonal.rate.low_weekday_rate;
-                        console.log('Using API seasonal rate:', rate);
                         return rate;
                     }
                 }
@@ -2130,7 +2119,6 @@
                 const rate = isHighWeekday(date) ?
                     window.selectedUnitRates.unit_type_rate.high_weekday_rate :
                     window.selectedUnitRates.unit_type_rate.low_weekday_rate;
-                console.log('Using API unit_type_rate:', rate);
                 return rate;
             }
 
@@ -2302,25 +2290,19 @@
 
         // Update rate display
         function updateRateDisplay() {
-            console.log('updateRateDisplay called');
             const reservationType = document.getElementById('reservationType').value;
             const rateOption = document.querySelector('input[name="rateOption"]:checked').value;
             const unitId = document.getElementById('selectedUnitId').value;
 
-            console.log('reservationType:', reservationType, 'rateOption:', rateOption, 'unitId:', unitId);
-            console.log('window.selectedUnitRates in updateRateDisplay:', window.selectedUnitRates);
 
             let dailyRate = 0;
             let monthlyRate = 0;
 
             if (reservationType === 'daily') {
                 if (rateOption === 'rate_plan') {
-                    console.log('Rate plan selected - checking rates', window.selectedUnitRates, ratePlanUnitTypes);
                     const selectedPlanId = document.getElementById('ratePlanSelectInput').value;
                     const ratePlanRate = findSelectedRatePlanUnitType(selectedPlanId);
 
-                    console.log('Selected plan ID:', selectedPlanId, 'Unit type matches:', getSelectedUnitTypeIdsForRatePlan());
-                    console.log('Found rate plan rate:', ratePlanRate);
 
                     if (ratePlanRate) {
                         dailyRate = parseFloat(ratePlanRate.daily_rate) || 0;
@@ -2357,16 +2339,12 @@
 
                 document.getElementById('dailyRate').value = parseFloat(dailyRate).toFixed(2);
                 document.getElementById('monthlyRateInput').value = parseFloat(monthlyRate).toFixed(2);
-                console.log('Daily rate set to:', dailyRate, 'Monthly rate set to:', monthlyRate);
             } else {
                 // Monthly reservation
                 if (rateOption === 'rate_plan') {
-                    console.log('Monthly rate plan selected - checking rates', window.selectedUnitRates, ratePlanUnitTypes);
                     const selectedPlanId = document.getElementById('monthlyRatePlanSelectInput').value;
                     const ratePlanRate = findSelectedRatePlanUnitType(selectedPlanId);
 
-                    console.log('Selected monthly plan ID:', selectedPlanId, 'Unit type matches:', getSelectedUnitTypeIdsForRatePlan());
-                    console.log('Found monthly rate plan rate:', ratePlanRate);
 
                     if (ratePlanRate) {
                         monthlyRate = parseFloat(ratePlanRate.monthly_rate) || 0;
@@ -2713,7 +2691,6 @@
             // Rate option change (daily rate vs rate plan)
             document.querySelectorAll('input[name="rateOption"]').forEach(radio => {
                 radio.addEventListener('change', function() {
-                    console.log('Rate option changed to:', this.value);
                     const reservationType = document.getElementById('reservationType').value;
                     const dailyRateInput = document.getElementById('dailyRateInput');
                     const ratePlanSelect = document.getElementById('ratePlanSelect');
@@ -2767,7 +2744,6 @@
                             document.getElementById('dailyRate').readOnly = true;
                         }
                     }
-                    console.log('Calling updateRateDisplay from rate option change');
                     updateRateDisplay();
                     calculateTaxes();
                 });
@@ -2775,9 +2751,6 @@
 
             // Rate plan selection (daily)
             document.getElementById('ratePlanSelectInput').addEventListener('change', function() {
-                console.log('Rate plan changed to:', this.value);
-                console.log('window.selectedUnitRates at rate plan change:', window.selectedUnitRates);
-                console.log('ratePlanUnitTypes:', ratePlanUnitTypes);
                 syncRatePlanSelection(this.value);
                 updateRateDisplay();
                 calculateTaxes();
@@ -2785,7 +2758,6 @@
 
             // Rate plan selection (monthly)
             document.getElementById('monthlyRatePlanSelectInput').addEventListener('change', function() {
-                console.log('Monthly rate plan changed to:', this.value);
                 syncRatePlanSelection(this.value);
                 updateRateDisplay();
                 calculateTaxes();
@@ -3067,10 +3039,6 @@
                 const selectedUnitId = document.getElementById('selectedUnitId');
 
                 // Debug
-                console.log('Status:', status);
-                console.log('Check-in:', checkInDate ? checkInDate.value : 'not found');
-                console.log('Check-out:', checkOutDate ? checkOutDate.value : 'not found');
-                console.log('Unit ID:', selectedUnitId ? selectedUnitId.value : 'not found');
 
                 // Validation
                 if (!checkInDate || !checkInDate.value) {
@@ -3114,7 +3082,6 @@
                 actionInput.value = status;
                 form.appendChild(actionInput);
 
-                console.log('Submitting form with status:', statusValue, 'and action:', status);
                 
                 // Submit
                 form.submit();

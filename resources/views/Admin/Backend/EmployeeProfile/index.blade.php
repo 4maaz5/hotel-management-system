@@ -219,7 +219,7 @@
                                                                 @if ($document->file_path)
                                                                     <div class="text-center my-2">
                                                                         <a href="#" class="view-pdf"
-                                                                            data-file="{{ asset('storage/' . $document->file_path) }}"
+                                                                            data-file="{{ route('dashboard.document.employee.file', $document) }}"
                                                                             title="View PDF">
                                                                             <i class="fas fa-file-pdf text-secondary"
                                                                                 style="font-size: 28px;"></i>

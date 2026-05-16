@@ -652,7 +652,7 @@
 
             categoryDropdown.addEventListener('change', function() {
                 const categoryId = this.value;
-                const facilitiesUrl = @json(url('/app/admin/get-facilities'));
+                const facilitiesUrl = @json(route('setup-sidebar.property_facility.facilities'));
 
                 facilityDropdown.innerHTML =
                     '<option value="">{{ __('dashboard.select_facility') }}</option>';

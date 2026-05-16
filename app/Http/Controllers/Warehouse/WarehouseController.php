@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Warehouse;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\Company;
 use App\Models\Inventory;
 use App\Models\StockRequestItem;
 use App\Models\Warehouse;
@@ -12,26 +14,21 @@ use Illuminate\Support\Facades\Auth;
 
 class WarehouseController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         $user = Auth::user();
 
-        if ($user->role === 'super_admin') {
-            $branches = Branch::with('brand', 'company')->get();
-            $warehouses = Warehouse::all();
-        } elseif ($user->branch_id) {
-            $branches = Branch::with('brand', 'company')
-                ->where('id', $user->branch_id)->get();
-            $warehouses = Warehouse::where('branch_id', $user->branch_id)->get();
-        } else {
-            $branches = Branch::with('brand', 'company')
-                ->whereHas('company', fn ($q) => $q->where('id', $user->company_id))->get();
-            $warehouses = Warehouse::whereHas('branch.company', fn ($q) => $q->where('id', $user->company_id))->get();
-        }
+        $branches = $this->scopeBranchesForUser(Branch::with('brand', 'company'), $user)->get();
+        $warehouses = $this->scopeWarehousesForUser(Warehouse::with('branch.company'), $user)->get();
+        $companies = $this->isSuperAdmin($user)
+            ? Company::orderBy('name')->get()
+            : Company::whereKey($user->company_id)->get();
 
         return view(
             'Admin.Backend.Warehouse.index',
-            compact('branches', 'warehouses')
+            compact('branches', 'warehouses', 'companies')
         );
     }
 
@@ -41,13 +38,25 @@ class WarehouseController extends Controller
             'warehouse_name' => 'required|string|max:255',
             'type' => 'required|in:main,branch',
             'branch_id' => 'nullable|exists:branches,id',
+            'company_id' => 'nullable|exists:companies,id',
         ]);
+
+        $user = Auth::user();
+        $companyId = $this->isSuperAdmin($user)
+            ? ($validated['company_id'] ?? null)
+            : $user->company_id;
 
         //  MAIN warehouse logic
         if ($validated['type'] === 'main') {
+            if (! $companyId || $user->branch_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A main warehouse must belong to a company account.',
+                ], 422);
+            }
 
-            // Only ONE main warehouse allowed
-            if (Warehouse::where('type', 'main')->exists()) {
+            // Only ONE main warehouse per company
+            if (Warehouse::where('company_id', $companyId)->where('type', 'main')->exists()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Main warehouse already exists.',
@@ -67,6 +76,15 @@ class WarehouseController extends Controller
                 ], 422);
             }
 
+            if (! $this->userCanAccessBranch((int) $validated['branch_id'], $user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected branch is not available for this account.',
+                ], 403);
+            }
+
+            $companyId = Branch::whereKey($validated['branch_id'])->value('company_id');
+
             // Only ONE warehouse per branch
             if (Warehouse::where('branch_id', $validated['branch_id'])->exists()) {
                 return response()->json([
@@ -77,6 +95,7 @@ class WarehouseController extends Controller
         }
 
         $warehouse = Warehouse::create([
+            'company_id' => $companyId,
             'name' => $validated['warehouse_name'],
             'branch_id' => $validated['branch_id'],
             'type' => $validated['type'],
@@ -90,7 +109,9 @@ class WarehouseController extends Controller
             'data' => [
                 'id' => $warehouse->id,
                 'name' => $warehouse->name,
+                'company_id' => $warehouse->company_id,
                 'branch' => $branchName,
+                'branch_id' => $warehouse->branch_id,
                 'type' => $warehouse->type,
             ],
         ]);
@@ -103,14 +124,27 @@ class WarehouseController extends Controller
             'name' => 'required|string|max:255',
             'type' => 'required|in:main,branch',
             'branch_id' => 'nullable|exists:branches,id',
+            'company_id' => 'nullable|exists:companies,id',
         ]);
 
-        $warehouse = Warehouse::findOrFail($request->id);
+        $user = Auth::user();
+        $warehouse = $this->scopeWarehousesForUser(Warehouse::query(), $user)->findOrFail($request->id);
+        $companyId = $this->isSuperAdmin($user)
+            ? ($request->company_id ?? $warehouse->company_id)
+            : $user->company_id;
 
         // Main warehouse logic
         if ($request->type === 'main') {
-            // Only one main warehouse allowed (ignore current warehouse)
+            if (! $companyId || $user->branch_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A main warehouse must belong to a company account.',
+                ], 422);
+            }
+
+            // Only one main warehouse per company (ignore current warehouse)
             $exists = Warehouse::where('type', 'main')
+                ->where('company_id', $companyId)
                 ->where('id', '!=', $warehouse->id)
                 ->exists();
             if ($exists) {
@@ -121,6 +155,7 @@ class WarehouseController extends Controller
             }
 
             $warehouse->branch_id = null; // Main warehouse has no branch
+            $warehouse->company_id = $companyId;
         }
 
         // Branch warehouse logic
@@ -130,6 +165,13 @@ class WarehouseController extends Controller
                     'success' => false,
                     'message' => 'Branch is required for branch warehouse.',
                 ], 422);
+            }
+
+            if (! $this->userCanAccessBranch((int) $request->branch_id, $user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected branch is not available for this account.',
+                ], 403);
             }
 
             // Only one warehouse per branch (ignore current warehouse)
@@ -144,6 +186,7 @@ class WarehouseController extends Controller
             }
 
             $warehouse->branch_id = $request->branch_id;
+            $warehouse->company_id = Branch::whereKey($request->branch_id)->value('company_id');
         }
 
         // Update name and type
@@ -157,6 +200,7 @@ class WarehouseController extends Controller
             'data' => [
                 'id' => $warehouse->id,
                 'name' => $warehouse->name,
+                'company_id' => $warehouse->company_id,
                 'branch_id' => $warehouse->branch_id,
                 'branch' => $warehouse->branch?->name ?? 'Main Warehouse',
                 'type' => $warehouse->type,
@@ -170,7 +214,7 @@ class WarehouseController extends Controller
             'warehouse_id' => 'required|exists:warehouses,id',
         ]);
 
-        $warehouse = Warehouse::findOrFail($request->warehouse_id);
+        $warehouse = $this->scopeWarehousesForUser(Warehouse::query(), Auth::user())->findOrFail($request->warehouse_id);
         $warehouse->delete();
 
         return response()->json([
@@ -184,7 +228,7 @@ class WarehouseController extends Controller
 
     public function report($warehouseId)
     {
-        $warehouse = Warehouse::findOrFail($warehouseId);
+        $warehouse = $this->scopeWarehousesForUser(Warehouse::query(), Auth::user())->findOrFail($warehouseId);
 
         // Current inventory
         // $inventories = Inventory::with('product')

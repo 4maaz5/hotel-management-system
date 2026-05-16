@@ -10,7 +10,7 @@ class SpecialUnitTypeRate extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'special_rate_id',
         'unit_type_id',
         'rate',
@@ -27,8 +27,4 @@ class SpecialUnitTypeRate extends Model
         return $this->belongsTo(UnitType::class);
     }
 
-    public function unit()
-    {
-        return $this->belongsTo(Unit::class);
-    }
 }

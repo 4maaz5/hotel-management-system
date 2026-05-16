@@ -18,7 +18,7 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
             overflow: hidden;
             background: #fff;
-            max-width: 900px;
+            max-width: 1180px;
             margin: 0 auto;
         }
         .register-card-body {
@@ -120,7 +120,7 @@
                 <h5 class="section-title">1. Choose your plan</h5>
                 <div class="row g-3 mb-4">
                     @foreach ($plans as $plan)
-                        <div class="col-md-4">
+                        <div class="col-sm-6 col-xl-3">
                             <label class="plan-card @selected(old('plan_id') == $plan->id) selected" id="plan-label-{{ $plan->id }}">
                                 <input type="radio" name="plan_id" value="{{ $plan->id }}"
                                     {{ old('plan_id') == $plan->id ? 'checked' : '' }}
@@ -130,16 +130,24 @@
                                     <h6 class="fw-bold mb-0">{{ $plan->name }}</h6>
                                 </div>
                                 <div class="mb-2">
-                                    <span class="price">${{ $formattedPrice = number_format($plan->price, 0) }}</span>
+                                    <span class="price">SAR {{ $formattedPrice = number_format($plan->price, 0) }}</span>
                                     <span class="period">/ {{ $plan->billing_period }}</span>
                                 </div>
                                 <div>
-                                    @foreach ($plan->features ?? [] as $feature)
+                                    <div class="feature-item">
+                                        <i class="fas fa-users text-success me-1"></i>
+                                        {{ $plan->maxLimit('max_users') ?: 'Unlimited' }} users
+                                    </div>
+                                    <div class="feature-item">
+                                        <i class="fas fa-building text-success me-1"></i>
+                                        {{ $plan->maxLimit('max_properties') ?: 'Unlimited' }} properties
+                                    </div>
+                                    @if (in_array('custom_branding', $plan->features ?? [], true))
                                         <div class="feature-item">
-                                            <i class="fas fa-check-circle text-success me-1"></i>
-                                            {{ $plan->featureList()[$feature] ?? $feature }}
+                                            <i class="fas fa-palette text-success me-1"></i>
+                                            Custom Branding
                                         </div>
-                                    @endforeach
+                                    @endif
                                 </div>
                             </label>
                         </div>

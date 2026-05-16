@@ -179,24 +179,34 @@
 @endsection
 @push('scripts')
     <script>
-        const outletCategoriesBaseUrl = @json(url('/app/outlet'));
+        const outletCategoriesUrlTemplate = @json(route('setup-sidebar.items.categories', ['outlet' => '__OUTLET__']));
+        const selectCategoryLabel = @json(__('dashboard.select_category'));
+        const loadingLabel = 'Loading...';
 
         function loadCategories(outletId, selectedCategoryId = null) {
 
             let categorySelect = document.getElementById('categorySelect');
 
             if (!outletId) {
-                categorySelect.innerHTML = '<option value="">Select Category</option>';
+                categorySelect.innerHTML = `<option value="">${selectCategoryLabel}</option>`;
                 return;
             }
 
-            categorySelect.innerHTML = '<option value="">Loading...</option>';
+            categorySelect.innerHTML = `<option value="">${loadingLabel}</option>`;
 
-            fetch(`${outletCategoriesBaseUrl}/${outletId}/categories`)
-                .then(response => response.json())
+            const url = outletCategoriesUrlTemplate.replace('__OUTLET__', encodeURIComponent(outletId));
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to load categories (${response.status})`);
+                    }
+
+                    return response.json();
+                })
                 .then(data => {
 
-                    let options = '<option value="">{{ __('dashboard.select_category') }}</option>';
+                    let options = `<option value="">${selectCategoryLabel}</option>`;
 
                     data.forEach(cat => {
 
@@ -209,6 +219,10 @@
 
                     categorySelect.innerHTML = options;
 
+                })
+                .catch(error => {
+                    console.error('Failed to load categories:', error);
+                    categorySelect.innerHTML = `<option value="">${selectCategoryLabel}</option>`;
                 });
         }
 
@@ -222,7 +236,7 @@
 
             let outletId = outletSelect.value;
 
-            // Load categories on page load (Edit Page ⭐)
+            // Load categories on page load.
             loadCategories(outletId, selectedCategory);
 
             // Change event

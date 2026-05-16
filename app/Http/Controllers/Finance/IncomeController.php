@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers\Finance;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\Income;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class IncomeController extends Controller
 {
+    use ScopesTenantAccess;
+
     // public function index()
     // {
     //     $user = Auth::user();
@@ -71,27 +75,28 @@ class IncomeController extends Controller
             // Super admin sees everything
             $branches = Branch::all();
             $employees = Employee::all();
-            $incomes = Income::with(['branch', 'user'])->latest()->get();
-            $incomeCards = Income::with(['branch', 'user'])->latest()->paginate(10);
+            $incomes = Income::with(['branch', 'employee'])->latest()->get();
+            $incomeCards = Income::with(['branch', 'employee'])->latest()->paginate(10);
         } else {
             $branchId = $user->branch_id;
 
             if ($branchId) {
                 $branches = Branch::where('id', $branchId)->get();
                 $employees = Employee::where('branch_id', $branchId)->get();
-                $incomes = Income::with(['branch', 'user'])
+                $incomes = Income::with(['branch', 'employee'])
                     ->where('branch_id', $branchId)
                     ->latest()
                     ->get();
-                $incomeCards = Income::with(['branch', 'user'])
+                $incomeCards = Income::with(['branch', 'employee'])
                     ->where('branch_id', $branchId)
                     ->latest()
                     ->paginate(10);
             } else {
-                $branches = Branch::all();
-                $employees = Employee::all();
-                $incomes = Income::with(['branch', 'user'])->latest()->get();
-                $incomeCards = Income::with(['branch', 'user'])->latest()->paginate(10);
+                $branches = Branch::where('company_id', $user->company_id)->get();
+                $branchIds = $branches->pluck('id');
+                $employees = Employee::where('company_id', $user->company_id)->get();
+                $incomes = Income::with(['branch', 'employee'])->whereIn('branch_id', $branchIds)->latest()->get();
+                $incomeCards = Income::with(['branch', 'employee'])->whereIn('branch_id', $branchIds)->latest()->paginate(10);
             }
         }
 
@@ -106,9 +111,15 @@ class IncomeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => [
+                'required',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
             'type' => 'required|string',
-            'employee_id' => 'nullable|exists:employees,id',
+            'employee_id' => [
+                'nullable',
+                Rule::exists('employees', 'id')->where(fn ($query) => $this->scopeEmployeesForUser($query, $request->user())),
+            ],
             'amount' => 'required|numeric|min:0',
             'payment_type' => 'nullable|string',
             'income_date' => 'required|date',
@@ -120,9 +131,9 @@ class IncomeController extends Controller
                 'branch_id' => $validated['branch_id'],
                 'type' => $validated['type'],
                 'amount' => $validated['amount'],
-                'payment_type' => $validated['payment_type'],
+                'payment_type' => $validated['payment_type'] ?? null,
                 'income_date' => $validated['income_date'],
-                'employee_id' => $validated['employee_id'],
+                'employee_id' => $validated['employee_id'] ?? null,
             ]);
 
             return response()->json([
@@ -143,20 +154,23 @@ class IncomeController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => [
+                'required',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
             'type' => 'required|string',
             'amount' => 'required|numeric|min:0',
             'payment_type' => 'nullable|string',
             'income_date' => 'required|date',
         ]);
 
-        $income = Income::findOrFail($id);
+        $income = $this->scopeIncomesForUser(Income::query(), $request->user())->findOrFail($id);
 
         $income->update([
             'branch_id' => $validated['branch_id'],
             'type' => $validated['type'],
             'amount' => $validated['amount'],
-            'payment_type' => $validated['payment_type'],
+            'payment_type' => $validated['payment_type'] ?? null,
             'income_date' => $validated['income_date'],
         ]);
 
@@ -168,7 +182,7 @@ class IncomeController extends Controller
 
     public function destroy($id)
     {
-        $income = Income::findOrFail($id);
+        $income = $this->scopeIncomesForUser(Income::query(), Auth::user())->findOrFail($id);
         $income->delete();
 
         return response()->json([
@@ -222,17 +236,19 @@ class IncomeController extends Controller
     {
         $user = Auth::user();
 
-        $query = Income::with('branch');
+        $query = $this->scopeIncomesForUser(Income::with('branch'), $user);
 
         if ($user->hasRole('super_admin')) {
             // Super admin → can filter by branch if provided
             if ($request->filled('branch_id')) {
                 $query->where('branch_id', $request->branch_id);
             }
-        } else {
-            if ($user->branch_id) {
-                $query->where('branch_id', $user->branch_id);
+        } elseif ($request->filled('branch_id')) {
+            if (! $this->userCanAccessBranch((int) $request->branch_id, $user)) {
+                return response()->json(['html' => ''], 403);
             }
+
+            $query->where('branch_id', $request->branch_id);
         }
 
         // Type filter
@@ -260,5 +276,33 @@ class IncomeController extends Controller
         return response()->json([
             'html' => $html,
         ]);
+    }
+
+    private function scopeIncomesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        $branchIds = Branch::where('company_id', $user->company_id)->pluck('id');
+
+        return $query->whereIn('branch_id', $branchIds);
+    }
+
+    private function scopeEmployeesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
     }
 }

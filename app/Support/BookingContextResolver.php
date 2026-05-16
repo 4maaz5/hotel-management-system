@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Property;
 use App\Models\Scopes\TenantScope;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class BookingContextResolver
 {
@@ -38,6 +39,10 @@ class BookingContextResolver
 
     public function resolveProperty(Request $request): ?Property
     {
+        if (! Schema::hasTable('properties')) {
+            return null;
+        }
+
         $properties = Property::withoutGlobalScope(TenantScope::class)
             ->with(['mainPhoto', 'photos', 'commercialDetail'])
             ->get();

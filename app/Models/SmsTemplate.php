@@ -9,5 +9,5 @@ class SmsTemplate extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['tenant_id', 'type', 'recipient', 'enabled', 'message'];
+    protected $fillable = ['company_id', 'type', 'recipient', 'enabled', 'message'];
 }

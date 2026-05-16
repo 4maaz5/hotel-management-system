@@ -10,7 +10,7 @@ class UnitReason extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'name',
         'description',
         'is_active',

@@ -9,65 +9,52 @@ class SubscriptionPlanSeeder extends Seeder
 {
     public function run(): void
     {
-        SubscriptionPlan::create([
-            'name' => 'Basic',
-            'description' => 'Perfect for small properties getting started.',
-            'price' => 29.00,
+        SubscriptionPlan::updateOrCreate(['name' => 'Trial Free'], [
+            'description' => 'Free trial plan for evaluating the platform.',
+            'price' => 0.00,
             'billing_period' => 'monthly',
-            'features' => [
-                'booking_engine',
-                'housekeeping',
-                'invoicing',
-            ],
+            'features' => [],
             'limits' => [
-                'max_users' => 3,
+                'max_users' => 50,
                 'max_properties' => 1,
             ],
             'is_active' => true,
         ]);
 
-        SubscriptionPlan::create([
+        SubscriptionPlan::updateOrCreate(['name' => 'Basic'], [
+            'name' => 'Basic',
+            'description' => 'Perfect for small properties getting started.',
+            'price' => 29.00,
+            'billing_period' => 'monthly',
+            'features' => [],
+            'limits' => [
+                'max_users' => 200,
+                'max_properties' => 1,
+            ],
+            'is_active' => true,
+        ]);
+
+        SubscriptionPlan::updateOrCreate(['name' => 'Pro'], [
             'name' => 'Pro',
             'description' => 'For growing businesses that need more power.',
             'price' => 79.00,
             'billing_period' => 'monthly',
-            'features' => [
-                'multi_property',
-                'booking_engine',
-                'housekeeping',
-                'invoicing',
-                'sms_notifications',
-                'reports_analytics',
-                'outlet_pos',
-            ],
+            'features' => [],
             'limits' => [
-                'max_users' => 15,
+                'max_users' => 400,
                 'max_properties' => 5,
             ],
             'is_active' => true,
         ]);
 
-        SubscriptionPlan::create([
+        SubscriptionPlan::updateOrCreate(['name' => 'Enterprise'], [
             'name' => 'Enterprise',
             'description' => 'Full feature set for large hotel chains.',
             'price' => 199.00,
             'billing_period' => 'monthly',
-            'features' => [
-                'multi_property',
-                'hr_module',
-                'booking_engine',
-                'housekeeping',
-                'invoicing',
-                'sms_notifications',
-                'reports_analytics',
-                'channel_manager',
-                'ai_chatbot',
-                'outlet_pos',
-                'api_access',
-                'custom_branding',
-            ],
+            'features' => ['custom_branding'],
             'limits' => [
-                'max_users' => 0,
+                'max_users' => 1000,
                 'max_properties' => 0,
             ],
             'is_active' => true,

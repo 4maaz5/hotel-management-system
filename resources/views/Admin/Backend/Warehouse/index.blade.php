@@ -66,6 +66,7 @@
                                                                 data-id="{{ $warehouse->id }}"
                                                                 data-name="{{ $warehouse->name }}"
                                                                 data-branch-id="{{ $warehouse->branch_id }}"
+                                                                data-company-id="{{ $warehouse->company_id }}"
                                                                 data-type="{{ $warehouse->type }}">
                                                                 <i class="fas fa-edit"></i>
                                                             </a>
@@ -143,6 +144,16 @@
                                 </select>
                             </div>
 
+                            <div class="form-group" id="companyGroup">
+                                <label class="form-label">{{ __('dashboard.company') }}</label>
+                                <select name="company_id" id="company_id" class="form-control">
+                                    <option value="">-- {{ __('dashboard.company') }} --</option>
+                                    @foreach ($companies as $company)
+                                        <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
 
                             <!-- Buttons -->
                             <div class="text-end mt-3">
@@ -205,6 +216,15 @@
                                         <option value="">-- {{ __('dashboard.select_type') }} --</option>
                                         <option value="main">{{ __('dashboard.main_warehouse') }}</option>
                                         <option value="branch">{{ __('dashboard.branch_warehouse') }}</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-6" id="edit_company_group">
+                                    <label class="form-label">{{ __('dashboard.company') }}</label>
+                                    <select name="company_id" id="edit_company_id" class="form-control">
+                                        <option value="">-- {{ __('dashboard.company') }} --</option>
+                                        @foreach ($companies as $company)
+                                            <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                             </div>
@@ -321,6 +341,7 @@
            data-id="${res.data.id}"
            data-name="${res.data.name}"
            data-branch-id="${res.data.branch_id}"
+           data-company-id="${res.data.company_id || ''}"
            data-branch-name="${res.data.branch}"
            data-type="${res.data.type}">
            <i class="fas fa-edit"></i>
@@ -350,18 +371,44 @@
             });
         });
         $(document).ready(function() {
+            function syncAddWarehouseFields() {
+                const type = $('#type').val();
+                $('#companyGroup').toggle(type === 'main');
+                $('#company_id').prop('disabled', type !== 'main');
+                $('#addWarehouseForm select[name="branch_id"]').prop('disabled', type === 'main');
+            }
+
+            function syncEditWarehouseFields(type) {
+                $('#edit_company_group').toggle(type === 'main');
+                $('#edit_company_id').prop('disabled', type !== 'main');
+            }
+
+            syncAddWarehouseFields();
+            syncEditWarehouseFields($('#edit_warehouse_type').val());
+            $('#type').on('change', syncAddWarehouseFields);
+            $('#addWarehouseForm').on('reset', function() {
+                setTimeout(syncAddWarehouseFields, 0);
+            });
+            $('#edit_warehouse_type').on('change', function() {
+                syncEditWarehouseFields($(this).val());
+                $('#edit_branch_id').prop('disabled', $(this).val() === 'main');
+            });
+
             $('.editWarehouseBtn').click(function(e) {
                 e.preventDefault();
 
                 const id = $(this).data('id');
                 const name = $(this).data('name');
                 const branchId = $(this).data('branch-id');
+                const companyId = $(this).data('company-id');
                 const type = $(this).data('type'); // New: get type
 
                 // Set form values
                 $('#edit_warehouse_id').val(id);
                 $('#edit_warehouse_name').val(name);
                 $('#edit_warehouse_type').val(type);
+                $('#edit_company_id').val(companyId || '');
+                syncEditWarehouseFields(type);
 
                 // Handle branch dropdown: hide/disable if main
                 if (type === 'main') {
@@ -414,6 +461,7 @@
                         let editBtn = row.find('.editWarehouseBtn');
                         editBtn.attr('data-name', res.data.name);
                         editBtn.attr('data-branch-id', res.data.branch_id);
+                        editBtn.attr('data-company-id', res.data.company_id || '');
                         editBtn.attr('data-branch-name', res.data.branch);
 
                         //  Update delete button if you use name there

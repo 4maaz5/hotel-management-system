@@ -2,7 +2,7 @@
 
 return array (
   'title' => 'Dashboard',
-  'name' => 'Hotely',
+  'name' => 'Name',
   'main' => 'Main',
   'employee_management' => 'Employee Management',
   'all_employees' => 'All Employees',

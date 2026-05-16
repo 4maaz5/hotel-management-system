@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Scopes\CurrentPropertyScope;
 use App\Models\Scopes\TenantScope;
 use App\Models\ShomoosSubmission;
+use App\Models\Property;
 use App\Services\Shomoos\ShomoosService;
 use App\Support\PropertyContext;
 use App\Support\TenantContext;
@@ -36,8 +37,10 @@ class ProcessShomoosSubmission implements ShouldQueue
             return;
         }
 
-        app(TenantContext::class)->setTenantId($submission->tenant_id);
-        app(PropertyContext::class)->setPropertyId($submission->property_id);
+        app(TenantContext::class)->setTenantId($submission->company_id);
+        app(PropertyContext::class)->setProperty(
+            Property::where('branch_id', $submission->branch_id)->first()
+        );
 
         $shomoosService->processSubmission($submission);
     }

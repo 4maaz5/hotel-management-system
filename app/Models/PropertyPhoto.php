@@ -11,8 +11,8 @@ class PropertyPhoto extends Model
     use BelongsToCurrentProperty, BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
-        'property_id',
+        'company_id',
+        'branch_id',
         'photo_path',
         'photo_order',
         'is_main',
@@ -24,6 +24,6 @@ class PropertyPhoto extends Model
 
     public function property()
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 }

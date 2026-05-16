@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Company;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Brand;
@@ -17,6 +18,8 @@ use Validator;
 
 class CompanyController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         $user = auth()->user();
@@ -34,6 +37,8 @@ class CompanyController extends Controller
 
     public function store(Request $request)
     {
+        abort_unless($this->isSuperAdmin($request->user()), 403);
+
         // STEP 1: VALIDATION (Company + Document)
         $rules = [
             // Company fields
@@ -127,7 +132,7 @@ class CompanyController extends Controller
 
     public function update(Request $request, $id)
     {
-        $company = Company::findOrFail($id);
+        $company = $this->scopeCompaniesForUser(Company::query(), $request->user())->findOrFail($id);
 
         $rules = [
             'name' => 'required|string|max:255',
@@ -193,7 +198,7 @@ class CompanyController extends Controller
 
     public function destroy($id)
     {
-        $company = Company::findOrFail($id);
+        $company = $this->scopeCompaniesForUser(Company::query(), auth()->user())->findOrFail($id);
         if ($company->logo && Storage::disk('public')->exists($company->logo)) {
             Storage::disk('public')->delete($company->logo);
         }
@@ -204,7 +209,7 @@ class CompanyController extends Controller
 
     public function filter(Request $request)
     {
-        $query = Company::query();
+        $query = $this->scopeCompaniesForUser(Company::query(), $request->user());
 
         // Text filters
         if ($request->filled('name')) {
@@ -254,14 +259,14 @@ class CompanyController extends Controller
 
     public function reportView()
     {
-        $companyCards = Company::paginate(5);
+        $companyCards = $this->scopeCompaniesForUser(Company::query(), auth()->user())->paginate(5);
 
         return view('Admin.Backend.Company.report', compact('companyCards'));
     }
 
     public function reports($companyId)
     {
-        $company = \App\Models\Company::findOrFail($companyId);
+        $company = $this->scopeCompaniesForUser(Company::query(), auth()->user())->findOrFail($companyId);
         // Simple queries
         $brands = \App\Models\Brand::where('company_id', $companyId)->get();
 
@@ -272,8 +277,8 @@ class CompanyController extends Controller
 
     public function getBrandBranches($brandId)
     {
-        $brand = Brand::findOrFail($brandId);
-        $branches = Branch::where('brand_id', $brandId)->get();
+        $brand = $this->scopeBrandsForUser(Brand::query(), auth()->user())->findOrFail($brandId);
+        $branches = $this->scopeBranchesForUser(Branch::where('brand_id', $brandId), auth()->user())->get();
 
         // Return partial view
         return view('Admin.Backend.partials.branches', compact('brand', 'branches'));
@@ -281,6 +286,8 @@ class CompanyController extends Controller
 
     public function getBranchDepartments($branchId)
     {
+        abort_unless($this->userCanAccessBranch((int) $branchId, auth()->user()), 403);
+
         $branch = Branch::findOrFail($branchId);
         $departments = Department::where('branch_id', $branchId)->get();
 
@@ -290,14 +297,16 @@ class CompanyController extends Controller
     public function getDepartmentEmployees($departmentId)
     {
         $department = Department::findOrFail($departmentId);
-        $employees = Employee::where('department_id', $departmentId)->get();
+        abort_unless($this->userCanAccessBranch((int) $department->branch_id, auth()->user()), 403);
+
+        $employees = $this->scopeEmployeesForUser(Employee::where('department_id', $departmentId), auth()->user())->get();
 
         return view('Admin.Backend.partials.employee-list', compact('department', 'employees'));
     }
 
     public function getEmployeeDetails($employeeId)
     {
-        $employee = Employee::findOrFail($employeeId);
+        $employee = $this->scopeEmployeesForUser(Employee::query(), auth()->user())->findOrFail($employeeId);
 
         return view('Admin.Backend.partials.employee-detail', compact('employee'));
     }
@@ -309,5 +318,36 @@ class CompanyController extends Controller
         $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
 
         return $pdf->download('company-report.pdf');
+    }
+
+    private function scopeCompaniesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->whereKey($user->company_id);
+    }
+
+    private function scopeBrandsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function scopeEmployeesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
     }
 }

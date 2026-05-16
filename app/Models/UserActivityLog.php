@@ -11,8 +11,8 @@ class UserActivityLog extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
-        'property_id',
+        'company_id',
+        'branch_id',
         'user_id',
         'module',
         'action',
@@ -40,7 +40,7 @@ class UserActivityLog extends Model
 
     public function property()
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 
     public function subject(): MorphTo

@@ -321,7 +321,7 @@ class ReportsController extends Controller
         })->map(function ($group) {
             return [
                 'count' => $group->count(),
-                'total' => $group->sum('total_amount'),
+                'total' => $group->sum('grand_total'),
             ];
         });
 
@@ -341,7 +341,7 @@ class ReportsController extends Controller
             ->with(['guest', 'unit', 'invoice'])
             ->get();
 
-        $totalRevenue = $reservations->sum('total_amount');
+        $totalRevenue = $reservations->sum('grand_total');
         $totalPaid = $reservations->sum('paid_amount');
         $totalOutstanding = $totalRevenue - $totalPaid;
 
@@ -725,7 +725,7 @@ class ReportsController extends Controller
             ->with(['source'])->get();
 
         $bySource = $reservations->groupBy(fn ($item) => $item->source->name ?? 'Direct')
-            ->map(fn ($group) => ['count' => $group->count(), 'total' => $group->sum('total_amount')]);
+            ->map(fn ($group) => ['count' => $group->count(), 'total' => $group->sum('grand_total')]);
 
         return ['bySource' => $bySource];
     }
@@ -737,7 +737,7 @@ class ReportsController extends Controller
 
         return [
             'reservations' => $reservations,
-            'totalRevenue' => $reservations->sum('total_amount'),
+            'totalRevenue' => $reservations->sum('grand_total'),
             'totalPaid' => $reservations->sum('paid_amount'),
             'totalOutstanding' => $reservations->sum('balance'),
         ];
@@ -832,30 +832,30 @@ class ReportsController extends Controller
         $totalDays = $start->diffInDays($end) + 1;
 
         $tenantId = app(TenantContext::class)->id();
-        $propertyId = app(PropertyContext::class)->id();
+        $branchId = app(PropertyContext::class)->branchId();
 
         $unitsQuery = Unit::withoutGlobalScopes()
-            ->with(['reservations' => function ($query) use ($start, $reportEndExclusive, $tenantId, $propertyId) {
+            ->with(['reservations' => function ($query) use ($start, $reportEndExclusive, $tenantId, $branchId) {
                 $query->withoutGlobalScopes()
                 ->whereNotIn('status', ['cancelled', 'no_show'])
                 ->where('check_in_date', '<', $reportEndExclusive->toDateString())
                 ->where('check_out_date', '>', $start->toDateString());
 
                 if ($tenantId) {
-                    $query->where('tenant_id', $tenantId);
+                    $query->where('company_id', $tenantId);
                 }
 
-                if ($propertyId) {
-                    $query->where('property_id', $propertyId);
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
                 }
             }, 'floor', 'unitType']);
 
         if ($tenantId) {
-            $unitsQuery->where('tenant_id', $tenantId);
+            $unitsQuery->where('company_id', $tenantId);
         }
 
-        if ($propertyId) {
-            $unitsQuery->where('property_id', $propertyId);
+        if ($branchId) {
+            $unitsQuery->where('branch_id', $branchId);
         }
 
         $units = $unitsQuery->get();

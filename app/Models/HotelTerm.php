@@ -10,7 +10,7 @@ class HotelTerm extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'order_no',
         'description',
         'is_active',

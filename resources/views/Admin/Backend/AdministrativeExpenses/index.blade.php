@@ -459,7 +459,6 @@
                         }
                     },
                     error: function(xhr) {
-                        console.log(xhr);
                     },
                     complete: function() {
                         $btn.prop('disabled', false);

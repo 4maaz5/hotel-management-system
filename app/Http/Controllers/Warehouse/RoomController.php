@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Warehouse;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Room;
 use App\Models\Warehouse;
@@ -10,20 +11,14 @@ use Illuminate\Support\Facades\Auth;
 
 class RoomController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         $user = Auth::user();
 
-        if ($user->role === 'super_admin') {
-            $warehouses = Warehouse::all();
-            $rooms = Room::all();
-        } elseif ($user->branch_id) {
-            $warehouses = Warehouse::where('branch_id', $user->branch_id)->get();
-            $rooms = Room::whereHas('warehouse', fn ($q) => $q->where('branch_id', $user->branch_id))->get();
-        } else {
-            $warehouses = Warehouse::whereHas('branch.company', fn ($q) => $q->where('id', $user->company_id))->get();
-            $rooms = Room::whereHas('warehouse.branch.company', fn ($q) => $q->where('id', $user->company_id))->get();
-        }
+        $warehouses = $this->scopeWarehousesForUser(Warehouse::query(), $user)->get();
+        $rooms = Room::whereHas('warehouse', fn ($query) => $this->scopeWarehousesForUser($query, $user))->get();
 
         return view('Admin.Backend.Room.index', compact('rooms', 'warehouses'));
     }
@@ -34,6 +29,8 @@ class RoomController extends Controller
             'room_name' => 'required|string|max:255',
             'warehouse_id' => 'required|exists:warehouses,id',
         ]);
+
+        abort_unless($this->userCanAccessWarehouse((int) $validated['warehouse_id'], Auth::user()), 403);
 
         $room = Room::create([
             'name' => $validated['room_name'],
@@ -60,7 +57,11 @@ class RoomController extends Controller
             'warehouse_id' => 'required|exists:warehouses,id',
         ]);
 
-        $room = Room::findOrFail($request->id);
+        $user = Auth::user();
+        abort_unless($this->userCanAccessWarehouse((int) $request->warehouse_id, $user), 403);
+
+        $room = Room::whereHas('warehouse', fn ($query) => $this->scopeWarehousesForUser($query, $user))
+            ->findOrFail($request->id);
         $room->name = $request->name;
         $room->warehouse_id = $request->warehouse_id;
         $room->save();
@@ -83,7 +84,9 @@ class RoomController extends Controller
             'room_id' => 'required|exists:rooms,id',
         ]);
 
-        $room = Room::findOrFail($request->room_id);
+        $user = Auth::user();
+        $room = Room::whereHas('warehouse', fn ($query) => $this->scopeWarehousesForUser($query, $user))
+            ->findOrFail($request->room_id);
         $room->delete();
 
         return response()->json([

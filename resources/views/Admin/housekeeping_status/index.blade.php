@@ -270,7 +270,6 @@
     <script>
         // Global function for iframe onload
         function iframeLoaded() {
-            console.log('Iframe loaded');
             setTimeout(function() {
                 switchPrintLang('en');
             }, 300);
@@ -315,14 +314,11 @@
         }
 
         function switchPrintLang(lang) {
-            console.log('Switching language to:', lang);
             const iframe = document.getElementById('printIframe');
             try {
                 if (iframe && iframe.contentWindow && typeof iframe.contentWindow.switchLanguage === 'function') {
-                    console.log('Calling iframe switchLanguage');
                     iframe.contentWindow.switchLanguage(lang);
                 } else {
-                    console.log('Iframe not ready, retrying...');
                     setTimeout(function() {
                         if (iframe.contentWindow && typeof iframe.contentWindow.switchLanguage === 'function') {
                             iframe.contentWindow.switchLanguage(lang);
@@ -330,7 +326,6 @@
                     }, 500);
                 }
             } catch(e) {
-                console.log('Error:', e);
             }
         }
 
@@ -341,7 +336,7 @@
             }
         }
 
-        const housekeepingStatusBaseUrl = @json(route('dashboard.housekeeping_status.index'));
+        const housekeepingStatusUpdateUrlTemplate = @json(route('housekeeping.updateStatus', ['unit' => '__UNIT__']));
 
         // Mark as Clean
         function markAsClean(unitId) {
@@ -365,15 +360,25 @@
 
         // Update Housekeeping Status via AJAX
         function updateHousekeepingStatus(unitId, status) {
-            fetch(`${housekeepingStatusBaseUrl}/${unitId}/update-status`, {
+            const url = housekeepingStatusUpdateUrlTemplate.replace('__UNIT__', encodeURIComponent(unitId));
+
+            fetch(url, {
                 method: 'PUT',
                 headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ status: status })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to update housekeeping status (${response.status})`);
+                }
+
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     // Update table row
@@ -382,7 +387,7 @@
                         row.dataset.hkStatus = status;
 
                         // Update status badge
-                        const statusCell = row.querySelector('td:nth-child(3)');
+                        const statusCell = row.querySelector('td:nth-child(2)');
                         const statusLabels = {
                             'clean': '{{ __('dashboard.clean') }}',
                             'dirty': '{{ __('dashboard.dirty') }}',

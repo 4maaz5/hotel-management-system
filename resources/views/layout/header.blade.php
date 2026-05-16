@@ -24,11 +24,15 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+    @stack('styles')
 </head>
 
 @php
     $setting = \App\Models\GeneralSetting::first();
     $background = $setting?->dashboard_background ?? null;
+    $supportUnreadCount = auth()->check() && ! auth()->user()->isSuperAdmin()
+        ? app(\App\Support\SupportTicketUnreadCounter::class)->forTenantArea('hr')
+        : 0;
 @endphp
 
 <body
@@ -62,6 +66,23 @@
                            onmouseout="this.style.background='transparent'">
                             <i data-feather="grid" style="width:16px;height:16px;"></i>
                             <span>{{ __('dashboard.reservation_management') }}</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="{{ route('dashboard.support.tickets.index') }}"
+                           style="display:inline-flex;align-items:center;gap:6px;color:#6c757d;padding:8px 12px;text-decoration:none;white-space:nowrap;border-radius:6px;transition:all 0.2s;position:relative;"
+                           onmouseover="this.style.background='#f1f5f9'"
+                           onmouseout="this.style.background='transparent'">
+                            <i class="fas fa-headset" style="font-size:16px;"></i>
+                            <span>{{ __('dashboard.support') }}</span>
+                            @if($supportUnreadCount > 0)
+                                <span class="hr-support-unread-count badge badge-danger"
+                                      data-hr-support-unread-count="{{ $supportUnreadCount }}"
+                                      style="position:absolute;top:0;right:0;font-size:10px;line-height:1;min-width:18px;">
+                                    {{ $supportUnreadCount }}
+                                </span>
+                            @endif
                         </a>
                     </li>
 

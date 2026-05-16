@@ -12,7 +12,7 @@ class CostCenter extends Model
         use BelongsToTenant, HasFactory;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'name',
         'category_id',
         'description',

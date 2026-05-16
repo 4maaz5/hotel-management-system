@@ -489,14 +489,11 @@
         }
 
         function switchPrintLang(lang) {
-            console.log('Switching language to:', lang);
             const iframe = document.getElementById('printIframe');
             try {
                 if (iframe && iframe.contentWindow && typeof iframe.contentWindow.switchLanguage === 'function') {
-                    console.log('Calling iframe switchLanguage');
                     iframe.contentWindow.switchLanguage(lang);
                 } else {
-                    console.log('Iframe not ready, retrying...');
                     setTimeout(function() {
                         if (iframe.contentWindow && typeof iframe.contentWindow.switchLanguage === 'function') {
                             iframe.contentWindow.switchLanguage(lang);
@@ -504,7 +501,6 @@
                     }, 500);
                 }
             } catch(e) {
-                console.log('Error:', e);
             }
         }
 

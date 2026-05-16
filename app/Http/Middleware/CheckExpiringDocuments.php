@@ -4,174 +4,80 @@ namespace App\Http\Middleware;
 
 use App\Models\CompanyDocument;
 use App\Models\EmployeeDocument;
-use App\\Models\\SystemNotification;
+use App\Models\SystemNotification;
 use App\Models\User;
 use Carbon\Carbon;
-use Closure;
 
 class CheckExpiringDocuments
 {
-    // public function handle($request, Closure $next)
-    // {
-    //     // Run only once per session/day to reduce overhead
-    //     if (! session()->has('checked_expiring_docs_today')) {
+    public function checkDocuments(iterable $documents, Carbon $today, string $typeLabel): void
+    {
+        foreach ($documents as $document) {
+            if (! $document->expiration_date) {
+                continue;
+            }
 
-    //         $today = Carbon::today();
+            $daysLeft = $today->diffInDays(Carbon::parse($document->expiration_date), false);
 
-    //         // Check Employee Documents
-    //         $this->checkDocuments(EmployeeDocument::all(), $today, 'Employee Document');
+            if ($daysLeft > 30) {
+                continue;
+            }
 
-    //         // Check Company Documents
-    //         $this->checkDocuments(CompanyDocument::all(), $today, 'Company Document');
+            $status = $daysLeft < 0 ? 'Expired' : 'Expiring Soon';
+            $message = sprintf(
+                "%s '%s' is %s.",
+                $typeLabel,
+                $this->documentName($document),
+                $status
+            );
 
-    //         // Set session flag to avoid multiple runs per day
-    //         session()->put('checked_expiring_docs_today', true);
-    //     }
+            foreach ($this->recipientsFor($document) as $recipient) {
+                SystemNotification::updateOrCreate(
+                    [
+                        'recipient_type' => $recipient['type'],
+                        'recipient_id' => $recipient['id'],
+                        'message' => $message,
+                    ],
+                    [
+                        'type' => 'system',
+                        'status' => 'sent',
+                        'scheduled_at' => now(),
+                        'sent_at' => now(),
+                        'created_by' => auth()->id(),
+                    ]
+                );
+            }
+        }
+    }
 
-    //     return $next($request);
-    // }
+    private function documentName(EmployeeDocument|CompanyDocument $document): string
+    {
+        return $document instanceof EmployeeDocument
+            ? ($document->type ?: 'Employee Document')
+            : ($document->name ?: $document->type ?: 'Company Document');
+    }
 
-    // private function checkDocuments($documents, $today, $typeLabel)
-    // {
-    //     foreach ($documents as $doc) {
+    private function recipientsFor(EmployeeDocument|CompanyDocument $document): array
+    {
+        $recipients = User::role('super_admin')
+            ->get()
+            ->map(fn (User $user) => ['type' => 'super_admin', 'id' => $user->id])
+            ->all();
 
-    //         if (! $doc->expiration_date) {
-    //             continue;
-    //         }
+        $branchId = $document instanceof EmployeeDocument
+            ? $document->employee?->branch_id
+            : $document->branch_id;
 
-    //         $employee = \App\Models\Employee::find($doc->employee_id);
-    //         if (! $employee) {
-    //             continue;
-    //         }
+        if ($branchId) {
+            $branchManagers = User::role('manager')
+                ->where('branch_id', $branchId)
+                ->get()
+                ->map(fn (User $user) => ['type' => 'manager', 'id' => $user->id])
+                ->all();
 
-    //         $daysLeft = $today->diffInDays(Carbon::parse($doc->expiration_date), false);
+            $recipients = array_merge($recipients, $branchManagers);
+        }
 
-    //         if ($daysLeft <= 60) {
-    //             $status = $daysLeft < 0 ? 'Expired' : 'Expiring Soon';
-
-    //             $docName = $doc->type ?? $doc->name;
-    //             $employeeId = $employee->id ?? '';
-    //             $message = "{$typeLabel} '{$docName}' (Employee ID: {$employeeId}) is {$status}.";
-
-    //             // -------------------------------
-    //             // 1. Notify Super Admins
-    //             // -------------------------------
-    //             $superAdmins = User::role('super_admin')->get();
-    //             foreach ($superAdmins as $admin) {
-
-    //                 // Delete previous notifications with the same message for this super_admin
-    //                 \\DB::table('system_notifications')
-    //                     ->where('recipient_type', 'super_admin')
-    //                     ->where('recipient_id', $admin->id)
-    //                     ->where('message', $message)
-    //                     ->delete();
-
-    //                 // Save new notification
-    //                 \\DB::table('system_notifications')->insert([
-    //                     'type' => 'email',
-    //                     'message' => $message,
-    //                     'recipient_type' => 'super_admin',
-    //                     'recipient_id' => $admin->id,
-    //                     'status' => 'sent',
-    //                     'scheduled_at' => now(),
-    //                     'created_by' => auth()->id() ?? null,
-    //                     'created_at' => now(),
-    //                     'updated_at' => now(),
-    //                 ]);
-
-    //                 // Send email
-    //                 \Mail::to($admin->email)
-    //                     ->send(new \App\Mail\DocumentExpiryMail($message, $doc, $employee));
-    //             }
-
-    //             // -------------------------------
-    //             // 2. Notify Branch Managers
-    //             // -------------------------------
-    //             $branchId = $employee->branch_id ?? null;
-    //             if ($branchId) {
-    //                 $managers = User::where('branch_id', $branchId)
-    //                     ->whereHas('roles', function ($q) {
-    //                         $q->where('name', 'manager');
-    //                     })
-    //                     ->get();
-
-    //                 foreach ($managers as $manager) {
-
-    //                     // Delete previous notifications with the same message for this manager
-    //                     \\DB::table('system_notifications')
-    //                         ->where('recipient_type', 'manager')
-    //                         ->where('recipient_id', $manager->id)
-    //                         ->where('message', $message)
-    //                         ->delete();
-
-    //                     // Save new notification
-    //                     \\DB::table('system_notifications')->insert([
-    //                         'type' => 'email',
-    //                         'message' => $message,
-    //                         'recipient_type' => 'manager',
-    //                         'recipient_id' => $manager->id,
-    //                         'status' => 'sent',
-    //                         'scheduled_at' => now(),
-    //                         'created_by' => auth()->id() ?? null,
-    //                         'created_at' => now(),
-    //                         'updated_at' => now(),
-    //                     ]);
-
-    //                     // Send email
-    //                     \Mail::to($manager->email)
-    //                         ->send(new \App\Mail\DocumentExpiryMail($message, $doc, $employee));
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
-    // private function checkDocuments($documents, $today, $typeLabel)
-    // {
-    //     foreach ($documents as $doc) {
-
-    //         // Skip if no expiration date
-    //         if (! $doc->expiration_date) {
-    //             continue;
-    //         }
-
-    //         // Check if employee exists
-    //         $employeeExists = \App\Models\Employee::where('id', $doc->employee_id)->exists();
-    //         if (! $employeeExists) {
-    //             continue; // skip this document
-    //         }
-
-    //         $daysLeft = $today->diffInDays(Carbon::parse($doc->expiration_date), false);
-
-    //         if ($daysLeft <= 30) {
-    //             $status = $daysLeft < 0 ? 'Expired' : 'Expiring Soon';
-
-    //             $docName = $doc->type ?? $doc->name;
-    //             $employeeId = $doc->employee_id ?? '';
-    //             $message = "{$typeLabel} '{$docName}' {$employeeId} is {$status}.";
-
-    //             // Send notification to all super admins
-    //             $superAdminIds = User::role('super_admin')->pluck('id');
-    //             foreach ($superAdminIds as $adminId) {
-
-    //                 // Delete previous notifications with the same message for this super_admin
-    //                 SystemNotification::where('recipient_type', 'super_admin')
-    //                     ->where('recipient_id', $adminId)
-    //                     ->where('message', $message)
-    //                     ->delete();
-
-    //                 // Create the new notification
-    //                 SystemNotification::create([
-    //                     'type' => 'system',
-    //                     'message' => $message,
-    //                     'recipient_type' => 'super_admin',
-    //                     'recipient_id' => $adminId,
-    //                     'status' => 'sent',
-    //                     'created_by' => auth()->id() ?? null,
-    //                     'scheduled_at' => now(),
-    //                 ]);
-    //             }
-    //         }
-    //     }
-    // }
+        return $recipients;
+    }
 }

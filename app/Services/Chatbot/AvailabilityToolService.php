@@ -27,6 +27,7 @@ class AvailabilityToolService
         $children = max(0, (int) ($parameters['children'] ?? 0));
         $guestCount = $adults + $children;
         $publicWebsiteOnly = (bool) ($parameters['public_website_only'] ?? false);
+        $branchId = isset($parameters['branch_id']) ? (int) $parameters['branch_id'] : null;
 
         $missing = [];
 
@@ -61,12 +62,14 @@ class AvailabilityToolService
             $adults,
             $children,
             $publicWebsiteOnly,
+            $branchId,
         ]));
 
-        return Cache::remember($cacheKey, (int) config('chatbot.availability_cache_ttl', 120), function () use ($checkIn, $checkOut, $roomType, $reservationType, $guestCount, $adults, $children, $publicWebsiteOnly) {
+        return Cache::remember($cacheKey, (int) config('chatbot.availability_cache_ttl', 120), function () use ($checkIn, $checkOut, $roomType, $reservationType, $guestCount, $adults, $children, $publicWebsiteOnly, $branchId) {
             $publishedRoomTypes = $publicWebsiteOnly ? $this->publishedWebsiteRoomTypes() : collect();
 
             $query = Unit::query()
+                ->when($branchId, fn ($unitQuery) => $unitQuery->where('branch_id', $branchId))
                 ->where('is_active', true)
                 ->with(['unitType', 'floor', 'block']);
 
@@ -135,6 +138,7 @@ class AvailabilityToolService
             $units = $query->get();
 
             $bookedUnitIds = Reservation::query()
+                ->when($branchId, fn ($reservationQuery) => $reservationQuery->where('branch_id', $branchId))
                 ->whereNotIn('status', ['cancelled', 'checked_out', 'no_show'])
                 ->where('check_in_date', '<', $checkOut->toDateString())
                 ->where('check_out_date', '>', $checkIn->toDateString())

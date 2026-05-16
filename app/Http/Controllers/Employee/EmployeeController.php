@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Employee;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Brand;
@@ -14,10 +15,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 
 class EmployeeController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -42,15 +47,15 @@ class EmployeeController extends Controller
             $departments = Department::where('branch_id', $user->branch_id)->get();
             $brands = $branch && $branch->brand ? collect([$branch->brand]) : collect();
         } else {
-            $employees = Employee::all();
-            $employeeCards = Employee::paginate(8);
-            $branches = Branch::all();
-            $shifts = Shift::all();
+            $employees = Employee::where('company_id', $user->company_id)->get();
+            $employeeCards = Employee::where('company_id', $user->company_id)->paginate(8);
+            $branches = Branch::where('company_id', $user->company_id)->get();
+            $shifts = Shift::whereIn('branch_id', $branches->pluck('id'))->get();
             $companies = $user->company_id
                 ? Company::whereKey($user->company_id)->get()
                 : collect();
-            $departments = Department::all();
-            $brands = Brand::all();
+            $departments = Department::where('company_id', $user->company_id)->get();
+            $brands = Brand::where('company_id', $user->company_id)->get();
         }
 
         return view('Admin.Backend.Employee.index', compact('branches', 'shifts', 'departments', 'employees', 'employeeCards', 'companies', 'brands'));
@@ -65,6 +70,9 @@ class EmployeeController extends Controller
     {
 
         try {
+            $authUser = Auth::user();
+            $branchIds = $this->accessibleBranchIds($authUser);
+
             // Validate the main employee data
             $validated = $request->validate([
                 'first_name' => 'required|string|max:255',
@@ -72,11 +80,40 @@ class EmployeeController extends Controller
                 'email' => 'nullable|email|unique:employees,email',
                 'phone' => 'nullable|string|max:20',
                 'designation' => 'nullable|string|max:255',
-                'company_id' => 'nullable|exists:companies,id',
-                'brand_id' => 'nullable|exists:brands,id',
-                'department_id' => 'nullable|exists:departments,id',
-                'branch_id' => 'nullable|exists:branches,id',
-                'shift_id' => 'nullable|exists:shifts,id',
+                'company_id' => [
+                    'nullable',
+                    $this->isSuperAdmin($authUser)
+                        ? Rule::exists('companies', 'id')
+                        : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $authUser->company_id)),
+                ],
+                'brand_id' => [
+                    'nullable',
+                    Rule::exists('brands', 'id')->when(
+                        ! $this->isSuperAdmin($authUser),
+                        fn ($rule) => $rule->where(fn ($query) => $query->where('company_id', $authUser->company_id))
+                    ),
+                ],
+                'department_id' => [
+                    'nullable',
+                    Rule::exists('departments', 'id')->when(
+                        $branchIds !== null,
+                        fn ($rule) => $rule->where(fn ($query) => $query->whereIn('branch_id', $branchIds))
+                    ),
+                ],
+                'branch_id' => [
+                    'nullable',
+                    Rule::exists('branches', 'id')->when(
+                        $branchIds !== null,
+                        fn ($rule) => $rule->where(fn ($query) => $query->whereIn('id', $branchIds))
+                    ),
+                ],
+                'shift_id' => [
+                    'nullable',
+                    Rule::exists('shifts', 'id')->when(
+                        $branchIds !== null,
+                        fn ($rule) => $rule->where(fn ($query) => $query->whereIn('branch_id', $branchIds))
+                    ),
+                ],
                 'join_date' => 'nullable|date',
                 'residence_expiry_date' => 'nullable|date',
                 'bank_name' => 'nullable|string|max:255',
@@ -88,6 +125,18 @@ class EmployeeController extends Controller
                 'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
                 'overtime' => 'nullable|numeric|min:0',
             ]);
+
+            if (! $this->isSuperAdmin($authUser)) {
+                $validated['company_id'] = $authUser->company_id;
+            }
+
+            if ($authUser->branch_id) {
+                $validated['branch_id'] = $authUser->branch_id;
+            }
+
+            if (! empty($validated['branch_id'])) {
+                $validated['company_id'] = Branch::whereKey($validated['branch_id'])->value('company_id');
+            }
 
             // Handle is_commission checkbox
             $validated['is_commission'] = $request->has('is_commission');
@@ -108,6 +157,7 @@ class EmployeeController extends Controller
                 $user->update([
                     'name' => $validated['first_name'].' '.$validated['last_name'],
                     'branch_id' => $validated['branch_id'],
+                    'company_id' => $validated['company_id'],
                 ]);
 
             } else {
@@ -117,6 +167,7 @@ class EmployeeController extends Controller
                 $user = User::create([
                     'name' => $validated['first_name'].' '.$validated['last_name'],
                     'email' => $validated['email'],
+                    'company_id' => $validated['company_id'],
                     'branch_id' => $validated['branch_id'],
                     'password' => Hash::make($password),
                 ]);
@@ -131,7 +182,7 @@ class EmployeeController extends Controller
 
             $validated['qr_code'] = Str::uuid();
             // Generate unique employee_id
-            $lastEmployee = Employee::orderBy('id', 'desc')->first();
+            $lastEmployee = Employee::where('company_id', $validated['company_id'])->orderBy('id', 'desc')->first();
 
             if ($lastEmployee) {
                 $lastId = (int) substr($lastEmployee->employee_id, 3); // remove "EMP" prefix
@@ -242,7 +293,7 @@ class EmployeeController extends Controller
 
     public function edit($id)
     {
-        $employee = Employee::with('branch', 'department')->findOrFail($id);
+        $employee = $this->scopeEmployeeQuery(Employee::with('branch', 'department'))->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -252,21 +303,61 @@ class EmployeeController extends Controller
 
     public function update(Request $request, $id)
     {
+        $authUser = Auth::user();
+        $branchIds = $this->accessibleBranchIds($authUser);
+
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'nullable|email',
-            'branch_id' => 'required|exists:branches,id',
-            'company_id' => 'required|exists:companies,id',
-            'brand_id' => 'required|exists:brands,id',
-            'shift_id' => 'required|exists:shifts,id',
-            'department_id' => 'required|exists:departments,id',
+            'branch_id' => [
+                'required',
+                Rule::exists('branches', 'id')->when(
+                    $branchIds !== null,
+                    fn ($rule) => $rule->where(fn ($query) => $query->whereIn('id', $branchIds))
+                ),
+            ],
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin($authUser)
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $authUser->company_id)),
+            ],
+            'brand_id' => [
+                'required',
+                Rule::exists('brands', 'id')->when(
+                    ! $this->isSuperAdmin($authUser),
+                    fn ($rule) => $rule->where(fn ($query) => $query->where('company_id', $authUser->company_id))
+                ),
+            ],
+            'shift_id' => [
+                'required',
+                Rule::exists('shifts', 'id')->when(
+                    $branchIds !== null,
+                    fn ($rule) => $rule->where(fn ($query) => $query->whereIn('branch_id', $branchIds))
+                ),
+            ],
+            'department_id' => [
+                'required',
+                Rule::exists('departments', 'id')->when(
+                    $branchIds !== null,
+                    fn ($rule) => $rule->where(fn ($query) => $query->whereIn('branch_id', $branchIds))
+                ),
+            ],
             'image' => 'nullable|image|max:2048',
             'join_date' => 'required|date',
             'residence_expiry_date' => 'nullable|date',
         ]);
 
-        $employee = Employee::findOrFail($id);
+        $employee = $this->scopeEmployeeQuery(Employee::query())->findOrFail($id);
+
+        if (! $this->isSuperAdmin($authUser)) {
+            $validated['company_id'] = $authUser->company_id;
+        }
+
+        if ($authUser->branch_id) {
+            $validated['branch_id'] = $authUser->branch_id;
+        }
 
         if ($request->hasFile('image')) {
             if ($employee->image) {
@@ -277,7 +368,6 @@ class EmployeeController extends Controller
 
         $employee->update($validated);
         $employee = Employee::with('branch')->find($employee->id);
-        // dd($employee);
 
         return response()->json([
             'success' => true,
@@ -290,7 +380,7 @@ class EmployeeController extends Controller
 
     public function destroy(Request $request)
     {
-        $employee = Employee::findOrFail($request->id);
+        $employee = $this->scopeEmployeeQuery(Employee::query())->findOrFail($request->id);
 
         // Delete employee image
         if (! empty($employee->image)) {
@@ -316,7 +406,7 @@ class EmployeeController extends Controller
 
     public function show($id)
     {
-        $employee = Employee::with(['branch', 'department'])->find($id);
+        $employee = $this->scopeEmployeeQuery(Employee::with(['branch', 'department']))->find($id);
 
         if (! $employee) {
             return response()->json([
@@ -337,7 +427,7 @@ class EmployeeController extends Controller
         $search = $request->search;
         $phone = $request->phone;
 
-        $query = Employee::with('branch');
+        $query = $this->scopeEmployeeQuery(Employee::with('branch'));
 
         // Branch filter
         if ($branchId && $branchId !== 'all') {
@@ -373,7 +463,7 @@ class EmployeeController extends Controller
 
     public function multipleFilter(Request $request)
     {
-        $query = Employee::query();
+        $query = $this->scopeEmployeeQuery(Employee::query());
 
         // Branch filter
         if ($request->filled('branch_id') && $request->branch_id != 'all') {
@@ -414,6 +504,8 @@ class EmployeeController extends Controller
 
     public function getDepartments($branchId)
     {
+        abort_unless($this->userCanAccessBranch((int) $branchId, Auth::user()), 403);
+
         $departments = Department::where('branch_id', $branchId)->get();
 
         return response()->json($departments);
@@ -423,7 +515,7 @@ class EmployeeController extends Controller
     {
         $email = $request->email;
 
-        $existsInEmployees = Employee::where('email', $email)->exists();
+        $existsInEmployees = $this->scopeEmployeeQuery(Employee::query())->where('email', $email)->exists();
         $existsInUsers = User::where('email', $email)->exists();
 
         return response()->json([
@@ -452,10 +544,25 @@ class EmployeeController extends Controller
     {
         $phone = $request->phone;
 
-        $existsInEmployees = Employee::where('phone', $phone)->exists();
+        $existsInEmployees = $this->scopeEmployeeQuery(Employee::query())->where('phone', $phone)->exists();
 
         return response()->json([
             'phone_exists' => $existsInEmployees,
         ]);
+    }
+
+    private function scopeEmployeeQuery($query)
+    {
+        $user = Auth::user();
+
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
     }
 }

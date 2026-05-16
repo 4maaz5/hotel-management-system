@@ -13,7 +13,6 @@ class Block extends Model
     protected $fillable = [
         'company_id',
         'branch_id',
-        'property_id',
         'name',
         'description',
         'is_active',

@@ -11,9 +11,9 @@ class ChatSession extends Model
     use BelongsToCurrentProperty, BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'user_id',
-        'property_id',
+        'branch_id',
         'language',
         'status',
         'context',
@@ -32,7 +32,7 @@ class ChatSession extends Model
 
     public function property()
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 
     public function messages()

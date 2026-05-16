@@ -132,7 +132,7 @@ class UserController extends Controller
             'status' => $validated['status'],
             'user_type' => $validated['user_type'],
             'email' => $validated['email'],
-            'property_id' => $validated['default_property_id'],
+            'branch_id' => $this->propertyIdToBranchId($validated['default_property_id'] ?? null),
 
             'profile_data' => [
                 'first_name_en' => $validated['first_name_en'],
@@ -166,9 +166,9 @@ class UserController extends Controller
         // Assign role using Spatie
         $role = Role::find($validated['role_id']);
         $user->assignRole($role);
-        $propertyIds = array_values(array_unique(array_filter($validated['property_ids'] ?? [])));
-        if (! empty($propertyIds)) {
-            $user->assignedProperties()->sync($propertyIds);
+        $branchIds = $this->propertyIdsToBranchIds($validated['property_ids'] ?? []);
+        if (! empty($branchIds)) {
+            $user->assignedProperties()->sync($branchIds);
         }
 
         return redirect()->route('setup-sidebar.property-user.index')
@@ -188,7 +188,10 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         $currentPropertyId = app(PropertyContext::class)->id();
-        $propertySelection = $this->normalizePropertySelection($request, $user->property_id ?: $currentPropertyId);
+        $propertySelection = $this->normalizePropertySelection(
+            $request,
+            $this->branchIdToPropertyId($user->branch_id) ?: $currentPropertyId
+        );
 
         // Merge inputs to match store format
         $request->merge([
@@ -296,9 +299,10 @@ class UserController extends Controller
             // Property IDs are now handled via pivot table only
         }
         if (array_key_exists('default_property_id', $validated)) {
-            $user->property_id = $validated['default_property_id'] ?: $currentPropertyId ?: $user->property_id;
+            $user->branch_id = $this->propertyIdToBranchId($validated['default_property_id'] ?: $currentPropertyId)
+                ?: $user->branch_id;
         } else {
-            $user->property_id = $currentPropertyId ?: $user->property_id;
+            $user->branch_id = $this->propertyIdToBranchId($currentPropertyId) ?: $user->branch_id;
         }
 
         $user->save();
@@ -306,9 +310,9 @@ class UserController extends Controller
         // Sync role
         $role = Role::find($validated['role_id']);
         $user->syncRoles($role);
-        $propertyIds = array_values(array_unique(array_filter($validated['property_ids'] ?? [])));
-        if (! empty($propertyIds)) {
-            $user->assignedProperties()->sync($propertyIds);
+        $branchIds = $this->propertyIdsToBranchIds($validated['property_ids'] ?? []);
+        if (! empty($branchIds)) {
+            $user->assignedProperties()->sync($branchIds);
         } else {
             $user->assignedProperties()->detach();
         }
@@ -344,19 +348,22 @@ class UserController extends Controller
         $validated = $request->validate([
             'property_id' => [
                 'required',
-                Rule::exists('properties', 'id')->where(fn ($query) => $query->where('tenant_id', auth()->user()->tenant_id)),
+                Rule::exists('properties', 'id')->where(fn ($query) => $query->where('company_id', auth()->user()->company_id)),
             ],
             'outlet_id' => ['required', 'exists:outlets,id'],
         ]);
 
         abort_if($propertyId && (int) $validated['property_id'] !== (int) $propertyId, 403);
 
+        $branchId = $this->propertyIdToBranchId($validated['property_id']);
+        abort_unless($branchId, 422, 'Selected property is not linked to a branch.');
+
         $user->update([
-            'property_id' => $validated['property_id'],
+            'branch_id' => $branchId,
             'outlet_id' => $validated['outlet_id'],
         ]);
 
-        $user->assignedProperties()->syncWithoutDetaching([$validated['property_id']]);
+        $user->assignedProperties()->syncWithoutDetaching([$branchId]);
 
         return back()->with('success', __('messages.outlet_assigned_successfully'));
     }
@@ -376,13 +383,13 @@ class UserController extends Controller
 
     protected function propertyRuleSet(): array
     {
-        $tenantId = auth()->user()?->tenant_id;
+        $tenantId = auth()->user()?->company_id;
         $propertyIds = $this->availableProperties()->pluck('id')->map(fn ($id) => (int) $id)->all();
 
         return [
             Rule::exists('properties', 'id')->where(function ($query) use ($tenantId, $propertyIds) {
                 if ($tenantId) {
-                    $query->where('tenant_id', $tenantId);
+                    $query->where('company_id', $tenantId);
                 }
 
                 if (! empty($propertyIds)) {
@@ -431,5 +438,43 @@ class UserController extends Controller
             'default_property_id' => $defaultPropertyId ? (int) $defaultPropertyId : null,
             'property_ids' => array_values(array_unique(array_filter(array_map('intval', $propertyIds)))),
         ];
+    }
+
+    protected function propertyIdToBranchId(?int $propertyId): ?int
+    {
+        if (! $propertyId) {
+            return null;
+        }
+
+        $branchId = Property::query()
+            ->whereKey($propertyId)
+            ->value('branch_id');
+
+        return $branchId ? (int) $branchId : null;
+    }
+
+    protected function branchIdToPropertyId(?int $branchId): ?int
+    {
+        if (! $branchId) {
+            return null;
+        }
+
+        $propertyId = Property::query()
+            ->where('branch_id', $branchId)
+            ->value('id');
+
+        return $propertyId ? (int) $propertyId : null;
+    }
+
+    protected function propertyIdsToBranchIds(array $propertyIds): array
+    {
+        return Property::query()
+            ->whereIn('id', array_values(array_unique(array_filter($propertyIds))))
+            ->pluck('branch_id')
+            ->filter()
+            ->map(fn ($branchId) => (int) $branchId)
+            ->unique()
+            ->values()
+            ->all();
     }
 }

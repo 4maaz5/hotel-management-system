@@ -11,7 +11,7 @@ class NightAudit extends Model
     use BelongsToTenant, HasFactory;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'start_date_time',
         'end_date_time',
         'status',

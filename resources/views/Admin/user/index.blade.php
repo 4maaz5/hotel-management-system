@@ -687,7 +687,7 @@
 
                                 @foreach ($properties as $property)
                                     <option value="{{ $property->id }}"
-                                        {{ (int) $user->property_id === (int) $property->id ? 'selected' : '' }}>
+                                        {{ (int) $user->branch_id === (int) $property->branch_id ? 'selected' : '' }}>
                                         {{ $property->property_name_en }}
                                     </option>
                                 @endforeach

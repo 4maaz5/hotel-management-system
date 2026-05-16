@@ -10,6 +10,7 @@ class OutletItem extends Model
     use BelongsToTenant;
 
     protected $fillable = [
+        'company_id',
         'status',
         'name',
         'type',
@@ -32,11 +33,11 @@ class OutletItem extends Model
 
     public function outlet()
     {
-        return $this->belongsTo(OutletSetup::class);
+        return $this->belongsTo(OutletSetup::class, 'outlet_id');
     }
 
     public function category()
     {
-        return $this->belongsTo(ItemCategory::class);
+        return $this->belongsTo(ItemCategory::class, 'category_id');
     }
 }

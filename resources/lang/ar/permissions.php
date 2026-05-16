@@ -139,6 +139,7 @@ return [
     'invoice.email' => 'إرسال فاتورة بالإيميل',
 
     // Reservation Module — Item Categories
+    'item_categories.view' => 'عرض تصنيف أصناف',
     'item_categories.add' => 'إضافة تصنيف أصناف',
     'item_categories.edit' => 'تعديل تصنيف أصناف',
     'item_categories.delete' => 'حذف تصنيف أصناف',

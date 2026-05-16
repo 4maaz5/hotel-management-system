@@ -85,7 +85,6 @@ class DashboardController extends Controller
 
     public function store(Request $request)
     {
-        // dd($request->all());
         $request->validate([
             'type' => 'required|in:sms,email,system',
             'message' => 'required|string',

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Company;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Company;
@@ -12,9 +13,12 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class LetterController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         // Generate sequential letter number
@@ -29,9 +33,9 @@ class LetterController extends Controller
         $generatedLetterNumber = "LTR-{$year}-{$nextNumber}";
         $user = auth()->user();
         $companies = $user->isSuperAdmin() ? Company::all() : Company::whereKey($user->company_id)->get();
-        $branches = Branch::all();
-        $employees = Employee::all();
-        $letters = Letter::with('letterSetting')->get();
+        $branches = $this->scopeBranchesForUser(Branch::query(), $user)->get();
+        $employees = $this->scopeEmployeesForUser(Employee::query(), $user)->get();
+        $letters = $this->scopeLettersForUser(Letter::with('letterSetting'), $user)->get();
         $letterSettings = LetterSetting::all();
 
         return view('Admin.Backend.Letters.company', compact('companies', 'branches', 'employees', 'generatedLetterNumber', 'letters', 'letterSettings'));
@@ -41,9 +45,20 @@ class LetterController extends Controller
     {
         //  Validate request
         $request->validate([
-            'company_id' => 'required|exists:companies,id',
-            'branch_id' => 'required|exists:branches,id',
-            'employee_id' => 'nullable|exists:employees,id',
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
+            'branch_id' => [
+                'required',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
+            'employee_id' => [
+                'nullable',
+                Rule::exists('employees', 'id')->where(fn ($query) => $this->scopeEmployeesForUser($query, $request->user())),
+            ],
             'letter_setting_id' => 'nullable|exists:letter_settings,id',
             'letter_type' => 'required|in:open,warning',
             'subject' => 'required|string|max:255',
@@ -70,6 +85,9 @@ class LetterController extends Controller
             'receiver_name',
             'letter_setting_id',
         ]);
+        if (! $this->isSuperAdmin($request->user())) {
+            $data['company_id'] = $request->user()->company_id;
+        }
         $data['letter_number'] = $letterNumber;
         $data['gregorian_date'] = now();
         $data['hijri_date'] = $request->hijri_date ?? now()->format('Y-m-d');
@@ -91,10 +109,23 @@ class LetterController extends Controller
 
     public function update(Request $request, Letter $letter)
     {
+        $letter = $this->scopeLettersForUser(Letter::query(), $request->user())->findOrFail($letter->id);
+
         $request->validate([
-            'company_id' => 'required|exists:companies,id',
-            'branch_id' => 'required|exists:branches,id',
-            'employee_id' => 'nullable|exists:employees,id',
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
+            'branch_id' => [
+                'required',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
+            'employee_id' => [
+                'nullable',
+                Rule::exists('employees', 'id')->where(fn ($query) => $this->scopeEmployeesForUser($query, $request->user())),
+            ],
             'letter_setting_id' => 'nullable|exists:letter_settings,id',
             'letter_type' => 'required|in:open,warning',
             'subject' => 'required|string|max:255',
@@ -116,6 +147,9 @@ class LetterController extends Controller
             'receiver_name',
             'letter_setting_id',
         ]);
+        if (! $this->isSuperAdmin($request->user())) {
+            $data['company_id'] = $request->user()->company_id;
+        }
 
         $letter->update($data);
 
@@ -125,7 +159,7 @@ class LetterController extends Controller
 
     public function destroy($id)
     {
-        $letter = Letter::findOrfail($id);
+        $letter = $this->scopeLettersForUser(Letter::query(), auth()->user())->findOrfail($id);
         //  Delete PDF file if exists
         if ($letter->pdf_path && Storage::disk('public')->exists($letter->pdf_path)) {
             Storage::disk('public')->delete($letter->pdf_path);
@@ -136,5 +170,31 @@ class LetterController extends Controller
 
         //  Return response
         return redirect()->back()->with('delete', __('messages.letter_deleted_successfully'));
+    }
+
+    private function scopeLettersForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function scopeEmployeesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
     }
 }

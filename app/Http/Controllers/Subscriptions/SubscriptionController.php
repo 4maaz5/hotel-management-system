@@ -2,19 +2,27 @@
 
 namespace App\Http\Controllers\Subscriptions;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\PlatformSubscription;
 use App\Models\ThirdPartyPlatform;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SubscriptionController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
+        $user = auth()->user();
+
         $platforms = ThirdPartyPlatform::all();
-        $branches = Branch::all();
-        $subscriptions = PlatformSubscription::with(['platform', 'branch'])->latest()->get();
+        $branches = $this->scopeBranchesForUser(Branch::query(), $user)->get();
+        $subscriptions = $this->scopeSubscriptionsForUser(PlatformSubscription::with(['platform', 'branch']), $user)
+            ->latest()
+            ->get();
 
         return view('Admin.Backend.Subscriptions.subscription', compact('platforms', 'branches', 'subscriptions'));
     }
@@ -24,7 +32,10 @@ class SubscriptionController extends Controller
         //  Validate the request
         $validated = $request->validate([
             'third_party_platform_id' => 'required|exists:third_party_platforms,id',
-            'branch_id' => 'nullable|exists:branches,id',
+            'branch_id' => [
+                'nullable',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
             'subscription_start_date' => 'required|date',
             'subscription_end_date' => 'required|date|after_or_equal:subscription_start_date',
             'contract_amount' => 'required|numeric|min:0',
@@ -33,9 +44,12 @@ class SubscriptionController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        $companyId = $this->companyIdForSubscription($validated['branch_id'] ?? null, $request->user());
+
         //  Create subscription
         PlatformSubscription::create([
             'third_party_platform_id' => $validated['third_party_platform_id'],
+            'company_id' => $companyId,
             'branch_id' => $validated['branch_id'] ?? null,
             'subscription_start_date' => $validated['subscription_start_date'],
             'subscription_end_date' => $validated['subscription_end_date'],
@@ -53,10 +67,16 @@ class SubscriptionController extends Controller
 
     public function update(Request $request, PlatformSubscription $subscription)
     {
+        $subscription = $this->scopeSubscriptionsForUser(PlatformSubscription::query(), $request->user())
+            ->findOrFail($subscription->id);
+
         //  Validate incoming request
         $validated = $request->validate([
             'third_party_platform_id' => 'required|exists:third_party_platforms,id',
-            'branch_id' => 'nullable|exists:branches,id',
+            'branch_id' => [
+                'nullable',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
             'subscription_start_date' => 'required|date',
             'subscription_end_date' => 'required|date|after_or_equal:subscription_start_date',
             'contract_amount' => 'required|numeric|min:0',
@@ -65,9 +85,12 @@ class SubscriptionController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        $companyId = $this->companyIdForSubscription($validated['branch_id'] ?? null, $request->user());
+
         //  Update subscription
         $subscription->update([
             'third_party_platform_id' => $validated['third_party_platform_id'],
+            'company_id' => $companyId,
             'branch_id' => $validated['branch_id'] ?? null,
             'subscription_start_date' => $validated['subscription_start_date'],
             'subscription_end_date' => $validated['subscription_end_date'],
@@ -83,6 +106,9 @@ class SubscriptionController extends Controller
 
     public function destroy(PlatformSubscription $subscription)
     {
+        $subscription = $this->scopeSubscriptionsForUser(PlatformSubscription::query(), auth()->user())
+            ->findOrFail($subscription->id);
+
         $subscription->delete();
 
         return redirect()->back()->with('delete', __('messages.subscription_deleted_successfully'));
@@ -90,7 +116,10 @@ class SubscriptionController extends Controller
 
     public function filter(Request $request)
     {
-        $query = PlatformSubscription::with(['platform', 'branch'])->latest();
+        $query = $this->scopeSubscriptionsForUser(
+            PlatformSubscription::with(['platform', 'branch']),
+            $request->user()
+        )->latest();
 
         if ($request->has('status')) {
             $status = $request->get('status');
@@ -106,5 +135,27 @@ class SubscriptionController extends Controller
 
         // Return JSON data
         return response()->json($subscriptions);
+    }
+
+    private function scopeSubscriptionsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function companyIdForSubscription(?int $branchId, $user): ?int
+    {
+        if ($branchId) {
+            return Branch::whereKey($branchId)->value('company_id');
+        }
+
+        return $this->isSuperAdmin($user) ? null : $user->company_id;
     }
 }

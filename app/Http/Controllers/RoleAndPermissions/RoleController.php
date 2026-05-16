@@ -26,7 +26,6 @@ class RoleController extends Controller
 
     public function storeRole(Request $request)
     {
-        // dd($request->all());
         $validated = $request->validate([
             'role' => 'required|string|unique:roles,name',
             'permissions' => 'nullable|array',

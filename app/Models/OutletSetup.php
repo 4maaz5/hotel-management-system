@@ -11,7 +11,8 @@ class OutletSetup extends Model
     use BelongsToCurrentProperty, BelongsToTenant;
 
     protected $fillable = [
-        'property_id',
+        'company_id',
+        'branch_id',
         'status',
         'operating_status',
         'outlet_code',

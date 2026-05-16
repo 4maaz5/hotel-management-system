@@ -90,6 +90,8 @@ class TaskController extends Controller
                         $fileType = str_starts_with($mime, 'video/') ? 'video' : 'image';
 
                         TaskMedia::create([
+                            'company_id' => $task->company_id,
+                            'branch_id' => $task->branch_id,
                             'task_id' => $task->id,
                             'file_path' => $path,
                             'file_name' => $file->getClientOriginalName(),
@@ -122,7 +124,7 @@ class TaskController extends Controller
     protected function currentHousekeeper(Request $request): Housekeeper
     {
         $housekeeper = Housekeeper::where('user_id', $request->user()->id)
-            ->where('property_id', app(PropertyContext::class)->id())
+            ->where('branch_id', app(PropertyContext::class)->branchId())
             ->where('is_active', true)
             ->first();
 

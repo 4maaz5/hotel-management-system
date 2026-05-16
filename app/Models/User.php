@@ -16,7 +16,6 @@ class User extends Authenticatable
     protected $fillable = [
         'company_id',
         'branch_id',
-        'property_id',
         'name',
         'email',
         'password',
@@ -69,7 +68,7 @@ class User extends Authenticatable
 
     public function property()
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 
     public function assignedProperties()
@@ -104,12 +103,13 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
-        return $this->hasAnyRole(['Administrator', 'super_admin']);
+        return in_array($this->role, ['Administrator', 'super_admin'], true)
+            || $this->hasAnyRole(['Administrator', 'super_admin']);
     }
 
     public function isTenantOwner(): bool
     {
-        return $this->hasRole('owner');
+        return $this->role === 'owner' || $this->hasRole('owner');
     }
 
     public function accessiblePropertiesQuery(): Builder

@@ -237,7 +237,7 @@
                                                 </a>
                                             @endcan
 
-                                            <div class="dropdown">
+                                            <div class="dropdown reservation-actions-dropdown">
                                                 <button class="btn btn-sm btn-light" type="button"
                                                     data-bs-toggle="dropdown" aria-expanded="false">
                                                     <i class="bi bi-three-dots"></i>
@@ -534,6 +534,16 @@
         #calendar {
             padding: 10px;
         }
+
+        .reservation-actions-dropdown .dropdown-menu {
+            min-width: 220px;
+        }
+
+        .reservation-actions-dropdown__floating {
+            position: fixed !important;
+            z-index: 2050;
+            margin: 0 !important;
+        }
     </style>
     @endpush
 
@@ -697,6 +707,7 @@
 
             document.addEventListener("DOMContentLoaded", function() {
                 switchView(initialReservationView);
+                initReservationActionDropdowns();
 
                 const cancelButtons = document.querySelectorAll('[data-reservation-id]');
                 let currentTotalRent = 0;
@@ -720,22 +731,93 @@
 
             });
 
+            function initReservationActionDropdowns() {
+                const dropdowns = document.querySelectorAll('.reservation-actions-dropdown');
 
-            const cancelReasonPenaltiesBaseUrl = @json(url('/app/cancel-reason'));
+                dropdowns.forEach(dropdown => {
+                    const toggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+                    const menu = dropdown.querySelector('.dropdown-menu');
+                    const placeholder = document.createComment('reservation-actions-menu');
+
+                    if (!toggle || !menu) {
+                        return;
+                    }
+
+                    dropdown.addEventListener('shown.bs.dropdown', () => {
+                        if (!placeholder.parentNode) {
+                            menu.parentNode.insertBefore(placeholder, menu);
+                        }
+
+                        document.body.appendChild(menu);
+                        menu.classList.add('reservation-actions-dropdown__floating', 'show');
+                        positionReservationActionMenu(toggle, menu);
+                    });
+
+                    dropdown.addEventListener('hide.bs.dropdown', () => {
+                        if (placeholder.parentNode) {
+                            placeholder.parentNode.insertBefore(menu, placeholder);
+                            placeholder.remove();
+                        }
+
+                        menu.classList.remove('reservation-actions-dropdown__floating');
+                        menu.removeAttribute('style');
+                    });
+                });
+
+                const repositionOpenMenu = () => {
+                    const openToggle = document.querySelector('.reservation-actions-dropdown [aria-expanded="true"]');
+                    const openMenu = document.querySelector('.reservation-actions-dropdown__floating.show');
+
+                    if (openToggle && openMenu) {
+                        positionReservationActionMenu(openToggle, openMenu);
+                    }
+                };
+
+                window.addEventListener('resize', repositionOpenMenu);
+                window.addEventListener('scroll', repositionOpenMenu, true);
+            }
+
+            function positionReservationActionMenu(toggle, menu) {
+                const rect = toggle.getBoundingClientRect();
+                const menuWidth = menu.offsetWidth || 220;
+                const menuHeight = menu.offsetHeight || 96;
+                const gutter = 8;
+                const viewportWidth = document.documentElement.clientWidth;
+                const viewportHeight = document.documentElement.clientHeight;
+
+                let left = rect.right - menuWidth;
+                let top = rect.bottom + gutter;
+
+                left = Math.max(gutter, Math.min(left, viewportWidth - menuWidth - gutter));
+
+                if (top + menuHeight > viewportHeight - gutter) {
+                    top = rect.top - menuHeight - gutter;
+                }
+
+                menu.style.left = `${left}px`;
+                menu.style.top = `${Math.max(gutter, top)}px`;
+            }
+
+
+            const cancelReasonPenaltiesUrlTemplate = @json(route('dashboard.reservation.cancel_reason.penalties', ['id' => '__REASON__']));
+            const selectPenaltyLabel = @json(__('dashboard.select_penalty'));
+            const loadingLabel = 'Loading...';
 
             $('#cancel_reason_id').change(function() {
 
                 let reasonId = $(this).val();
 
                 if (!reasonId) {
-                    $('#penalty_id').html('<option value="">Select Penalty</option>');
+                    $('#penalty_id').html(`<option value="">${selectPenaltyLabel}</option>`);
                     $('#penalty_amount').text('0');
                     return;
                 }
 
-                $('#penalty_id').html('<option>Loading...</option>');
+                $('#penalty_id').html(`<option>${loadingLabel}</option>`);
 
-                fetch(`${cancelReasonPenaltiesBaseUrl}/${reasonId}/penalties`)
+                const url = cancelReasonPenaltiesUrlTemplate.replace('__REASON__', encodeURIComponent(reasonId));
+
+                fetch(url)
                     .then(res => {
                         if (!res.ok) {
                             throw new Error(`Failed to load penalties (${res.status})`);
@@ -745,7 +827,7 @@
                     })
                     .then(data => {
 
-                        let html = '<option value="">Select Penalty</option>';
+                        let html = `<option value="">${selectPenaltyLabel}</option>`;
                         let autoAppliedPenalty = null;
 
                         data.forEach(p => {
@@ -772,7 +854,7 @@
                     })
                     .catch(error => {
                         console.error('Failed to load penalties for cancel reason:', error);
-                        $('#penalty_id').html('<option value="">Select Penalty</option>');
+                        $('#penalty_id').html(`<option value="">${selectPenaltyLabel}</option>`);
                         $('#penalty_amount').text('0');
                     });
 

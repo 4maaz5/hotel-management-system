@@ -81,9 +81,9 @@ class UnitController extends Controller
 
     public function store(Request $request)
     {
-        $propertyId = app(PropertyContext::class)->id();
+        $branchId = app(PropertyContext::class)->branchId();
 
-        abort_unless($propertyId, 422, 'Please select or create a branch first.');
+        abort_unless($branchId, 422, 'Please select or create a branch first.');
 
         $validated = $request->validate([
             'unit_number' => 'required|string|unique:units,unit_number',
@@ -91,11 +91,11 @@ class UnitController extends Controller
             'unit_type_id' => 'required|exists:unit_type_customizations,id',
             'block_id' => [
                 'required',
-                Rule::exists('blocks', 'id')->where(fn ($query) => $query->where('property_id', $propertyId)),
+                Rule::exists('blocks', 'id')->where(fn ($query) => $query->where('branch_id', $branchId)),
             ],
             'floor_id' => [
                 'required',
-                Rule::exists('floors', 'id')->where(fn ($query) => $query->where('property_id', $propertyId)),
+                Rule::exists('floors', 'id')->where(fn ($query) => $query->where('branch_id', $branchId)),
             ],
             'hall_type_id' => 'nullable|exists:hall_types,id',
             'phone_extension' => 'nullable|string|max:20',
@@ -156,7 +156,7 @@ class UnitController extends Controller
     public function update(Request $request, $id)
     {
         $unit = Unit::findOrFail($id);
-        $propertyId = app(PropertyContext::class)->id();
+        $branchId = app(PropertyContext::class)->branchId();
 
         $validated = $request->validate([
             'unit_number' => 'required|string|unique:units,unit_number,'.$unit->id,
@@ -164,11 +164,11 @@ class UnitController extends Controller
             'unit_type_id' => 'required|exists:unit_type_customizations,id',
             'block_id' => [
                 'required',
-                Rule::exists('blocks', 'id')->where(fn ($query) => $query->where('property_id', $propertyId)),
+                Rule::exists('blocks', 'id')->where(fn ($query) => $query->where('branch_id', $branchId)),
             ],
             'floor_id' => [
                 'required',
-                Rule::exists('floors', 'id')->where(fn ($query) => $query->where('property_id', $propertyId)),
+                Rule::exists('floors', 'id')->where(fn ($query) => $query->where('branch_id', $branchId)),
             ],
             'hall_type_id' => 'nullable|exists:hall_types,id',
             'phone_extension' => 'nullable|string|max:20',

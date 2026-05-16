@@ -10,7 +10,7 @@ class ReservationSourceSetting extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
+        'company_id',
         'master_source_id',
         'status',
         'report_name',

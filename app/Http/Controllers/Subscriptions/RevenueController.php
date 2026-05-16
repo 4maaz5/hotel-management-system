@@ -2,20 +2,24 @@
 
 namespace App\Http\Controllers\Subscriptions;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\PlatformRevenue;
 use App\Models\PlatformSubscription;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class RevenueController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
-        $subscriptions = PlatformSubscription::all();
-        $revenues = PlatformRevenue::with([
+        $subscriptions = $this->scopeSubscriptionsForUser(PlatformSubscription::query(), auth()->user())->get();
+        $revenues = $this->scopeRevenuesForUser(PlatformRevenue::with([
             'subscription.platform',
             'subscription.branch',
-        ])->latest()->get();
+        ]), auth()->user())->latest()->get();
 
         return view('Admin.Backend.Subscriptions.revenue', compact('subscriptions', 'revenues'));
     }
@@ -23,12 +27,16 @@ class RevenueController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'subscription_id' => 'required|exists:platform_subscriptions,id',
+            'subscription_id' => [
+                'required',
+                Rule::exists('platform_subscriptions', 'id')->where(fn ($query) => $this->scopeSubscriptionsForUser($query, $request->user())),
+            ],
             'amount_collected' => 'required|numeric|min:0',
             'payment_date' => 'required|date',
         ]);
 
-        $subscription = PlatformSubscription::findOrFail($request->subscription_id);
+        $subscription = $this->scopeSubscriptionsForUser(PlatformSubscription::query(), $request->user())
+            ->findOrFail($request->subscription_id);
 
         $commissionAmount =
             ($request->amount_collected * $subscription->commission_percentage) / 100;
@@ -46,13 +54,17 @@ class RevenueController extends Controller
     public function update(Request $request, $revenue)
     {
         $request->validate([
-            'subscription_id' => 'required|exists:platform_subscriptions,id',
+            'subscription_id' => [
+                'required',
+                Rule::exists('platform_subscriptions', 'id')->where(fn ($query) => $this->scopeSubscriptionsForUser($query, $request->user())),
+            ],
             'amount_collected' => 'required|numeric|min:0',
             'payment_date' => 'required|date',
         ]);
 
-        $revenue = PlatformRevenue::findOrFail($revenue);
-        $subscription = PlatformSubscription::findOrFail($request->subscription_id);
+        $revenue = $this->scopeRevenuesForUser(PlatformRevenue::query(), $request->user())->findOrFail($revenue);
+        $subscription = $this->scopeSubscriptionsForUser(PlatformSubscription::query(), $request->user())
+            ->findOrFail($request->subscription_id);
 
         $commissionAmount =
             ($request->amount_collected * $subscription->commission_percentage) / 100;
@@ -69,9 +81,27 @@ class RevenueController extends Controller
 
     public function destroy($revenue)
     {
-        PlatformRevenue::findOrFail($revenue)->delete();
+        $this->scopeRevenuesForUser(PlatformRevenue::query(), auth()->user())->findOrFail($revenue)->delete();
 
         return redirect()->back()
             ->with('delete', __('messages.revenue_deleted_successfully'));
+    }
+
+    private function scopeSubscriptionsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function scopeRevenuesForUser($query, $user)
+    {
+        return $query->whereHas('subscription', fn ($subscriptionQuery) => $this->scopeSubscriptionsForUser($subscriptionQuery, $user));
     }
 }

@@ -356,7 +356,6 @@
             const content = document.getElementById('printContent');
             
             if (!content) {
-                console.log('Content element not found');
                 return;
             }
             

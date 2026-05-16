@@ -14,7 +14,7 @@ class Outlet extends Model
     protected $table = 'outlets';
 
     protected $fillable = [
-        'property_id',
+        'branch_id',
         'operating_status',
         'outlet_code',
         'name',

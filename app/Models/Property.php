@@ -104,7 +104,7 @@ class Property extends Model
 
     public function users()
     {
-        return $this->belongsToMany(User::class, 'property_user')
+        return $this->belongsToMany(User::class, 'property_user', 'branch_id', 'user_id', 'branch_id', 'id')
             ->withTimestamps();
     }
 
@@ -156,10 +156,17 @@ class Property extends Model
             $query->with($relations);
         }
 
-        $propertyId = app(PropertyContext::class)->id();
+        $context = app(PropertyContext::class);
+        $propertyId = $context->id();
 
         if ($propertyId) {
             return $query->where('id', $propertyId)->first();
+        }
+
+        $branchId = $context->branchId();
+
+        if ($branchId) {
+            return $query->where('branch_id', $branchId)->first();
         }
 
         return $query->first();

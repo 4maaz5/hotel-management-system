@@ -2,25 +2,33 @@
 
 namespace App\Http\Controllers\Outlets;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\ItemCategory;
 use App\Models\OutletItem;
 use App\Models\OutletSetup;
+use App\Support\PropertyContext;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ItemsController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index(Request $request)
     {
-        $query = OutletItem::with(['outlet', 'category']);
+        $query = OutletItem::with(['outlet', 'category'])
+            ->whereHas('outlet', fn ($outletQuery) => $this->scopeOutletsForRequest($outletQuery, $request));
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
         if ($request->filled('outlet')) {
-            $query->where('outlet_id', $request->outlet);
+            $outlet = $this->scopeOutletsForRequest(OutletSetup::query(), $request)->findOrFail($request->outlet);
+            $query->where('outlet_id', $outlet->id);
         }
         if ($request->filled('category')) {
-            $query->where('category_id', $request->category);
+            $category = $this->scopeCategoriesForRequest(ItemCategory::query(), $request)->findOrFail($request->category);
+            $query->where('category_id', $category->id);
         }
         if ($request->filled('name')) {
             $query->where('name', 'like', '%'.$request->name.'%');
@@ -31,8 +39,8 @@ class ItemsController extends Controller
 
         $outletItems = $query->latest()->get();
 
-        $outlets = OutletSetup::all();
-        $categories = ItemCategory::all();
+        $outlets = $this->scopeOutletsForRequest(OutletSetup::query(), $request)->get();
+        $categories = $this->scopeCategoriesForRequest(ItemCategory::query(), $request)->get();
 
         return view('admin.items.index', compact(
             'outletItems',
@@ -43,8 +51,9 @@ class ItemsController extends Controller
 
     public function create()
     {
-        $outlets = OutletSetup::where('status', true)->get();
-        $categories = ItemCategory::where('status', true)->get();
+        $request = request();
+        $outlets = $this->scopeOutletsForRequest(OutletSetup::where('status', true), $request)->get();
+        $categories = $this->scopeCategoriesForRequest(ItemCategory::where('status', true), $request)->get();
 
         return view('admin.items.create', compact('outlets', 'categories'));
     }
@@ -54,13 +63,20 @@ class ItemsController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:200',
             'type' => 'required|string',
-            'outlet_id' => 'required|exists:outlet_setups,id',
-            'category_id' => 'nullable|exists:item_categories,id',
+            'outlet_id' => [
+                'required',
+                Rule::exists('outlet_setups', 'id')->where(fn ($query) => $this->scopeOutletsForRequest($query, $request)),
+            ],
+            'category_id' => [
+                'nullable',
+                Rule::exists('item_categories', 'id')->where(fn ($query) => $this->scopeCategoryRowsForRequest($query, $request)),
+            ],
             'description' => 'nullable|string|max:600',
             'price' => 'required|numeric|min:0',
         ]);
 
         OutletItem::create([
+            'company_id' => $this->companyIdForRequest($request),
             'name' => $request->name,
             'type' => $request->type,
             'outlet_id' => $request->outlet_id,
@@ -85,11 +101,11 @@ class ItemsController extends Controller
 
     public function edit($id)
     {
-        $item = OutletItem::findOrFail($id);
+        $item = $this->scopeItemsForRequest(OutletItem::query(), request())->findOrFail($id);
 
-        $outlets = OutletSetup::all();
+        $outlets = $this->scopeOutletsForRequest(OutletSetup::query(), request())->get();
 
-        $categories = ItemCategory::where('outlet_id', $item->outlet_id)
+        $categories = $this->scopeCategoriesForRequest(ItemCategory::where('outlet_id', $item->outlet_id), request())
             ->get();
 
         return view('admin.items.edit', compact(
@@ -101,13 +117,19 @@ class ItemsController extends Controller
 
     public function update(Request $request, $id)
     {
-        $item = OutletItem::findOrFail($id);
+        $item = $this->scopeItemsForRequest(OutletItem::query(), $request)->findOrFail($id);
 
         $validated = $request->validate([
             'name' => 'required|string|max:200',
             'type' => 'required|string',
-            'outlet_id' => 'required|exists:outlet_setups,id',
-            'category_id' => 'nullable|exists:item_categories,id',
+            'outlet_id' => [
+                'required',
+                Rule::exists('outlet_setups', 'id')->where(fn ($query) => $this->scopeOutletsForRequest($query, $request)),
+            ],
+            'category_id' => [
+                'nullable',
+                Rule::exists('item_categories', 'id')->where(fn ($query) => $this->scopeCategoryRowsForRequest($query, $request)),
+            ],
             'description' => 'nullable|string|max:600',
             'price' => 'required|numeric|min:0',
         ]);
@@ -133,7 +155,7 @@ class ItemsController extends Controller
 
     public function delete($id)
     {
-        $item = OutletItem::findOrfail($id);
+        $item = $this->scopeItemsForRequest(OutletItem::query(), request())->findOrFail($id);
         $item->delete();
 
         return redirect()->back()->with('danger', __('messages.outlet_item_deleted_successfully'));
@@ -141,10 +163,66 @@ class ItemsController extends Controller
 
     public function getCategories($outletId)
     {
-        $categories = ItemCategory::where('outlet_id', $outletId)
+        $outlet = $this->scopeOutletsForRequest(OutletSetup::query(), request())->findOrFail($outletId);
+        $categories = $this->scopeCategoriesForRequest(ItemCategory::where('outlet_id', $outlet->id), request())
             ->select('id', 'name')
             ->get();
 
         return response()->json($categories);
+    }
+
+    private function scopeItemsForRequest($query, Request $request)
+    {
+        return $query->whereHas('outlet', fn ($outletQuery) => $this->scopeOutletsForRequest($outletQuery, $request));
+    }
+
+    private function scopeCategoriesForRequest($query, Request $request)
+    {
+        return $query->whereHas('outlet', fn ($outletQuery) => $this->scopeOutletsForRequest($outletQuery, $request));
+    }
+
+    private function scopeCategoryRowsForRequest($query, Request $request)
+    {
+        $outletIds = $this->scopeOutletsForRequest(OutletSetup::query(), $request)->pluck('id');
+
+        return $query->whereIn('outlet_id', $outletIds);
+    }
+
+    private function scopeOutletsForRequest($query, Request $request)
+    {
+        $user = $request->user();
+
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        $branchId = $this->currentBranchId($request);
+
+        $query->where('company_id', $user->company_id);
+
+        return $branchId ? $query->where('branch_id', $branchId) : $query;
+    }
+
+    private function currentBranchId(Request $request): ?int
+    {
+        $user = $request->user();
+
+        if ($user?->branch_id) {
+            return (int) $user->branch_id;
+        }
+
+        $sessionBranchId = $request->session()->get('branch_id');
+        if ($sessionBranchId) {
+            return (int) $sessionBranchId;
+        }
+
+        $property = app(PropertyContext::class)->property();
+
+        return $property?->branch_id ? (int) $property->branch_id : null;
+    }
+
+    private function companyIdForRequest(Request $request): ?int
+    {
+        return $this->isSuperAdmin($request->user()) ? null : $request->user()->company_id;
     }
 }

@@ -24,6 +24,10 @@ class ToolExecutorService
             $parameters['public_website_only'] = true;
         }
 
+        if ($session->branch_id) {
+            $parameters['branch_id'] = $session->branch_id;
+        }
+
         return match ($toolName) {
             'checkAvailability' => $this->availabilityService->checkAvailability($parameters),
             'createBooking' => ($parameters['confirmation'] ?? false)

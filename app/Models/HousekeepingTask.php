@@ -13,8 +13,8 @@ class HousekeepingTask extends Model
     protected $table = 'housekeeping_tasks';
 
     protected $fillable = [
-        'tenant_id',
-        'property_id',
+        'company_id',
+        'branch_id',
         'task_type',
         'unit_id',
         'property_facility_id',
@@ -60,7 +60,7 @@ class HousekeepingTask extends Model
 
     public function property()
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 
     public function media()

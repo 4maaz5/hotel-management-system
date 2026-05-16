@@ -12,8 +12,8 @@ class ReservationGuest extends Model
     use BelongsToCurrentProperty, BelongsToTenant, HasFactory;
 
     protected $fillable = [
-        'tenant_id',
-        'property_id',
+        'company_id',
+        'branch_id',
         'reservation_id',
         'guest_id',
         'is_primary',

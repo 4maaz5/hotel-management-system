@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers\Documents;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\CompanyDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class CompanyDocumentController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
         $user = auth()->user();
@@ -21,9 +25,9 @@ class CompanyDocumentController extends Controller
             $companies = Company::all();
             $companyDocsCard = CompanyDocument::paginate(10);
         } else {
-            $companyDocs = collect();
-            $companyDocsCard = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
-            $companies = collect();
+            $companyDocs = $this->scopeCompanyDocumentsForUser(CompanyDocument::query(), $user)->get();
+            $companyDocsCard = $this->scopeCompanyDocumentsForUser(CompanyDocument::query(), $user)->paginate(10);
+            $companies = Company::whereKey($user->company_id)->get();
         }
 
         return view('Admin.Backend.CompanyDocument.index', compact('companyDocs', 'companyDocsCard', 'companies'));
@@ -33,7 +37,12 @@ class CompanyDocumentController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'company_id' => 'required',
+            'company_id' => [
+                'required',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
             'type' => 'required|string|max:100',
             'issued_by' => 'nullable|string|max:255',
             'issue_date' => 'nullable|date',
@@ -42,6 +51,9 @@ class CompanyDocumentController extends Controller
         ]);
 
         $data = $request->only(['name', 'company_id', 'type', 'issued_by', 'issue_date', 'expiration_date']);
+        if (! $this->isSuperAdmin($request->user())) {
+            $data['company_id'] = $request->user()->company_id;
+        }
 
         if ($request->hasFile('file')) {
             $file = $request->file('file');
@@ -74,7 +86,7 @@ class CompanyDocumentController extends Controller
             'file' => 'nullable|file|mimes:pdf|max:5120',
         ]);
 
-        $doc = CompanyDocument::findOrFail($id);
+        $doc = $this->scopeCompanyDocumentsForUser(CompanyDocument::query(), $request->user())->findOrFail($id);
 
         $doc->update($request->only(['name', 'type', 'issued_by', 'issue_date', 'expiration_date']));
 
@@ -91,7 +103,7 @@ class CompanyDocumentController extends Controller
 
     public function destroy($id)
     {
-        $doc = CompanyDocument::findOrFail($id);
+        $doc = $this->scopeCompanyDocumentsForUser(CompanyDocument::query(), auth()->user())->findOrFail($id);
 
         // Delete the file from the 'public' disk
         if ($doc->file_path && Storage::disk('public')->exists($doc->file_path)) {
@@ -105,7 +117,7 @@ class CompanyDocumentController extends Controller
 
     public function filter(Request $request)
     {
-        $query = CompanyDocument::query();
+        $query = $this->scopeCompanyDocumentsForUser(CompanyDocument::query(), $request->user());
 
         // Filter by type
         if ($request->type) {
@@ -135,5 +147,23 @@ class CompanyDocumentController extends Controller
         $html = view('Admin.Backend.partials.company_doce_rows', compact('documents'))->render();
 
         return response()->json(['html' => $html]);
+    }
+
+    private function scopeCompanyDocumentsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        $query->where('company_id', $user->company_id);
+
+        if ($user->branch_id) {
+            $query->where(function ($branchQuery) use ($user) {
+                $branchQuery->whereNull('branch_id')
+                    ->orWhere('branch_id', $user->branch_id);
+            });
+        }
+
+        return $query;
     }
 }

@@ -138,6 +138,7 @@ return [
     'invoice.email' => 'Email Invoice',
 
     // Reservation Module — Item Categories
+    'item_categories.view' => 'View Item Category',
     'item_categories.add' => 'Add Item Category',
     'item_categories.edit' => 'Edit Item Category',
     'item_categories.delete' => 'Delete Item Category',

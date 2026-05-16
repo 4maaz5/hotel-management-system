@@ -12,8 +12,8 @@ class StaffAttendance extends Model
     use BelongsToCurrentProperty, BelongsToTenant, SoftDeletes;
 
     protected $fillable = [
-        'tenant_id',
-        'property_id',
+        'company_id',
+        'branch_id',
         'user_id',
         'housekeeper_id',
         'attendance_date',
@@ -59,7 +59,7 @@ class StaffAttendance extends Model
 
     public function property()
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 
     public function editor()
