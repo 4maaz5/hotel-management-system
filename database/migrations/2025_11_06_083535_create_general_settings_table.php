@@ -14,9 +14,11 @@ return new class extends Migration
 
         Schema::create('general_settings', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
 
             $table->string('hrm_name');
             $table->string('logo_path')->nullable();
+            $table->string('dashboard_background')->nullable();
             $table->string('email')->nullable();
             $table->string('phone', 20)->nullable();
 

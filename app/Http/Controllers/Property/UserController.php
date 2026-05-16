@@ -53,7 +53,7 @@ class UserController extends Controller
 
     public function create()
     {
-        $roles = Role::where('status', 'ACTIVE')->get();
+           $roles = Role::where('name', '!=', 'super_admin')->get();
         $properties = $this->availableProperties();
 
         return view('admin.user.create', compact('roles', 'properties'));
@@ -178,7 +178,7 @@ class UserController extends Controller
     public function edit($id)
     {
         $user = User::with(['assignedProperties', 'roles'])->findOrFail($id);
-        $roles = Role::all();
+           $roles = Role::where('name', '!=', 'super_admin')->get();
         $properties = $this->availableProperties();
 
         return view('admin.user.edit', compact('user', 'roles', 'properties'));

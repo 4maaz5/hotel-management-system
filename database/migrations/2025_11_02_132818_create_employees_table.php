@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
 
             $table->string('first_name');
             $table->string('last_name');
@@ -41,6 +45,7 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('branches')
                 ->nullOnDelete();
+            $table->unsignedBigInteger('shift_id')->nullable()->index();
 
             // Employment Info
             $table->date('join_date')->nullable();
@@ -55,6 +60,7 @@ return new class extends Migration
             $table->boolean('is_commission')->default(false);
             $table->decimal('commission_percentage', 5, 2)->nullable();
             $table->enum('commission_type', ['sales', 'profit', 'revenue'])->nullable();
+            $table->decimal('overtime', 5, 2)->nullable();
 
             $table->timestamps();
         });

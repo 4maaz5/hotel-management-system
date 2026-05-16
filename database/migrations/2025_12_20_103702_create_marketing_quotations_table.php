@@ -28,6 +28,10 @@ return new class extends Migration
             $table->string('client_contact')->nullable();
             $table->text('description')->nullable();
             $table->decimal('quotation_amount', 15, 2);
+            $table->string('vat_no')->nullable();
+            $table->string('email')->nullable();
+            $table->string('cr_no')->nullable();
+            $table->string('bank_name')->nullable();
             $table->string('manual_agent_name')->nullable();
             $table->string('account_number')->nullable();
             $table->string('logo')->nullable();

@@ -57,6 +57,8 @@ return new class extends Migration
             $table->text('description')->nullable();
 
             $table->boolean('is_active')->default(true);
+            $table->enum('housekeeping_status', ['clean', 'dirty', 'inspected', 'out_of_service'])
+                ->default('clean');
 
             $table->timestamps();
         });
@@ -70,4 +72,3 @@ return new class extends Migration
         Schema::dropIfExists('units');
     }
 };
-

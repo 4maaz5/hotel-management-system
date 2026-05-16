@@ -19,10 +19,8 @@ return new class extends Migration
                 ->nullOnDelete();
             $table->string('name');
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
-            $table->foreignId('warehouse_id')->constrained()->onDelete('cascade');
-            $table->foreignId('room_id')->nullable()->constrained()->onDelete('set null');
-            $table->integer('stock')->default(0);
-            $table->decimal('price', 10, 2)->nullable();
+            $table->string('sku')->nullable();
+            $table->string('unit')->default('pcs');
             $table->timestamps();
         });
     }
