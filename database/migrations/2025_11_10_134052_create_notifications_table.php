@@ -17,6 +17,8 @@ return new class extends Migration
             $table->text('message');
             $table->string('recipient_type')->default('manager');
             $table->unsignedBigInteger('recipient_id')->nullable()->index();
+            $table->unsignedBigInteger('department_id')->nullable()->index();
+            $table->unsignedBigInteger('parent_id')->nullable()->index();
             $table->enum('status', ['pending', 'sent', 'failed'])->default('pending')->index();
             $table->timestamp('scheduled_at')->nullable()->index();
             $table->timestamp('sent_at')->nullable()->index();

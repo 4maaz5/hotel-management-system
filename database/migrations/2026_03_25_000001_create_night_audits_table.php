@@ -19,6 +19,7 @@ return new class extends Migration
             $table->date('period_date_to');
             $table->integer('night_count')->default(0);
             $table->text('notes')->nullable();
+            $table->json('financial_summary')->nullable();
             $table->timestamps();
         });
     }
@@ -28,4 +29,3 @@ return new class extends Migration
         Schema::dropIfExists('night_audits');
     }
 };
-

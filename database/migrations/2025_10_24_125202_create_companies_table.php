@@ -16,6 +16,7 @@ return new class extends Migration
 
             // Basic Info
             $table->string('name');
+            $table->string('subdomain')->unique()->nullable();
             $table->string('legal_name')->nullable();
             $table->string('logo')->nullable();
 
@@ -41,6 +42,10 @@ return new class extends Migration
             // Additional Settings
             $table->string('industry_type')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
+            $table->enum('subscription_status', ['active', 'inactive', 'suspended'])->default('active');
+            $table->unsignedBigInteger('subscription_plan_id')->nullable()->index();
 
             $table->timestamps();
         });

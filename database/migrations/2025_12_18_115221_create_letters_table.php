@@ -27,6 +27,8 @@ return new class extends Migration
                 ->nullable()
                 ->constrained()
                 ->nullOnDelete();
+            $table->string('receiver_name')->nullable();
+            $table->unsignedBigInteger('letter_setting_id')->nullable()->index();
 
             $table->enum('letter_type', ['open', 'warning']);
 

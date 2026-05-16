@@ -18,6 +18,16 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('phone')->nullable();
             $table->enum('status', ['Active', 'Inactive'])->default('Active');
+            $table->decimal('market_price', 15, 2)->nullable();
+            $table->decimal('rent', 15, 2)->nullable();
+            $table->decimal('sale_price', 15, 2)->nullable();
+            $table->date('rent_start_date')->nullable();
+            $table->date('rent_end_date')->nullable();
+            $table->decimal('damage_assist', 15, 2)->nullable();
+            $table->enum('building_type', ['owned', 'rented'])->default('owned');
+            $table->decimal('total_rent', 15, 2)->nullable();
+            $table->integer('installments')->nullable();
+            $table->string('rent_agreement')->nullable();
             $table->timestamps();
         });
     }

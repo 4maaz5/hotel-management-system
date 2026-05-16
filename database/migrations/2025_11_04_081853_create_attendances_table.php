@@ -28,6 +28,8 @@ return new class extends Migration
 
             $table->enum('status', ['Present', 'Absent', 'Leave'])->default('Present');
             $table->decimal('overtime_hours', 5, 2)->default(0);
+            $table->enum('overtime_status', ['pending', 'approved', 'cancelled'])
+                ->default('pending');
 
             $table->timestamps();
 

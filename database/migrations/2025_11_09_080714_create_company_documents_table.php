@@ -11,6 +11,10 @@ return new class extends Migration
         Schema::create('company_documents', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->onDelete('cascade');
+            $table->foreignId('branch_id')
+                ->nullable()
+                ->constrained('branches')
+                ->nullOnDelete();
             $table->string('name');
             $table->string('type');
             $table->string('issued_by')->nullable();

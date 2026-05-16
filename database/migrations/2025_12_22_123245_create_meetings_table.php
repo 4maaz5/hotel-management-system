@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('meetings', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
             $table->string('title');
             $table->string('room_name')->unique();
+            $table->string('link')->nullable();
             $table->dateTime('start_time')->nullable();
             $table->integer('duration')->nullable(); // minutes
             $table->unsignedBigInteger('created_by');
