@@ -277,4 +277,7 @@ return array (
   'contract_updated_successfully' => 'تم تحديث العقد بنجاح',
   'contract_deleted_successfully' => 'تم حذف العقد بنجاح',
   'no_branch_assigned' => 'لا يمكنك إرسال طلب لأنه لا يوجد فرع مرتبط بحسابك.',
+  'must_be_image' => 'يجب أن يكون ملف صورة صالح.',
+  'allowed_types' => 'الأنواع المسموح بها',
+  'max_file_size' => 'الحد الأقصى لحجم الملف',
 );

@@ -43,7 +43,7 @@ trait ScopesTenantAccess
         }
 
         if ($user->branch_id) {
-            return $query->whereKey($user->branch_id);
+            return $query->where('id', $user->branch_id);
         }
 
         return $query->where('company_id', $user->company_id);

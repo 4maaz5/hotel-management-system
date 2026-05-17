@@ -49,9 +49,17 @@
                                                     <td>{{ $project->start_date ?? '-' }}</td>
                                                     <td>{{ $project->end_date ?? '-' }}</td>
                                                     <td>
-                                                        @if ($project->documents)
+                                                        @php
+                                                            $projectDocuments = is_array($project->documents)
+                                                                ? $project->documents
+                                                                : json_decode($project->documents ?? '[]', true);
+                                                            $projectDocuments = is_array($projectDocuments)
+                                                                ? array_filter($projectDocuments)
+                                                                : [];
+                                                        @endphp
+                                                        @if (count($projectDocuments))
                                                             <div class="d-flex flex-wrap">
-                                                                @foreach (json_decode($project->documents) as $doc)
+                                                                @foreach ($projectDocuments as $doc)
                                                                     <div class="me-2 mb-1">
                                                                         <a href="{{ asset('storage/' . $doc) }}"
                                                                             target="_blank" title="{{ basename($doc) }}">
@@ -303,9 +311,17 @@
                                         @enderror
 
                                         <!-- Existing Documents -->
-                                        @if ($project->documents)
+                                        @php
+                                            $projectDocuments = is_array($project->documents)
+                                                ? $project->documents
+                                                : json_decode($project->documents ?? '[]', true);
+                                            $projectDocuments = is_array($projectDocuments)
+                                                ? array_filter($projectDocuments)
+                                                : [];
+                                        @endphp
+                                        @if (count($projectDocuments))
                                             <div class="mt-2">
-                                                @foreach (json_decode($project->documents) as $doc)
+                                                @foreach ($projectDocuments as $doc)
                                                     <a href="{{ asset('storage/' . $doc) }}" target="_blank"
                                                         class="d-block">
                                                         <i class="fas fa-file-pdf text-danger"></i> {{ basename($doc) }}

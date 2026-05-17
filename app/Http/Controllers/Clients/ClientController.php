@@ -15,7 +15,7 @@ class ClientController extends Controller
 
     public function index()
     {
-        $clients = $this->scopeClientsForUser(Client::query(), Auth::user())->get();
+        $clients = $this->scopeClientsForUser(Client::withoutGlobalScopes()->with('documents'), Auth::user())->get();
 
         return view('Admin.Backend.Client.index', compact('clients'));
     }
@@ -73,9 +73,9 @@ class ClientController extends Controller
         return redirect()->back()->with('success', __('messages.client_added_successfully'));
     }
 
-    public function update(Request $request, Client $client)
+    public function update(Request $request, $client)
     {
-        $client = $this->scopeClientsForUser(Client::query(), Auth::user())->findOrFail($client->id);
+        $client = $this->scopeClientsForUser(Client::withoutGlobalScopes(), Auth::user())->findOrFail($client);
 
         // Validate basic client info
         $request->validate([
@@ -151,9 +151,9 @@ class ClientController extends Controller
         return redirect()->back()->with('success', __('messages.client_updated_successfully'));
     }
 
-    public function destroy(Client $client)
+    public function destroy($client)
     {
-        $client = $this->scopeClientsForUser(Client::query(), Auth::user())->findOrFail($client->id);
+        $client = $this->scopeClientsForUser(Client::withoutGlobalScopes()->with('documents'), Auth::user())->findOrFail($client);
 
         // Delete all related documents from storage
         foreach ($client->documents as $doc) {

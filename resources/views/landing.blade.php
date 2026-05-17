@@ -2,6 +2,34 @@
     $theme = \Illuminate\Support\Facades\Schema::hasTable('theme_customizations')
         ? \App\Models\ThemeCustomization::getTheme()
         : null;
+    $hrModulePermissions = [
+        'manage_dashboard',
+        'manage_employee',
+        'generate_card',
+        'manage_attendance',
+        'manage_payroll',
+        'manage_finance',
+        'manage_documents',
+        'manage_branch',
+        'manage_notification',
+        'manage_setting',
+        'manage_reports',
+        'manage_warehouse',
+    ];
+    $reservationModulePermissions = [
+        'dashboard.view',
+        'reservation.view',
+        'unit_status.view',
+        'housekeeping_task.view',
+        'receipt.view',
+        'outlet_setup.view',
+        'guest.view',
+        'sms.send',
+        'cash_drawer_balance.view',
+        'reports.view',
+        'logs.view',
+        'night_audit.edit',
+    ];
 @endphp
 <!DOCTYPE html>
 <html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
@@ -182,6 +210,7 @@
         </div>
 
         <div class="module-grid">
+            @canany($hrModulePermissions)
             <a href="{{ route('dashboard.program') }}" class="module-card hr-card">
                 <div class="icon-wrapper">
                     <svg viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -200,7 +229,9 @@
                     </svg>
                 </div>
             </a>
+            @endcanany
 
+            @canany($reservationModulePermissions)
             <a href="{{ route('program') }}" class="module-card reservation-card">
                 <div class="icon-wrapper">
                     <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -220,6 +251,7 @@
                     </svg>
                 </div>
             </a>
+            @endcanany
         </div>
     </div>
 

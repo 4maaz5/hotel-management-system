@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -22,6 +22,7 @@ class UserController extends Controller
         $users = $this->scopeUsersForUser(User::with('branch'), $user)->get();
         $branches = $this->scopeBranchesForUser(Branch::query(), $user)->get();
         $roles = Role::query()
+            ->visibleToUser($user)
             ->when(! $this->isSuperAdmin($user), fn ($query) => $query->where('name', '!=', 'super_admin'))
             ->get();
 
@@ -69,7 +70,9 @@ class UserController extends Controller
                 'string',
                 Rule::exists('roles', 'name')->when(
                     ! $this->isSuperAdmin($authUser),
-                    fn ($rule) => $rule->where(fn ($query) => $query->where('name', '!=', 'super_admin'))
+                    fn ($rule) => $rule->where(fn ($query) => $query
+                        ->where('name', '!=', 'super_admin')
+                        ->where(fn ($roleQuery) => $roleQuery->whereNull('company_id')->orWhere('company_id', $authUser->company_id)))
                 ),
             ],
             'branch' => [
@@ -84,17 +87,19 @@ class UserController extends Controller
 
         $branch = Branch::findOrFail($validated['branch']);
 
+        $role = $this->roleForUserByName($validated['role'], $authUser);
+
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => bcrypt($validated['password']),
             'company_id' => $branch->company_id,
             'branch_id' => $validated['branch'],
-            'role' => $validated['role'] ?? 'employee',
+            'role' => $role->name,
         ]);
 
         // Assign role via Spatie
-        $user->assignRole($validated['role']);
+        $user->assignRole($role);
 
         // Return JSON
         return response()->json([
@@ -185,7 +190,9 @@ class UserController extends Controller
                 'string',
                 Rule::exists('roles', 'name')->when(
                     ! $this->isSuperAdmin($authUser),
-                    fn ($rule) => $rule->where(fn ($query) => $query->where('name', '!=', 'super_admin'))
+                    fn ($rule) => $rule->where(fn ($query) => $query
+                        ->where('name', '!=', 'super_admin')
+                        ->where(fn ($roleQuery) => $roleQuery->whereNull('company_id')->orWhere('company_id', $authUser->company_id)))
                 ),
             ],
             'branch' => [
@@ -200,6 +207,8 @@ class UserController extends Controller
 
         $branch = Branch::findOrFail($validated['branch']);
 
+        $role = $this->roleForUserByName($validated['role'], $authUser);
+
         // Update users table
         $user->update([
             'name' => $validated['name'],
@@ -207,11 +216,11 @@ class UserController extends Controller
             'company_id' => $branch->company_id,
             'branch_id' => $validated['branch'],
             'password' => $validated['password'] ? bcrypt($validated['password']) : $user->password,
-            'role' => $validated['role'],
+            'role' => $role->name,
         ]);
 
         // Update Spatie roles
-        $user->syncRoles([$validated['role']]);
+        $user->syncRoles([$role]);
 
         return response()->json([
             'success' => true,
@@ -256,5 +265,15 @@ class UserController extends Controller
         }
 
         return $query->where('company_id', $user->company_id);
+    }
+
+    private function roleForUserByName(string $roleName, $user): Role
+    {
+        return Role::query()
+            ->visibleToUser($user)
+            ->when(! $this->isSuperAdmin($user), fn ($query) => $query->where('name', '!=', 'super_admin'))
+            ->where('name', $roleName)
+            ->orderByRaw('CASE WHEN company_id IS NULL THEN 1 ELSE 0 END')
+            ->firstOrFail();
     }
 }

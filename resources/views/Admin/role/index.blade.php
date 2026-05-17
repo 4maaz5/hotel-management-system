@@ -466,20 +466,6 @@
                                     placeholder="{{ __('dashboard.enter_role_name') }}">
                             </div>
 
-                            {{-- Status --}}
-                            <div class="col-lg-3 col-md-4">
-                                <label class="form-label">{{ __('dashboard.status') }}</label>
-                                <select name="status" class="form-select">
-                                    <option value="">{{ __('dashboard.all') }}</option>
-                                    <option value="Active" {{ request('status') == 'Active' ? 'selected' : '' }}>
-                                        {{ __('dashboard.active') }}
-                                    </option>
-                                    <option value="InActive" {{ request('status') == 'InActive' ? 'selected' : '' }}>
-                                        {{ __('dashboard.inactive') }}
-                                    </option>
-                                </select>
-                            </div>
-
                             {{-- Actions --}}
                             <div class="col-lg-3 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary me-2">
@@ -502,7 +488,7 @@
 
         <!-- Kendo Grid -->
         <div class="k-widget k-grid">
-            <div role="grid" class="k-grid-aria-root" aria-rowcount="6" aria-colcount="5">
+            <div role="grid" class="k-grid-aria-root" aria-rowcount="6" aria-colcount="6">
                 <!-- Grid Header -->
                 <div role="presentation" class="k-grid-header" style="padding: 0px 6px 0px 0px;">
                     <div role="presentation" data-scrollable="" class="k-grid-content">
@@ -512,7 +498,6 @@
                                     <th>#</th>
                                     <th>{{ __('dashboard.role_name') }}</th>
                                     <th>{{ __('dashboard.description') }}</th>
-                                    <th>{{ __('dashboard.status') }}</th>
                                     <th>{{ __('dashboard.permissions') }}</th>
                                     <th>{{ __('dashboard.access_type') }}</th>
                                     <th>{{ __('dashboard.actions') }}</th>
@@ -530,13 +515,6 @@
 
                                         <td>
                                             {{ $role->description ?? '—' }}
-                                        </td>
-
-                                        <td>
-                                            <span
-                                                class="badge {{ $role->status === 'Active' ? 'bg-success' : 'bg-secondary' }}">
-                                                {{ ucfirst($role->status) }}
-                                            </span>
                                         </td>
 
                                         <td>

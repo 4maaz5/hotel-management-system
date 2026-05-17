@@ -141,7 +141,7 @@
                                         <option value="">{{ __('dashboard.select_company') }}</option>
                                         @foreach ($companies as $company)
                                             <option value="{{ $company->id }}">
-                                                {{ $company->legal_name }}
+                                                {{ $company->name }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -313,7 +313,7 @@
                                             @foreach ($companies as $company)
                                                 <option value="{{ $company->id }}"
                                                     {{ $partner->company_id == $company->id ? 'selected' : '' }}>
-                                                    {{ $company->legal_name }}
+                                                    {{ $company->name }}
                                                 </option>
                                             @endforeach
                                         </select>

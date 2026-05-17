@@ -183,7 +183,7 @@
                                 <select name="company_id" id="company_id" class="form-control">
                                     <option value="">{{ __('dashboard.select_company') }}</option>
                                     @foreach ($companies as $company)
-                                        <option value="{{ $company->id }}">{{ $company->legal_name }}</option>
+                                        <option value="{{ $company->id }}">{{ $company->name }}</option>
                                     @endforeach
                                 </select>
                             </div>

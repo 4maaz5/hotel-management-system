@@ -547,9 +547,9 @@
                 </li>
             @endcan
 
+            @can('manage_dashboard')
             <li class="dropdown">
-                {{-- @can('manage_warehouse') --}}
-            <li class="menu-header">{{ __('dashboard.chatting_system') }}</li>
+                <li class="menu-header">{{ __('dashboard.chatting_system') }}</li>
             <li class="dropdown">
                 <a href="#" class="menu-toggle nav-link has-dropdown"><i
                         data-feather="message-circle"></i><span>{{ __('dashboard.chatting') }}</span></a>
@@ -568,7 +568,7 @@
                 </ul>
 
             </li>
-            {{-- @endcan --}}
+            @endcan
 
             <li class="dropdown">
                 @can('manage_setting')

@@ -173,7 +173,7 @@
                                 <select name="company_id" id="company_id" class="form-control">
                                     <option value="">{{ __('dashboard.select_company') }}</option>
                                     @foreach ($companies as $company)
-                                        <option value="{{ $company->id }}">{{ $company->legal_name }}</option>
+                                        <option value="{{ $company->id }}">{{ $company->name }}</option>
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback" id="error-company_id"></div>
@@ -223,7 +223,7 @@
                                 <label>{{ __('dashboard.select_company') }}</label>
                                 <select name="company_id" id="edit_company_id" class="form-control">
                                     @foreach ($companies as $company)
-                                        <option value="{{ $company->id }}">{{ $company->legal_name }}</option>
+                                        <option value="{{ $company->id }}">{{ $company->name }}</option>
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback" id="error-edit_company_id"></div>

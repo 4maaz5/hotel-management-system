@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Property;
 use App\Http\Controllers\Controller;
 use App\Models\Outlet;
 use App\Models\Property;
+use App\Models\Role;
 use App\Models\User;
 use App\Support\PropertyContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -53,7 +53,7 @@ class UserController extends Controller
 
     public function create()
     {
-           $roles = Role::where('name', '!=', 'super_admin')->get();
+        $roles = $this->availableRoles();
         $properties = $this->availableProperties();
 
         return view('admin.user.create', compact('roles', 'properties'));
@@ -86,7 +86,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'username' => 'required|unique:users,name|max:255',
             'password' => 'required|min:8|string|confirmed',
-            'role_id' => 'required|exists:roles,id',
+            'role_id' => ['required', 'integer', ...$this->roleRuleSet()],
             'first_name_en' => 'required|string|max:255',
             'default_language' => 'required',
             'expiry_date' => 'nullable|date',
@@ -125,6 +125,7 @@ class UserController extends Controller
 
         // Create user with JSON data
         $user = User::create([
+            'company_id' => $request->user()->company_id,
             'name' => $validated['username'],
             'password' => Hash::make($validated['password']),
             'default_language' => $validated['default_language'],
@@ -164,7 +165,8 @@ class UserController extends Controller
         ]);
 
         // Assign role using Spatie
-        $role = Role::find($validated['role_id']);
+        $role = $this->availableRoles()->firstWhere('id', (int) $validated['role_id']);
+        abort_unless($role, 403);
         $user->assignRole($role);
         $branchIds = $this->propertyIdsToBranchIds($validated['property_ids'] ?? []);
         if (! empty($branchIds)) {
@@ -178,7 +180,7 @@ class UserController extends Controller
     public function edit($id)
     {
         $user = User::with(['assignedProperties', 'roles'])->findOrFail($id);
-           $roles = Role::where('name', '!=', 'super_admin')->get();
+        $roles = $this->availableRoles();
         $properties = $this->availableProperties();
 
         return view('admin.user.edit', compact('user', 'roles', 'properties'));
@@ -210,7 +212,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'username' => 'required|string|max:255|unique:users,name,'.$user->id,
             'password' => 'nullable|min:8|string|confirmed',
-            'role_id' => 'required|exists:roles,id',
+            'role_id' => ['required', 'integer', ...$this->roleRuleSet()],
             'first_name_en' => 'required|string|max:255',
             'default_language' => 'required',
             'expiry_date' => 'nullable|date',
@@ -283,6 +285,7 @@ class UserController extends Controller
         ]);
 
         // Update simple columns
+        $user->company_id = $request->user()->company_id;
         $user->name = $validated['username'];
         $user->default_language = $validated['default_language'];
 
@@ -308,7 +311,8 @@ class UserController extends Controller
         $user->save();
 
         // Sync role
-        $role = Role::find($validated['role_id']);
+        $role = $this->availableRoles()->firstWhere('id', (int) $validated['role_id']);
+        abort_unless($role, 403);
         $user->syncRoles($role);
         $branchIds = $this->propertyIdsToBranchIds($validated['property_ids'] ?? []);
         if (! empty($branchIds)) {
@@ -379,6 +383,32 @@ class UserController extends Controller
         }
 
         return Property::query()->orderBy('property_name_en')->get();
+    }
+
+    protected function availableRoles()
+    {
+        $user = auth()->user();
+
+        return Role::query()
+            ->visibleToUser($user)
+            ->where('name', '!=', 'super_admin')
+            ->orderBy('name')
+            ->get();
+    }
+
+    protected function roleRuleSet(): array
+    {
+        $roleIds = $this->availableRoles()->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        return [
+            Rule::exists('roles', 'id')->where(function ($query) use ($roleIds) {
+                if (! empty($roleIds)) {
+                    $query->whereIn('id', $roleIds);
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            }),
+        ];
     }
 
     protected function propertyRuleSet(): array

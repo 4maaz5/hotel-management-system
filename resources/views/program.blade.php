@@ -1,6 +1,20 @@
 @extends('layouts.app')
 @php
     $theme = \App\Models\ThemeCustomization::getTheme();
+    $reservationProgramPermissions = [
+        'dashboard.view',
+        'reservation.view',
+        'unit_status.view',
+        'housekeeping_task.view',
+        'receipt.view',
+        'outlet_setup.view',
+        'guest.view',
+        'sms.send',
+        'cash_drawer_balance.view',
+        'reports.view',
+        'logs.view',
+        'night_audit.edit',
+    ];
 @endphp
 <style>
     .program-page,
@@ -99,6 +113,7 @@
     <div class="container-fluid program-page">
         <div class="settings-grid">
             <!-- Row 1 -->
+            @can('reservation.view')
             <a href="{{ route('dashboard.reservation.index') }}" style="text-decoration: none;">
             <div class="setting-card">
                 <div class="icon">
@@ -113,7 +128,9 @@
                 <div class="title bold">{{ __('dashboard.reservation') }}</div>
             </div>
             </a>
+            @endcan
 
+            @can('unit_status.view')
             <a href="{{ route('dashboard.unit_status.index') }}" style="text-decoration: none;">
             <div class="setting-card">
                 <div class="icon">
@@ -125,7 +142,9 @@
                 <div class="title bold">{{ __('dashboard.unit_status') }}</div>
             </div>
         </a>
+        @endcan
 
+        @can('unit_status.view')
         <a href="{{ route('dashboard.housekeeping_status.index') }}" style="text-decoration: none;">
             <div class="setting-card">
                 <div class="icon">
@@ -147,7 +166,9 @@
                 <div class="title bold">{{ __('dashboard.housekeeping') }}</div>
             </div>
         </a>
+        @endcan
 
+        @can('receipt.view')
         <a href="{{ route('dashboard.receipt.index') }}" style="text-decoration: none;">
             <div class="setting-card">
                 <div class="icon">
@@ -159,7 +180,9 @@
                 <div class="title bold">{{ __('dashboard.vouchers') }}</div>
             </div>
         </a>
+        @endcan
 
+        @can('outlet_setup.view')
         <a href="{{ route('dashboard.outlet_property.index') }}" style="text-decoration: none;">
             <!-- Row 2 -->
             <div class="setting-card">
@@ -172,7 +195,9 @@
                 <div class="title bold">{{ __('dashboard.outlets') }}</div>
             </div>
         </a>
+        @endcan
 
+        @can('guest.view')
         <a href="{{ route('dashboard.guest.index') }}" style="text-decoration: none;">
             <div class="setting-card">
                 <div class="icon">
@@ -186,7 +211,9 @@
                 <div class="title bold">{{ __('dashboard.customers') }}</div>
             </div>
         </a>
+        @endcan
 
+        @can('sms.send')
         <a href="#" style="text-decoration: none;">
             <div class="setting-card">
                 <div class="icon">
@@ -200,7 +227,9 @@
                 <div class="title bold">{{ __('dashboard.sms') }}</div>
             </div>
         </a>
+        @endcan
 
+        @can('cash_drawer_balance.view')
         <a href="{{ route('dashboard.cash_drawer.index') }}" style="text-decoration: none;">
             <div class="setting-card">
                 <div class="icon">
@@ -212,7 +241,9 @@
                 <div class="title bold">{{ __('dashboard.cash_drawer_balance') }}</div>
             </div>
         </a>
+        @endcan
 
+        @can('reports.view')
         <a href="{{ route('dashboard.reports.index') }}" style="text-decoration: none;">
             <!-- Row 3 -->
             <div class="setting-card">
@@ -226,7 +257,9 @@
                 <div class="title bold">{{ __('dashboard.reports') }}</div>
             </div>
         </a>
+        @endcan
 
+        @can('logs.view')
         <a href="#" style="text-decoration: none;">
             <div class="setting-card">
                 <div class="icon">
@@ -241,7 +274,9 @@
                 <div class="title bold">{{ __('dashboard.logs') }}</div>
             </div>
         </a>
+        @endcan
 
+        @can('night_audit.edit')
         <a href="{{ route('dashboard.night_audit.index') }}" style="text-decoration: none;">
             <div class="setting-card">
                 <div class="icon">
@@ -253,7 +288,9 @@
                 <div class="title bold">{{ __('dashboard.night_audit') }}</div>
             </div>
         </a>
+        @endcan
 
+        @can('reservation.view')
         <a href="{{ route('dashboard.online_reservation.index') }}" style="text-decoration: none;">
             <div class="setting-card">
                 <div class="icon">
@@ -266,6 +303,28 @@
                 <div class="title bold">{{ __('dashboard.online_reservation') }}</div>
             </div>
         </a>
+        @endcan
+
+        @can('dashboard.view')
+        <a href="{{ route('setup-sidebar') }}" style="text-decoration: none;">
+            <div class="setting-card">
+                <div class="icon">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.14.31.22.65.22 1h.09a2 2 0 010 4h-.09c0 .35-.08.69-.22 1z" />
+                    </svg>
+                </div>
+                <div class="title bold">{{ __('dashboard.setting') }}</div>
+            </div>
+        </a>
+        @endcan
+
+        @canany($reservationProgramPermissions)
+        @else
+            <div class="alert alert-warning mb-0">
+                {{ __('You do not have access to any reservation dashboard programs yet.') }}
+            </div>
+        @endcanany
         </div>
     </div>
 @endsection

@@ -16,6 +16,20 @@
     $supportUnreadCount = $user && ! $user->isSuperAdmin()
         ? app(\App\Support\SupportTicketUnreadCounter::class)->forTenantArea('reservation')
         : 0;
+    $hrModulePermissions = [
+        'manage_dashboard',
+        'manage_employee',
+        'generate_card',
+        'manage_attendance',
+        'manage_payroll',
+        'manage_finance',
+        'manage_documents',
+        'manage_branch',
+        'manage_notification',
+        'manage_setting',
+        'manage_reports',
+        'manage_warehouse',
+    ];
 @endphp
 
 <header class="top-navbar app-header shadow-sm py-3">
@@ -48,32 +62,40 @@
                     @endif
 
                     <!-- Switch to HR -->
+                    @canany($hrModulePermissions)
                     <a href="{{ route('dashboard.program') }}"
                         class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 text-white">
                         <i class="fas fa-users-gear"></i>
                         <span class="d-none d-lg-inline">{{ __('dashboard.hr_management') }}</span>
                     </a>
+                    @endcanany
 
                     <!-- Online Reservation -->
+                    @can('reservation.view')
                     <a href="{{ route('dashboard.online_reservation.index') }}"
                         class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 text-white">
                         <i class="fas fa-globe"></i>
                         <span class="d-none d-lg-inline">{{ __('dashboard.reservation') }}</span>
                     </a>
+                    @endcan
 
                     <!-- Setup -->
+                    @can('dashboard.view')
                     <a href="{{ route('setup-sidebar') }}"
                         class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 text-white">
                         <i class="fas fa-cog"></i>
                         <span class="d-none d-lg-inline">{{ __('dashboard.setting') }}</span>
                     </a>
+                    @endcan
 
                     <!-- Subscriptions -->
+                    @can('subscription.view')
                     <a href="{{ route('setup-sidebar.setup_subscription.index') }}"
                         class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 text-white">
                         <i class="fas fa-crown"></i>
                         <span class="d-none d-lg-inline">{{ __('dashboard.subscriptions') }}</span>
                     </a>
+                    @endcan
 
                     <!-- Notification Button (Same style as Support Center) -->
                     <div class="dropdown">

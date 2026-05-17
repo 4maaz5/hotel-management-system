@@ -67,9 +67,19 @@
 
                                                     <!-- Documents -->
                                                     <td>
-                                                        @if ($executive->project && $executive->project->documents)
+                                                        @php
+                                                            $projectDocuments = $executive->project
+                                                                ? (is_array($executive->project->documents)
+                                                                    ? $executive->project->documents
+                                                                    : json_decode($executive->project->documents ?? '[]', true))
+                                                                : [];
+                                                            $projectDocuments = is_array($projectDocuments)
+                                                                ? array_filter($projectDocuments)
+                                                                : [];
+                                                        @endphp
+                                                        @if (count($projectDocuments))
                                                             <div class="d-flex flex-wrap">
-                                                                @foreach (json_decode($executive->project->documents, true) as $doc)
+                                                                @foreach ($projectDocuments as $doc)
                                                                     <a href="{{ asset('storage/' . $doc) }}"
                                                                         target="_blank" class="mr-2"
                                                                         title="{{ basename($doc) }}">

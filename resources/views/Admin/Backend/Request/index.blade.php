@@ -31,11 +31,10 @@
                                                 <th>{{ __('dashboard.classify') }}</th>
                                                 <th>{{ __('dashboard.status') }}</th>
                                                 <th>{{ __('dashboard.created_at') }}</th>
-                                                @if (Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('warehouse_manager'))
+                                                @can('manage_warehouse')
                                                     <th>{{ __('dashboard.print') }}</th>
                                                     <th>{{ __('dashboard.action') }}</th>
-                                                @else
-                                                @endif
+                                                @endcan
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -68,7 +67,7 @@
                                                         @endif
                                                     </td>
                                                     <td>{{ $request->created_at->format('d M Y H:i') }}</td>
-                                                    @if (Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('warehouse_manager'))
+                                                    @can('manage_warehouse')
                                                         <td>
                                                             <!-- Print Button -->
                                                             <a href="{{ route('warehouse-request.print', $request->id) }}"
@@ -98,12 +97,8 @@
                                                                 <span
                                                                     class="text-muted">{{ ucfirst($request->status) }}</span>
                                                             @endif
-                                                        @else
-                                                            {{-- <span class="text-muted">{{ ucfirst($request->status) }}</span> --}}
-                                                    @endif
-                                                    </td>
-
-
+                                                        </td>
+                                                    @endcan
                                                 </tr>
                                             @endforeach
                                         </tbody>

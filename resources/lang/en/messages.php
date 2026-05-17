@@ -278,4 +278,7 @@ return array (
   'contract_updated_successfully' => 'Contract Updated Successfully',
   'contract_deleted_successfully' => 'Contract Deleted Successfully',
   'no_branch_assigned' => 'You cannot send a request because no branch is assigned to your account.',
+  'must_be_image' => 'must be a valid image file.',
+  'allowed_types' => 'Allowed types',
+  'max_file_size' => 'Max file size',
 );

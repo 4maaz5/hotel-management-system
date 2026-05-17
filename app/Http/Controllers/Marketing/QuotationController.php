@@ -19,9 +19,9 @@ class QuotationController extends Controller
         $user = auth()->user();
         $marketingAgents = $this->scopeMarketingAgentsForUser(MarketingAgent::query(), $user)->get();
         $branches = $this->scopeBranchesForUser(Branch::query(), $user)->get();
-        $quotations = $this->scopeMarketingQuotationsForUser(MarketingQuotation::with(['agent', 'branch']), $user)->get();
+        $quotations = $this->scopeMarketingQuotationsForUser(MarketingQuotation::withoutGlobalScopes()->with(['agent', 'branch']), $user)->get();
         $nextQuotationNumber = 'Q'.str_pad(
-            (MarketingQuotation::max('id') ?? 0) + 1,
+            (MarketingQuotation::withoutGlobalScopes()->max('id') ?? 0) + 1,
             6,
             '0',
             STR_PAD_LEFT
@@ -54,7 +54,7 @@ class QuotationController extends Controller
         $validated['company_id'] = $this->companyIdForBranch((int) $validated['branch_id']);
 
         // Auto-generate quotation number
-        $validated['quotation_number'] = 'Q'.str_pad(\App\Models\MarketingQuotation::max('id') + 1, 6, '0', STR_PAD_LEFT);
+        $validated['quotation_number'] = 'Q'.str_pad((MarketingQuotation::withoutGlobalScopes()->max('id') ?? 0) + 1, 6, '0', STR_PAD_LEFT);
 
         // Handle logo upload
         if ($request->hasFile('logo')) {
@@ -65,7 +65,7 @@ class QuotationController extends Controller
         $validated['approved_at'] = $validated['status'] === 'approved' ? now() : null;
 
         // Create the quotation
-        $quotation = \App\Models\MarketingQuotation::create($validated);
+        $quotation = MarketingQuotation::create($validated);
 
         // Calculate commission if approved and agent exists
         if ($quotation->status === 'approved' && $quotation->marketing_agent_id) {
@@ -85,10 +85,10 @@ class QuotationController extends Controller
         return redirect()->back()->with('success', __('messages.marketing_quotation_added_successfully'));
     }
 
-    public function update(Request $request, MarketingQuotation $marketingQuotation)
+    public function update(Request $request, $marketingQuotation)
     {
         $user = auth()->user();
-        $marketingQuotation = $this->scopeMarketingQuotationsForUser(MarketingQuotation::query(), $user)->findOrFail($marketingQuotation->id);
+        $marketingQuotation = $this->scopeMarketingQuotationsForUser(MarketingQuotation::withoutGlobalScopes(), $user)->findOrFail($marketingQuotation);
 
         $validated = $request->validate([
             'marketing_agent_id' => ['nullable', Rule::exists('marketing_agents', 'id')->where(fn ($query) => $this->scopeMarketingAgentsForUser($query, $user))],
@@ -146,9 +146,9 @@ class QuotationController extends Controller
         return redirect()->back()->with('success', __('messages.marketing_quotation_updated_successfully'));
     }
 
-    public function destroy(MarketingQuotation $marketingQuotation)
+    public function destroy($marketingQuotation)
     {
-        $marketingQuotation = $this->scopeMarketingQuotationsForUser(MarketingQuotation::query(), auth()->user())->findOrFail($marketingQuotation->id);
+        $marketingQuotation = $this->scopeMarketingQuotationsForUser(MarketingQuotation::withoutGlobalScopes(), auth()->user())->findOrFail($marketingQuotation);
 
         // Delete logo from storage
         if ($marketingQuotation->logo && \Storage::disk('public')->exists($marketingQuotation->logo)) {
@@ -161,9 +161,9 @@ class QuotationController extends Controller
         return redirect()->back()->with('delete', __('messages.marketing_quotation_deleted_successfully'));
     }
 
-    public function print(MarketingQuotation $quotation)
+    public function print($quotation)
     {
-        $quotation = $this->scopeMarketingQuotationsForUser(MarketingQuotation::query(), auth()->user())->findOrFail($quotation->id);
+        $quotation = $this->scopeMarketingQuotationsForUser(MarketingQuotation::withoutGlobalScopes(), auth()->user())->findOrFail($quotation);
 
         return view('Admin.Backend.Marketing.quotation_print', compact('quotation'));
     }

@@ -20,9 +20,9 @@ return new class extends Migration
 
             $table->string('first_name');
             $table->string('last_name');
-            $table->string('employee_id')->unique();
+            $table->string('employee_id');
 
-            $table->string('email')->unique()->nullable();
+            $table->string('email')->nullable();
             $table->string('phone', 20)->nullable();
 
             $table->string('designation')->nullable();
@@ -63,6 +63,8 @@ return new class extends Migration
             $table->decimal('overtime', 5, 2)->nullable();
 
             $table->timestamps();
+            $table->unique(['company_id', 'employee_id'], 'employees_company_employee_id_unique');
+            $table->unique(['company_id', 'email'], 'employees_company_email_unique');
         });
 
     }

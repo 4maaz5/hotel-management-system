@@ -33,17 +33,20 @@ return new class extends Migration
         Schema::create($tableNames['roles'], static function (Blueprint $table) use ($teams, $columnNames) {
             // $table->engine('InnoDB');
             $table->bigIncrements('id'); // role id
+            $table->foreignId('company_id')->nullable()->constrained('companies')->cascadeOnDelete();
             if ($teams || config('permission.testing')) { // permission.testing is a fix for sqlite testing
                 $table->unsignedBigInteger($columnNames['team_foreign_key'])->nullable();
                 $table->index($columnNames['team_foreign_key'], 'roles_team_foreign_key_index');
             }
             $table->string('name');       // For MyISAM use string('name', 225); // (or 166 for InnoDB with Redundant/Compact row format)
             $table->string('guard_name'); // For MyISAM use string('guard_name', 25);
+            $table->text('description')->nullable();
+            $table->string('status')->default('ACTIVE');
             $table->timestamps();
             if ($teams || config('permission.testing')) {
-                $table->unique([$columnNames['team_foreign_key'], 'name', 'guard_name']);
+                $table->unique(['company_id', $columnNames['team_foreign_key'], 'name', 'guard_name'], 'roles_company_team_name_guard_unique');
             } else {
-                $table->unique(['name', 'guard_name']);
+                $table->unique(['company_id', 'name', 'guard_name'], 'roles_company_name_guard_unique');
             }
         });
 

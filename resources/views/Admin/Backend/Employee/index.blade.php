@@ -205,7 +205,7 @@
                                             <option value="" selected disabled>{{ __('dashboard.select_company') }}
                                             </option>
                                             @foreach ($companies as $company)
-                                                <option value="{{ $company->id }}">{{ $company->legal_name }}</option>
+                                                <option value="{{ $company->id }}">{{ $company->name }}</option>
                                             @endforeach
                                         </select>
                                         <span class="text-danger error-text branch_id_error"></span>
@@ -668,7 +668,7 @@
                                         <option value="" selected disabled>{{ __('dashboard.select_company') }}
                                         </option>
                                         @foreach ($companies as $company)
-                                            <option value="{{ $company->id }}">{{ $company->legal_name }}</option>
+                                            <option value="{{ $company->id }}">{{ $company->name }}</option>
                                         @endforeach
                                     </select>
                                     <span class="text-danger error-text branch_id_error"></span>

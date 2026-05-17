@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\RoleAndPermissions;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
     public function index()
     {
-        // Get all roles with their permissions
-        $roles = Role::with('permissions')->get();
+        $roles = $this->mutableRolesForUser(Role::with('permissions'), auth()->user())->get();
 
         return view('Admin.Backend.RoleandPermissions.index', compact('roles'));
     }
@@ -27,12 +27,20 @@ class RoleController extends Controller
     public function storeRole(Request $request)
     {
         $validated = $request->validate([
-            'role' => 'required|string|unique:roles,name',
+            'role' => [
+                'required',
+                'string',
+                Rule::unique('roles', 'name')->where(fn ($query) => $this->roleTenantConstraint($query, $request->user())),
+            ],
             'permissions' => 'nullable|array',
             'permissions.*' => 'string|exists:permissions,name',
         ]);
 
-        $role = Role::create(['name' => $validated['role']]);
+        $role = Role::create([
+            'company_id' => $this->roleCompanyId($request->user()),
+            'name' => $validated['role'],
+            'guard_name' => 'web',
+        ]);
 
         if (! empty($validated['permissions'])) {
             $role->syncPermissions($validated['permissions']);
@@ -44,7 +52,7 @@ class RoleController extends Controller
 
     public function edit($id)
     {
-        $role = Role::findOrFail($id);
+        $role = $this->mutableRolesForUser(Role::query(), auth()->user())->findOrFail($id);
 
         // Get all permissions
         $permissions = Permission::all();
@@ -54,10 +62,16 @@ class RoleController extends Controller
 
     public function update(Request $request, $id)
     {
-        $role = Role::findOrFail($id);
+        $role = $this->mutableRolesForUser(Role::query(), $request->user())->findOrFail($id);
 
         $validated = $request->validate([
-            'role' => 'required|string|unique:roles,name,'.$role->id,
+            'role' => [
+                'required',
+                'string',
+                Rule::unique('roles', 'name')
+                    ->ignore($role->id)
+                    ->where(fn ($query) => $query->where('company_id', $role->company_id)),
+            ],
             'permissions' => 'nullable|array',
             'permissions.*' => 'string|exists:permissions,name',
         ]);
@@ -75,7 +89,7 @@ class RoleController extends Controller
 
     public function destroy($id)
     {
-        $role = Role::findOrFail($id);
+        $role = $this->mutableRolesForUser(Role::query(), auth()->user())->findOrFail($id);
 
         // Prevent deleting Super Admin
         if ($role->name === 'Super Admin') {
@@ -87,5 +101,24 @@ class RoleController extends Controller
 
         return redirect()->route('dashboard.setting.role.index')
             ->with('success', __('messages.role_deleted_successfully'));
+    }
+
+    private function mutableRolesForUser($query, $user)
+    {
+        if ($user?->isSuperAdmin()) {
+            return $query;
+        }
+
+        return $query->where('company_id', $user?->company_id);
+    }
+
+    private function roleTenantConstraint($query, $user)
+    {
+        return $query->where('company_id', $this->roleCompanyId($user));
+    }
+
+    private function roleCompanyId($user): ?int
+    {
+        return $user?->isSuperAdmin() ? null : $user?->company_id;
     }
 }

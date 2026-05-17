@@ -33,6 +33,20 @@
     $supportUnreadCount = auth()->check() && ! auth()->user()->isSuperAdmin()
         ? app(\App\Support\SupportTicketUnreadCounter::class)->forTenantArea('hr')
         : 0;
+    $reservationModulePermissions = [
+        'dashboard.view',
+        'reservation.view',
+        'unit_status.view',
+        'housekeeping_task.view',
+        'receipt.view',
+        'outlet_setup.view',
+        'guest.view',
+        'sms.send',
+        'cash_drawer_balance.view',
+        'reports.view',
+        'logs.view',
+        'night_audit.edit',
+    ];
 @endphp
 
 <body
@@ -59,6 +73,7 @@
                             <i data-feather="maximize"></i>
                         </a></li>
 
+                    @canany($reservationModulePermissions)
                     <li>
                         <a href="{{ route('program') }}"
                            style="display:inline-flex;align-items:center;gap:6px;color:#6c757d;padding:8px 12px;text-decoration:none;white-space:nowrap;border-radius:6px;transition:all 0.2s;"
@@ -68,6 +83,7 @@
                             <span>{{ __('dashboard.reservation_management') }}</span>
                         </a>
                     </li>
+                    @endcanany
 
                     <li>
                         <a href="{{ route('dashboard.support.tickets.index') }}"

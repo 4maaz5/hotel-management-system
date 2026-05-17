@@ -11,12 +11,12 @@
                         <div class="card">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h4>{{ __('dashboard.section') }}</h4>
-                                @if (Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('warehouse_manager'))
+                                @can('manage_warehouse')
                                     <button type="button" class="btn btn-primary" data-toggle="modal"
                                         data-target="#roomModal">
                                         {{ __('dashboard.add_section') }}
                                     </button>
-                                @endif
+                                @endcan
                             </div>
 
                             <div class="card-body">
@@ -27,9 +27,9 @@
                                                 <th>{{ __('dashboard.section_id') }}</th>
                                                 <th>{{ __('dashboard.section_name') }}</th>
                                                 <th>{{ __('dashboard.warehouse') }}</th>
-                                                @if (Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('warehouse_manager'))
+                                                @can('manage_warehouse')
                                                     <th>{{ __('dashboard.action') }}</th>
-                                                @endif
+                                                @endcan
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -38,7 +38,7 @@
                                                     <td>{{ $loop->iteration }}</td>
                                                     <td>{{ $room->name }}</td>
                                                     <td>{{ $room->warehouse->name }}</td>
-                                                    @if (Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('warehouse_manager'))
+                                                    @can('manage_warehouse')
                                                         <td>
                                                             <!-- Edit Warehouse Button -->
                                                             <a href="#" class="text-secondary editWarehouseBtn"
@@ -54,7 +54,7 @@
                                                                 <i class="fas fa-trash-alt"></i>
                                                             </a>
                                                         </td>
-                                                    @endif
+                                                    @endcan
                                                 </tr>
                                             @empty
                                             @endforelse

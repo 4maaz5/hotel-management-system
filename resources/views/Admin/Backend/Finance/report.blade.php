@@ -109,7 +109,7 @@
                                 @foreach ($companies as $company)
                                     <option value="{{ $company->id }}"
                                         {{ $selectedCompany == $company->id ? 'selected' : '' }}>
-                                        {{ $company->legal_name }}
+                                        {{ $company->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -124,7 +124,7 @@
                     @if ($selectedCompany)
                         @php
                             $company = $companies->where('id', $selectedCompany)->first();
-                            $companyName = $company->legal_name ?? '';
+                            $companyName = $company->name ?? '';
                             $companyAddress = $company->city ?? 'N/A';
                             $companyCR = $company->cr_number ?? 'N/A';
                             $companyLogo = $company->logo ?? null;

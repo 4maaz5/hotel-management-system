@@ -76,7 +76,7 @@ use App\Http\Controllers\Vouchers\ReceiptController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])->name('dashboard');
+    ->middleware(['auth', 'verified', 'permission:dashboard.view|reservation.view|unit_status.view|housekeeping_task.view|receipt.view|outlet_setup.view|guest.view|sms.send|cash_drawer_balance.view|reports.view|logs.view|night_audit.edit'])->name('dashboard');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/api/chat/session', [ChatController::class, 'current'])
@@ -90,7 +90,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/program', function () {
     return view('program');
-})->middleware(['auth', 'verified'])->name('program');
+})->middleware(['auth', 'verified', 'permission:dashboard.view|reservation.view|unit_status.view|housekeeping_task.view|receipt.view|outlet_setup.view|guest.view|sms.send|cash_drawer_balance.view|reports.view|logs.view|night_audit.edit'])->name('program');
 
 Route::middleware('auth')->group(function () {
     Route::post('/current-property', [CurrentPropertyController::class, 'update'])
@@ -154,6 +154,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/setup-sidebar/property-user', [UserController::class, 'index'])
+        ->middleware(['permission:user.view'])
         ->name('setup-sidebar.property-user.index');
 
     Route::middleware(['permission:user.view'])->group(function () {
@@ -192,6 +193,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/setup-sidebar/property-role', [RoleController::class, 'index'])
+        ->middleware(['permission:role.view'])
         ->name('setup-sidebar.property-role.index');
 
     Route::middleware(['permission:role.add'])->group(function () {
@@ -229,6 +231,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/setup-sidebar/blocks', [BlocksController::class, 'index'])
+        ->middleware(['permission:block.view'])
         ->name('setup-sidebar.blocks.index');
 
     Route::middleware(['permission:block.add'])->group(function () {
@@ -250,6 +253,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/setup-sidebar/floors', [FloorsController::class, 'index'])
+        ->middleware(['permission:floor.view'])
         ->name('setup-sidebar.floors.index');
 
     Route::middleware(['permission:floor.add'])->group(function () {
@@ -271,6 +275,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/setup-sidebar/unit-type-customization', [TypeCustomizationController::class, 'index'])
+        ->middleware(['permission:type.view'])
         ->name('setup-sidebar.typeCustomization.index');
 
     Route::middleware(['permission:type.add'])->group(function () {
@@ -296,6 +301,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/setup-sidebar/amenity', [AmenityController::class, 'index'])
+        ->middleware(['permission:amenity.view'])
         ->name('setup-sidebar.amenity.index');
 
     Route::middleware(['permission:amenity.add'])->group(function () {
@@ -321,6 +327,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/setup-sidebar/unit', [UnitController::class, 'index'])
+        ->middleware(['permission:unit.view'])
         ->name('setup-sidebar.unit.index');
 
     Route::middleware(['permission:unit.add'])->group(function () {
@@ -349,11 +356,13 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::get('dashboard/reservation/get-rates', [ReservationController::class, 'getRates'])
+        ->middleware(['permission:reservation.view|reservation.add|reservation.edit'])
         ->name('dashboard.reservation.get_rates');
 });
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/unit-merge-setting', [MergeSettingController::class, 'index'])
+        ->middleware(['permission:merge_setting.view'])
         ->name('setup-sidebar.merge_setting.index');
 
     Route::middleware(['permission:merge_setting.add'])->group(function () {
@@ -362,8 +371,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('setup-sidebar/unit-merge-setting-store', [MergeSettingController::class, 'store'])
             ->name('setup-sidebar.merge_setting.store');
     });
-    Route::get('/floors/{block}', [MergeSettingController::class, 'getFloors']);
-    Route::get('/units', [MergeSettingController::class, 'getUnits']);
+    Route::get('/floors/{block}', [MergeSettingController::class, 'getFloors'])
+        ->middleware(['permission:merge_setting.view|merge_setting.add']);
+    Route::get('/units', [MergeSettingController::class, 'getUnits'])
+        ->middleware(['permission:merge_setting.view|merge_setting.add']);
 
     Route::middleware(['permission:merge_setting.delete'])->group(function () {
         Route::patch('/dashboard/setup-sidebar/merge-setting/{id}', [MergeSettingController::class, 'destroy'])
@@ -373,6 +384,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/unit-base-rates', [BaseRateController::class, 'index'])
+        ->middleware(['permission:base_rate.edit'])
         ->name('setup-sidebar.base_rate.index');
 
     Route::middleware(['permission:base_rate.edit'])->group(function () {
@@ -381,6 +393,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('setup-sidebar.base_rate.store');
     });
     Route::post('setup-sidebar/high-week-days', [BaseRateController::class, 'saveHighWeekdays'])
+        ->middleware(['permission:base_rate.edit'])
         ->name('setup-sidebar.high_weekdays.store');
 
     Route::middleware(['permission:custom_rate.add'])->group(function () {
@@ -402,6 +415,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/unit-seasonal-rates', [SeasonalRateController::class, 'index'])
+        ->middleware(['permission:seasonal_rate.view'])
         ->name('setup-sidebar.seasonal_rate.index');
 
     Route::middleware(['permission:seasonal_rate.add'])->group(function () {
@@ -432,14 +446,17 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::post('setup-sidebar/unit-seasonal-custom/store', [SeasonalRateController::class, 'seasonalCustomRate'])
+        ->middleware(['permission:seasonal_custom_rate.add'])
         ->name('setup-sidebar.seasonal_custom_rate.store');
     Route::delete('setup-sidebar/unit-seasonal-custom/delete/{id}', [SeasonalRateController::class, 'deleteCustomRate'])
+        ->middleware(['permission:seasonal_custom_rate.delete'])
         ->name('setup-sidebar.seasonal_custom_rate.delete');
 
 });
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/unit-special-rates', [SpecialRateController::class, 'index'])
+        ->middleware(['permission:special_rate.view'])
         ->name('setup-sidebar.special_rate.index');
 
     Route::middleware(['permission:special_rate.add'])->group(function () {
@@ -473,6 +490,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/unit-rate-plan', [RatePlanController::class, 'index'])
+        ->middleware(['permission:rate_plan.view'])
         ->name('setup-sidebar.rate_plan.index');
 
     Route::middleware(['permission:rate_plan.add'])->group(function () {
@@ -506,6 +524,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/financial-bank-account', [BankAccountController::class, 'index'])
+        ->middleware(['permission:bank_account.view'])
         ->name('setup-sidebar.bank_account.index');
 
     Route::middleware(['permission:bank_account.add'])->group(function () {
@@ -539,6 +558,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/financial-cost-center', [CostCenterController::class, 'index'])
+        ->middleware(['permission:cost_center.view'])
         ->name('setup-sidebar.cost_center.index');
 
     Route::middleware(['permission:cost_center.add'])->group(function () {
@@ -560,6 +580,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/financial-security-deposit', [SecurityDepositController::class, 'index'])
+        ->middleware(['permission:security_deposit.update'])
         ->name('setup-sidebar.security_deposit.index');
 
     Route::middleware(['permission:security_deposit.update'])->group(function () {
@@ -571,6 +592,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/financial-taxes', [TaxesController::class, 'index'])
+        ->middleware(['permission:tax_customization.view'])
         ->name('setup-sidebar.taxes.index');
 
     Route::middleware(['permission:tax_customization.add'])->group(function () {
@@ -603,6 +625,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/financial-payments', [PaymentController::class, 'index'])
+        ->middleware(['permission:payment_method.view'])
         ->name('setup-sidebar.payments.index');
 
     Route::middleware(['permission:payment_method.add'])->group(function () {
@@ -619,6 +642,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/financial-discount', [DiscountTypeController::class, 'index'])
+        ->middleware(['permission:discount_type.view'])
         ->name('setup-sidebar.discount.index');
 
     Route::middleware(['permission:discount_type.add'])->group(function () {
@@ -631,12 +655,14 @@ Route::middleware(['auth'])->group(function () {
             ->name('setup-sidebar.discount.update');
     });
     Route::patch('setup-sidebar/financial-discount/status-update/{discount}', [DiscountTypeController::class, 'statusToggle'])
+        ->middleware(['permission:discount_type.edit'])
         ->name('setup-sidebar.discount.toggle');
 
 });
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/setting-date', [DateController::class, 'index'])
+        ->middleware(['permission:date_setting.edit'])
         ->name('setup-sidebar.date.index');
 
     Route::middleware(['permission:date_setting.edit'])->group(function () {
@@ -645,6 +671,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::get('setup-sidebar/theme-customization', [ThemeCustomizationController::class, 'index'])
+        ->middleware(['permission:theme_customization.edit'])
         ->name('setup-sidebar.theme_customization.index');
 
     Route::middleware(['permission:theme_customization.edit'])->group(function () {
@@ -656,6 +683,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/reservation-source', [ReservationSourceController::class, 'index'])
+        ->middleware(['permission:reservation_source.view'])
         ->name('setup-sidebar.reservation_source.index');
 
     Route::middleware(['permission:reservation_source.add'])->group(function () {
@@ -678,6 +706,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/guest-class-index', [GuestClassController::class, 'index'])
+        ->middleware(['permission:guest_class.view'])
         ->name('setup-sidebar.guest_class.index');
 
     Route::middleware(['permission:guest_class.add'])->group(function () {
@@ -710,6 +739,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/loyalty-program', [LoyaltyProgramController::class, 'index'])
+        ->middleware(['permission:loyalty_setting.view'])
         ->name('setup-sidebar.loyalty_program.index');
 
     Route::middleware(['permission:loyalty_setting.add'])->group(function () {
@@ -727,42 +757,56 @@ Route::middleware(['auth'])->group(function () {
             ->name('setup-sidebar.loyalty_program.delete');
     });
     Route::post('setup-sidebar/loyalty-program/auto-setting', [LoyaltyProgramController::class, 'toggleAutoUpgrade'])
+        ->middleware(['permission:loyalty_setting.edit'])
         ->name('setup-sidebar.loyalty_program.autoUpgrade');
 
 });
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/auto-sms', [AutoSMSController::class, 'index'])
+        ->middleware(['permission:sms.send'])
         ->name('setup-sidebar.auto_sms.index');
 
     Route::post('setup-sidebar/auto-sms/update', [AutoSMSController::class, 'update'])
+        ->middleware(['permission:sms.send'])
         ->name('setup-sidebar.auto_sms.update');
 
     Route::post('setup-sidebar/auto-sms/append', [AutoSMSController::class, 'appendUser'])
+        ->middleware(['permission:sms.send'])
         ->name('setup-sidebar.auto_sms.append');
 
     Route::delete('setup-sidebar/auto-sms/delete/{id}', [AutoSMSController::class, 'delete'])
+        ->middleware(['permission:sms.send'])
         ->name('setup-sidebar.auto_sms.delete');
 
-    Route::get('/sms-user-types/{user}', [AutoSMSController::class, 'getUserTypes']);
-    Route::post('/sms-user-types/save', [AutoSMSController::class, 'saveUserTypes']);
+    Route::get('/sms-user-types/{user}', [AutoSMSController::class, 'getUserTypes'])
+        ->middleware(['permission:sms.send']);
+    Route::post('/sms-user-types/save', [AutoSMSController::class, 'saveUserTypes'])
+        ->middleware(['permission:sms.send']);
     Route::get('setup-sidebar/shomoos', [ShomoosController::class, 'index'])
+        ->middleware(['permission:shomoos_setting.view'])
         ->name('setup-sidebar.shomoos.index');
     Route::get('setup-sidebar/shomoos/{submission}', [ShomoosController::class, 'show'])
+        ->middleware(['permission:shomoos_setting.view'])
         ->name('setup-sidebar.shomoos.show');
     Route::post('setup-sidebar/shomoos/update', [ShomoosController::class, 'update'])
+        ->middleware(['permission:shomoos_setting.view'])
         ->name('setup-sidebar.shomoos.update');
     Route::get('setup-sidebar/ntmp', [NtmpController::class, 'index'])
+        ->middleware(['permission:ntmp_setting.view'])
         ->name('setup-sidebar.ntmp.index');
     Route::get('setup-sidebar/ntmp/{submission}', [NtmpController::class, 'show'])
+        ->middleware(['permission:ntmp_setting.view'])
         ->name('setup-sidebar.ntmp.show');
     Route::post('setup-sidebar/ntmp/update', [NtmpController::class, 'update'])
+        ->middleware(['permission:ntmp_setting.view'])
         ->name('setup-sidebar.ntmp.update');
 
 });
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/property-facility', [PropertyFacilityController::class, 'index'])
+        ->middleware(['permission:property_facility.view'])
         ->name('setup-sidebar.property_facility.index');
 
     Route::middleware(['permission:property_facility.add'])->group(function () {
@@ -780,6 +824,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('setup-sidebar.property_facility.delete');
     });
     Route::post('setup-sidebar/property-facility/toggleUpdate/{id}', [PropertyFacilityController::class, 'toggleStatus'])
+        ->middleware(['permission:property_facility.edit'])
         ->name('setup-sidebar.property_facility.toggleUpdate');
     Route::get('/admin/get-facilities', [PropertyFacilityController::class, 'getFacilities'])
         ->name('setup-sidebar.property_facility.facilities');
@@ -788,6 +833,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/reporting-numbering', [NumberingController::class, 'index'])
+        ->middleware(['permission:numbering_option.edit'])
         ->name('setup-sidebar.numbering_option.index');
 
     Route::middleware(['permission:numbering_option.edit'])->group(function () {
@@ -798,6 +844,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/reporting-printing', [PrintingController::class, 'index'])
+        ->middleware(['permission:printing_option.edit'])
         ->name('setup-sidebar.print_option.index');
 
     Route::middleware(['permission:printing_option.edit'])->group(function () {
@@ -808,6 +855,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/outlets-setup', [OutletSetupController::class, 'index'])
+        ->middleware(['permission:outlet_setup.view'])
         ->name('setup-sidebar.outlet_setup.index');
 
     Route::middleware(['permission:outlet_setup.add'])->group(function () {
@@ -828,6 +876,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/item-categories', [ItemCategoryController::class, 'index'])
+        ->middleware(['permission:item_categories.view'])
         ->name('setup-sidebar.item_category.index');
 
     Route::middleware(['permission:item_categories.add'])->group(function () {
@@ -848,6 +897,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/item', [ItemsController::class, 'index'])
+        ->middleware(['permission:outlet_item.view'])
         ->name('setup-sidebar.items.index');
 
     Route::middleware(['permission:outlet_item.add'])->group(function () {
@@ -875,6 +925,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/conditions', [ConditionController::class, 'index'])
+        ->middleware(['permission:terms_and_condition.add|terms_and_condition.edit|terms_and_condition.delete'])
         ->name('setup-sidebar.condition.index');
 
     Route::middleware(['permission:terms_and_condition.add'])->group(function () {
@@ -902,6 +953,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/penalties', [PenaltyController::class, 'index'])
+        ->middleware(['permission:penalties.add|penalties.edit|penalties.delete'])
         ->name('setup-sidebar.penalty.index');
 
     Route::middleware(['permission:penalties.add'])->group(function () {
@@ -926,11 +978,13 @@ Route::middleware(['auth'])->group(function () {
             ->name('setup-sidebar.penalty.delete');
     });
     Route::post('setup-sidebar/penalties/update-setting', [PenaltyController::class, 'updateSetting'])
+        ->middleware(['permission:penalties.edit'])
         ->name('setup-sidebar.penalty.update-setting');
 });
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/cancel', [CancelReasonController::class, 'index'])
+        ->middleware(['permission:cancel_reason.add|cancel_reason.edit|cancel_reason.delete'])
         ->name('setup-sidebar.cancel_reason.index');
 
     Route::middleware(['permission:cancel_reason.add'])->group(function () {
@@ -956,6 +1010,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/setup-reservation', [SetupReservationController::class, 'index'])
+        ->middleware(['permission:setup_reservation.edit'])
         ->name('setup-sidebar.setup_reservation.index');
 
     Route::middleware(['permission:setup_reservation.edit'])->group(function () {
@@ -967,6 +1022,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/unit-reason', [UnitReasonController::class, 'index'])
+        ->middleware(['permission:unit_reason.add|unit_reason.edit|unit_reason.delete'])
         ->name('setup-sidebar.unit_reason.index');
 
     Route::middleware(['permission:unit_reason.add'])->group(function () {
@@ -987,9 +1043,10 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/night-audit', [NightAuditController::class, 'index'])
+        ->middleware(['permission:night_audit.edit'])
         ->name('setup-sidebar.night_audit.index');
 
-    Route::middleware(['permission:unit_reason.edit'])->group(function () {
+    Route::middleware(['permission:night_audit.edit'])->group(function () {
         Route::put('setup-sidebar/night-audit', [NightAuditController::class, 'update'])
             ->name('setup-sidebar.night_audit.update');
     });
@@ -997,6 +1054,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/guest-feedback', [GuestFeedbackController::class, 'index'])
+        ->middleware(['permission:guest_feedback.view|feedback_metric.add|feedback_metric.edit|feedback_metric.delete'])
         ->name('setup-sidebar.guest_feedback.index');
 
     Route::middleware(['permission:feedback_metric.add'])->group(function () {
@@ -1018,6 +1076,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/housekeeper-setting', [HouseKeeperController::class, 'index'])
+        ->middleware(['permission:housekeeper_list.view'])
         ->name('setup-sidebar.housekeeping_setting.index');
 
     Route::middleware(['permission:housekeeper_list.add'])->group(function () {
@@ -1039,6 +1098,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/staff-attendance', [StaffAttendanceController::class, 'index'])
+        ->middleware(['permission:staff_attendance.view'])
         ->name('setup-sidebar.staff_attendance.index');
 
     Route::middleware(['permission:housekeeper_list.edit'])->group(function () {
@@ -1054,6 +1114,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/housekeeper-task', [TaskTypeController::class, 'index'])
+        ->middleware(['permission:task_type.view|housekeeper_task.view'])
         ->name('setup-sidebar.task_type.index');
 
     Route::middleware(['permission:housekeeper_task.add'])->group(function () {
@@ -1080,15 +1141,19 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/customers-guest', [GuestController::class, 'index'])
+        ->middleware(['permission:guest.view'])
         ->name('dashboard.guest.index');
 
     Route::get('dashboard/customers-guest/search', [GuestController::class, 'search'])
+        ->middleware(['permission:guest.view'])
         ->name('dashboard.guest.search');
 
     Route::get('dashboard/sms-manual', [ManualSMSController::class, 'index'])
+        ->middleware(['permission:sms.send'])
         ->name('dashboard.manual_sms.index');
 
     Route::post('dashboard/sms-manual/send', [ManualSMSController::class, 'send'])
+        ->middleware(['permission:sms.send'])
         ->name('dashboard.manual_sms.send');
 
     Route::middleware(['permission:guest.add'])->group(function () {
@@ -1115,9 +1180,11 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/customers-corporate', [CorporateController::class, 'index'])
+        ->middleware(['permission:corporate.view'])
         ->name('dashboard.corporate.index');
 
     Route::get('dashboard/customers-corporate/search', [CorporateController::class, 'search'])
+        ->middleware(['permission:corporate.view'])
         ->name('dashboard.corporate.search');
 
     Route::middleware(['permission:corporate.add'])->group(function () {
@@ -1144,6 +1211,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/customers-vendors', [\App\Http\Controllers\Customers\VendorController::class, 'index'])
+        ->middleware(['permission:vendor.view'])
         ->name('dashboard.vendor.index');
 
     Route::middleware(['permission:vendor.add'])->group(function () {
@@ -1165,9 +1233,11 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/reservation', [ReservationController::class, 'index'])
+        ->middleware(['permission:reservation.view'])
         ->name('dashboard.reservation.index');
 
     Route::get('dashboard/reservation/calendar-events', [ReservationController::class, 'calendarEvents'])
+        ->middleware(['permission:reservation.view'])
         ->name('dashboard.reservation.calendar_events');
 
     Route::middleware(['permission:reservation.contract'])->group(function () {
@@ -1178,6 +1248,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('dashboard.reservation.contract');
     });
     Route::get('dashboard/reservation/{reservation}/contract-modal', [ReservationController::class, 'contractModal'])
+        ->middleware(['permission:reservation.contract'])
         ->name('dashboard.reservation.contract_modal');
 
     Route::middleware(['permission:reservation.add'])->group(function () {
@@ -1197,57 +1268,72 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::post('dashboard/reservation/cancel', [ReservationController::class, 'cancelReservation'])
+        ->middleware(['permission:reservation.cancel'])
         ->name('dashboard.reservation.cancel');
 
-    Route::get('/cancel-reason/{id}/penalties', [ReservationController::class, 'getPenalties']);
+    Route::get('/cancel-reason/{id}/penalties', [ReservationController::class, 'getPenalties'])
+        ->middleware(['permission:reservation.view|reservation.add|reservation.edit']);
 
     Route::get('dashboard/reservation/available-units', [ReservationController::class, 'getAvailableUnits'])
+        ->middleware(['permission:reservation.view|reservation.add'])
         ->name('dashboard.reservation.available_units');
 
     Route::get('dashboard/reservation/get-unavailable-units', [ReservationController::class, 'getUnavailableUnits'])
+        ->middleware(['permission:reservation.view'])
         ->name('dashboard.reservation.get_unavailable_units');
 
     Route::get('dashboard/reservation/notifications', [ReservationController::class, 'getNotifications'])
+        ->middleware(['permission:dashboard.view|reservation.view|unit_status.view|housekeeping_task.view|receipt.view|outlet_setup.view|guest.view|sms.send|cash_drawer_balance.view|reports.view|logs.view|night_audit.edit'])
         ->name('dashboard.reservation.notifications');
 
     Route::post('dashboard/reservation/notifications/mark-read', [ReservationController::class, 'markNotificationRead'])
+        ->middleware(['permission:dashboard.view|reservation.view|unit_status.view|housekeeping_task.view|receipt.view|outlet_setup.view|guest.view|sms.send|cash_drawer_balance.view|reports.view|logs.view|night_audit.edit'])
         ->name('dashboard.reservation.notifications.mark_read');
 
     Route::post('dashboard/reservation/notifications/mark-all-read', [ReservationController::class, 'markAllNotificationsRead'])
+        ->middleware(['permission:dashboard.view|reservation.view|unit_status.view|housekeeping_task.view|receipt.view|outlet_setup.view|guest.view|sms.send|cash_drawer_balance.view|reports.view|logs.view|night_audit.edit'])
         ->name('dashboard.reservation.notifications.mark_all_read');
 
     Route::get('dashboard/notifications', [ReservationController::class, 'allNotifications'])
+        ->middleware(['permission:dashboard.view|reservation.view|unit_status.view|housekeeping_task.view|receipt.view|outlet_setup.view|guest.view|sms.send|cash_drawer_balance.view|reports.view|logs.view|night_audit.edit'])
         ->name('dashboard.notifications.index');
 
 });
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/unit-status', [UnitStatusController::class, 'index'])
+        ->middleware(['permission:unit_status.view'])
         ->name('dashboard.unit_status.index');
 
     Route::put('/dashboard/unit-status/{unit}/update-status', [UnitStatusController::class, 'updateStatus'])
+        ->middleware(['permission:unit_status.view'])
         ->name('dashboard.unit_status.update');
 
     Route::get('dashboard/housekeeping-status', [StatusController::class, 'index'])
+        ->middleware(['permission:unit_status.view'])
         ->name('dashboard.housekeeping_status.index');
 
     Route::put('/dashboard/housekeeping-status/{unit}/update-status',
         [StatusController::class, 'updateStatus']
-    )->name('housekeeping.updateStatus');
+    )->middleware(['permission:unit_status.view'])->name('housekeeping.updateStatus');
 
     Route::get('dashboard/housekeeping-status-print', [StatusController::class, 'print'])
+        ->middleware(['permission:unit_status.view'])
         ->name('dashboard.housekeeping_status.print');
 
 });
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/housekeeping-task', [TaskController::class, 'index'])
+        ->middleware(['permission:housekeeping_task.view'])
         ->name('dashboard.housekeeping_task.index');
 
     Route::get('dashboard/housekeeping-task/units', [TaskController::class, 'getUnits'])
+        ->middleware(['permission:housekeeping_task.view|housekeeping_task.add|housekeeping_task.edit'])
         ->name('dashboard.housekeeping_task.get_units');
 
     Route::get('dashboard/housekeeping-task/print', [TaskController::class, 'print'])
+        ->middleware(['permission:housekeeping_task.view'])
         ->name('dashboard.housekeeping_task.print');
 
     Route::middleware(['permission:housekeeping_task.add'])->group(function () {
@@ -1272,6 +1358,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/vouchers-invoice', [InvoiceController::class, 'index'])
+        ->middleware(['permission:invoice.view'])
         ->name('dashboard.invoice.index');
 
     Route::middleware(['permission:invoice.view'])->group(function () {
@@ -1299,14 +1386,18 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/vouchers-receipt', [ReceiptController::class, 'index'])
+        ->middleware(['permission:receipt.view'])
         ->name('dashboard.receipt.index');
 
     Route::get('dashboard/vouchers-receipt/search-guests', [App\Http\Controllers\Vouchers\ReceiptController::class, 'searchGuests'])
+        ->middleware(['permission:receipt.view|receipt.add|receipt.edit'])
         ->name('dashboard.receipt.searchGuests');
 
     Route::get('dashboard/vouchers-receipt/search-corporates', [App\Http\Controllers\Vouchers\ReceiptController::class, 'searchCorporates'])
+        ->middleware(['permission:receipt.view|receipt.add|receipt.edit'])
         ->name('dashboard.receipt.searchCorporates');
     Route::get('dashboard/vouchers-receipt/{id}', [App\Http\Controllers\Vouchers\ReceiptController::class, 'show'])
+        ->middleware(['permission:receipt.view'])
         ->name('dashboard.receipt.show');
 
     Route::middleware(['permission:receipt.add'])->group(function () {
@@ -1334,12 +1425,15 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/vouchers-payment', [App\Http\Controllers\Vouchers\PaymentController::class, 'index'])
+        ->middleware(['permission:payment.view'])
         ->name('dashboard.payment.index');
 
     Route::get('dashboard/vouchers-payment/{id}', [App\Http\Controllers\Vouchers\PaymentController::class, 'show'])
+        ->middleware(['permission:payment.view'])
         ->name('dashboard.payment.show');
 
     Route::get('dashboard/vouchers-payment/search-vendors', [App\Http\Controllers\Vouchers\PaymentController::class, 'searchVendors'])
+        ->middleware(['permission:payment.view|payment.add|payment.edit'])
         ->name('dashboard.payment.searchVendors');
 
     Route::middleware(['permission:payment.add'])->group(function () {
@@ -1366,9 +1460,11 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/vouchers-promissory', [PromissoryController::class, 'index'])
+        ->middleware(['permission:promissory_note.view'])
         ->name('dashboard.promissory.index');
 
     Route::get('dashboard/vouchers-promissory/{id}', [PromissoryController::class, 'show'])
+        ->middleware(['permission:promissory_note.view'])
         ->name('dashboard.promissory.show');
 
     Route::middleware(['permission:promissory_note.add'])->group(function () {
@@ -1405,9 +1501,11 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/vouchers-credit', [CreditController::class, 'index'])
+        ->middleware(['permission:credit_notes.print|credit_notes.whatsapp|credit_notes.sms'])
         ->name('dashboard.credit.index');
 
     Route::get('dashboard/vouchers-credit/{id}', [CreditController::class, 'show'])
+        ->middleware(['permission:credit_notes.print|credit_notes.whatsapp|credit_notes.sms'])
         ->name('dashboard.credit.show');
 
     Route::middleware(['permission:credit_notes.print'])->group(function () {
@@ -1429,6 +1527,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/vouchers-drop', [DropController::class, 'index'])
+        ->middleware(['permission:drop_cash.view'])
         ->name('dashboard.drop_cash.index');
 
     Route::middleware(['permission:drop_cash.add'])->group(function () {
@@ -1462,20 +1561,25 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/cash-drawer', [CashDrawerController::class, 'index'])
+        ->middleware(['permission:cash_drawer_balance.view'])
         ->name('dashboard.cash_drawer.index');
 
     Route::get('dashboard/cash-drawer/export', [CashDrawerController::class, 'export'])
+        ->middleware(['permission:cash_drawer_balance.view'])
         ->name('dashboard.cash_drawer.export');
 
 });
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard/night-audit', [App\Http\Controllers\NightAuditController::class, 'index'])
+        ->middleware(['permission:night_audit.edit'])
         ->name('dashboard.night_audit.index');
 
     Route::post('dashboard/night-audit/{id}/complete', [App\Http\Controllers\NightAuditController::class, 'complete'])
+        ->middleware(['permission:night_audit.edit'])
         ->name('dashboard.night_audit.complete');
     Route::post('dashboard/night-audit/{id}/fail', [App\Http\Controllers\NightAuditController::class, 'fail'])
+        ->middleware(['permission:night_audit.edit'])
         ->name('dashboard.night_audit.fail');
 
     Route::middleware(['permission:night_audit.start'])->group(function () {
@@ -1505,9 +1609,11 @@ Route::middleware('auth')->group(function () {
     ->name('setup-sidebar.setup_subscription.send');
 
     Route::get('dashboard/outlets-property', [App\Http\Controllers\Outlets\PropertyController::class, 'index'])
+        ->middleware(['permission:outlet_setup.view'])
         ->name('dashboard.outlet_property.index');
 
     Route::get('dashboard/outlets-order', [App\Http\Controllers\Outlets\OrderController::class, 'index'])
+        ->middleware(['permission:outlet_setup.view'])
         ->name('dashboard.outlet_order.index');
 
     Route::middleware(['permission:reports.view'])->group(function () {
@@ -1546,7 +1652,7 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('dashboard/logs', [LogController::class, 'index'])
-    ->middleware('auth')
+    ->middleware('auth', 'permission:logs.view')
     ->name('dashboard.logs.index');
 
 Route::get('dashboard/online-reservation', [OnlineReservationController::class, 'index'])
@@ -1554,13 +1660,15 @@ Route::get('dashboard/online-reservation', [OnlineReservationController::class, 
     ->name('dashboard.online_reservation.index');
 
 Route::get('setup-sidebar/financial-currencies', [CurrencyController::class, 'index'])
-    ->middleware('auth')
+    ->middleware('auth', 'permission:bank_account.view|payment_method.view|cash_drawer_balance.view')
     ->name('setup-sidebar.currencies.index');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('setup-sidebar/manage-product', [ProductController::class, 'index'])
+        ->middleware(['permission:manage_product.view'])
         ->name('setup-sidebar.manage_product.index');
 
     Route::get('setup-sidebar/manage-inventory', [InventoryController::class, 'index'])
+        ->middleware(['permission:manage_inventory.view'])
         ->name('setup-sidebar.manage_inventory.index');
 });

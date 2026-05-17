@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Vehicles;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Driver;
 use App\Models\DriverDocument;
@@ -9,13 +10,17 @@ use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class DriverController extends Controller
 {
+    use ScopesTenantAccess;
+
     public function index()
     {
-        $vehicles = Vehicle::all();
-        $drivers = Driver::all();
+        $user = auth()->user();
+        $vehicles = $this->scopeVehiclesForUser(Vehicle::query(), $user)->get();
+        $drivers = $this->scopeDriversForUser(Driver::with('vehicle'), $user)->get();
 
         return view('Admin.Backend.Vehicles.driver', compact('vehicles', 'drivers'));
     }
@@ -23,7 +28,7 @@ class DriverController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'vehicle_id' => 'required|exists:vehicles,id',
+            'vehicle_id' => ['required', $this->vehicleExistsRuleForUser($request->user())],
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:50',
             'id_number' => 'nullable|string|max:50',
@@ -71,9 +76,11 @@ class DriverController extends Controller
 
     public function update(Request $request, Driver $driver)
     {
+        $driver = $this->scopeDriversForUser(Driver::query(), $request->user())->findOrFail($driver->id);
+
         //  Validation
         $request->validate([
-            'vehicle_id' => 'required|exists:vehicles,id',
+            'vehicle_id' => ['required', $this->vehicleExistsRuleForUser($request->user())],
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:255',
             'id_number' => 'nullable|string|max:255',
@@ -135,6 +142,8 @@ class DriverController extends Controller
 
     public function destroy(Driver $driver)
     {
+        $driver = $this->scopeDriversForUser(Driver::with('documents'), auth()->user())->findOrFail($driver->id);
+
         DB::beginTransaction();
 
         try {
@@ -158,5 +167,52 @@ class DriverController extends Controller
 
             return redirect()->back()->with('error', $e->getMessage());
         }
+    }
+
+    private function scopeVehiclesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function scopeDriversForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->whereHas('vehicle', function ($vehicleQuery) use ($user) {
+            if ($user->branch_id) {
+                $vehicleQuery->where('branch_id', $user->branch_id);
+
+                return;
+            }
+
+            $vehicleQuery->where('company_id', $user->company_id);
+        });
+    }
+
+    private function vehicleExistsRuleForUser($user)
+    {
+        return Rule::exists('vehicles', 'id')->where(function ($query) use ($user) {
+            if ($this->isSuperAdmin($user)) {
+                return;
+            }
+
+            if ($user->branch_id) {
+                $query->where('branch_id', $user->branch_id);
+
+                return;
+            }
+
+            $query->where('company_id', $user->company_id);
+        });
     }
 }

@@ -22,6 +22,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->index('is_active');
+            $table->unique(['company_id', 'account_number'], 'banks_company_account_unique');
         });
     }
 
@@ -33,4 +34,3 @@ return new class extends Migration
         Schema::dropIfExists('banks');
     }
 };
-

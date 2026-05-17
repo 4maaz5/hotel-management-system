@@ -11,6 +11,7 @@ use App\Models\StockRequestItem;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class WarehouseController extends Controller
 {
@@ -37,8 +38,16 @@ class WarehouseController extends Controller
         $validated = $request->validate([
             'warehouse_name' => 'required|string|max:255',
             'type' => 'required|in:main,branch',
-            'branch_id' => 'nullable|exists:branches,id',
-            'company_id' => 'nullable|exists:companies,id',
+            'branch_id' => [
+                'nullable',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
+            'company_id' => [
+                'nullable',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
         ]);
 
         $user = Auth::user();
@@ -123,8 +132,16 @@ class WarehouseController extends Controller
             'id' => 'required|exists:warehouses,id',
             'name' => 'required|string|max:255',
             'type' => 'required|in:main,branch',
-            'branch_id' => 'nullable|exists:branches,id',
-            'company_id' => 'nullable|exists:companies,id',
+            'branch_id' => [
+                'nullable',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
+            'company_id' => [
+                'nullable',
+                $this->isSuperAdmin($request->user())
+                    ? Rule::exists('companies', 'id')
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+            ],
         ]);
 
         $user = Auth::user();

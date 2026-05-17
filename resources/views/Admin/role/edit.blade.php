@@ -455,7 +455,8 @@
                                     <div class="row">
                                         @foreach ($modulePermissions as $permission)
                                             @php
-                                                $action = explode('.', $permission->name)[1];
+                                                $permissionParts = explode('.', $permission->name, 2);
+                                                $action = $permissionParts[1] ?? $permissionParts[0];
                                             @endphp
                                             <div class="col-md-4 col-sm-6 mb-2">
                                                 <div class="form-check">
@@ -464,7 +465,7 @@
                                                         {{ in_array($permission->name, $rolePermissions) ? 'checked' : '' }}>
 
                                                     <label class="form-check-label" for="{{ $permission->name }}">
-                                                        {{ ucfirst($action) }}
+                                                        {{ ucfirst(str_replace('_', ' ', $action)) }}
                                                     </label>
                                                 </div>
                                             </div>

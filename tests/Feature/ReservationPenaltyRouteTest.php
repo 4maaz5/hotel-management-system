@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\CancelReason;
 use App\Models\Penalty;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\BuildsTenantHotelContext;
 use Tests\TestCase;
 
@@ -15,7 +17,11 @@ class ReservationPenaltyRouteTest extends TestCase
 
     public function test_reservation_page_and_legacy_url_load_cancel_reason_penalties(): void
     {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        Permission::findOrCreate('reservation.view', 'web');
+
         [$user, $property, $tenant] = $this->createTenantUserWithProperty();
+        $user->givePermissionTo('reservation.view');
 
         $cancelReason = CancelReason::create([
             'company_id' => $tenant->id,

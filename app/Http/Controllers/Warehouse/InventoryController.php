@@ -37,7 +37,15 @@ class InventoryController extends Controller
                 'required',
                 Rule::exists('warehouses', 'id')->where(fn ($query) => $this->scopeWarehousesForUser($query, $request->user())),
             ],
-            'section_id' => 'nullable|exists:rooms,id',
+            'section_id' => [
+                'nullable',
+                Rule::exists('rooms', 'id')->where(
+                    fn ($query) => $query->whereIn(
+                        'warehouse_id',
+                        $this->scopeWarehousesForUser(Warehouse::query(), $request->user())->select('id')
+                    )
+                ),
+            ],
             'product_id' => [
                 'required',
                 Rule::exists('products', 'id')->where(fn ($query) => $this->scopeVisibleProductsForUser($query, $request->user())),
@@ -80,7 +88,15 @@ class InventoryController extends Controller
                 'required',
                 Rule::exists('warehouses', 'id')->where(fn ($query) => $this->scopeWarehousesForUser($query, $request->user())),
             ],
-            'section_id' => 'nullable|exists:rooms,id',
+            'section_id' => [
+                'nullable',
+                Rule::exists('rooms', 'id')->where(
+                    fn ($query) => $query->whereIn(
+                        'warehouse_id',
+                        $this->scopeWarehousesForUser(Warehouse::query(), $request->user())->select('id')
+                    )
+                ),
+            ],
             'product_id' => [
                 'required',
                 Rule::exists('products', 'id')->where(fn ($query) => $this->scopeVisibleProductsForUser($query, $request->user())),

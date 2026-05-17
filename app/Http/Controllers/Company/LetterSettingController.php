@@ -18,7 +18,6 @@ class LetterSettingController extends Controller
 
     public function store(Request $request)
     {
-        // Validate request
         $request->validate([
             'company_name_ar' => 'required|string|max:255',
             'company_logo' => 'nullable|image|mimes:jpg,jpeg,png,svg|max:2048',
@@ -26,6 +25,16 @@ class LetterSettingController extends Controller
             'authorized_sign_title' => 'required|string|max:255',
             'signature_image' => 'nullable|image|mimes:jpg,jpeg,png,svg|max:2048',
             'stamp_image' => 'nullable|image|mimes:jpg,jpeg,png,svg|max:2048',
+        ], [
+            'company_logo.image' => __('dashboard.company_logo') . ' ' . __('messages.must_be_image'),
+            'company_logo.mimes' => __('dashboard.company_logo') . ' ' . __('messages.allowed_types') . ': JPG, JPEG, PNG, SVG.',
+            'company_logo.max' => __('dashboard.company_logo') . ' ' . __('messages.max_file_size') . ': 2MB.',
+            'signature_image.image' => __('dashboard.signature_image') . ' ' . __('messages.must_be_image'),
+            'signature_image.mimes' => __('dashboard.signature_image') . ' ' . __('messages.allowed_types') . ': JPG, JPEG, PNG, SVG.',
+            'signature_image.max' => __('dashboard.signature_image') . ' ' . __('messages.max_file_size') . ': 2MB.',
+            'stamp_image.image' => __('dashboard.stamp_image') . ' ' . __('messages.must_be_image'),
+            'stamp_image.mimes' => __('dashboard.stamp_image') . ' ' . __('messages.allowed_types') . ': JPG, JPEG, PNG, SVG.',
+            'stamp_image.max' => __('dashboard.stamp_image') . ' ' . __('messages.max_file_size') . ': 2MB.',
         ]);
 
         // Prepare data
@@ -60,7 +69,6 @@ class LetterSettingController extends Controller
 
     public function update(Request $request, $id)
     {
-        // Validate request
         $request->validate([
             'company_name_ar' => 'required|string|max:255',
             'company_logo' => 'nullable|image|mimes:jpg,jpeg,png,svg|max:2048',
@@ -68,6 +76,16 @@ class LetterSettingController extends Controller
             'authorized_sign_title' => 'required|string|max:255',
             'signature_image' => 'nullable|image|mimes:jpg,jpeg,png,svg|max:2048',
             'stamp_image' => 'nullable|image|mimes:jpg,jpeg,png,svg|max:2048',
+        ], [
+            'company_logo.image' => __('dashboard.company_logo') . ' ' . __('messages.must_be_image'),
+            'company_logo.mimes' => __('dashboard.company_logo') . ' ' . __('messages.allowed_types') . ': JPG, JPEG, PNG, SVG.',
+            'company_logo.max' => __('dashboard.company_logo') . ' ' . __('messages.max_file_size') . ': 2MB.',
+            'signature_image.image' => __('dashboard.signature_image') . ' ' . __('messages.must_be_image'),
+            'signature_image.mimes' => __('dashboard.signature_image') . ' ' . __('messages.allowed_types') . ': JPG, JPEG, PNG, SVG.',
+            'signature_image.max' => __('dashboard.signature_image') . ' ' . __('messages.max_file_size') . ': 2MB.',
+            'stamp_image.image' => __('dashboard.stamp_image') . ' ' . __('messages.must_be_image'),
+            'stamp_image.mimes' => __('dashboard.stamp_image') . ' ' . __('messages.allowed_types') . ': JPG, JPEG, PNG, SVG.',
+            'stamp_image.max' => __('dashboard.stamp_image') . ' ' . __('messages.max_file_size') . ': 2MB.',
         ]);
 
         // Find record

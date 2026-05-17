@@ -72,12 +72,17 @@ class EmployeeController extends Controller
         try {
             $authUser = Auth::user();
             $branchIds = $this->accessibleBranchIds($authUser);
+            $requestedCompanyId = $this->companyIdFromEmployeeRequest($request, $authUser);
 
             // Validate the main employee data
             $validated = $request->validate([
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
-                'email' => 'nullable|email|unique:employees,email',
+                'email' => [
+                    'nullable',
+                    'email',
+                    Rule::unique('employees', 'email')->where(fn ($query) => $query->where('company_id', $requestedCompanyId)),
+                ],
                 'phone' => 'nullable|string|max:20',
                 'designation' => 'nullable|string|max:255',
                 'company_id' => [
@@ -181,15 +186,7 @@ class EmployeeController extends Controller
             // Create Employee
 
             $validated['qr_code'] = Str::uuid();
-            // Generate unique employee_id
-            $lastEmployee = Employee::where('company_id', $validated['company_id'])->orderBy('id', 'desc')->first();
-
-            if ($lastEmployee) {
-                $lastId = (int) substr($lastEmployee->employee_id, 3); // remove "EMP" prefix
-                $validated['employee_id'] = 'EMP'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
-            } else {
-                $validated['employee_id'] = 'EMP0001';
-            }
+            $validated['employee_id'] = $this->nextEmployeeIdForCompany((int) $validated['company_id']);
             $employee = Employee::create($validated);
 
             // Handle Insurance Data
@@ -305,11 +302,19 @@ class EmployeeController extends Controller
     {
         $authUser = Auth::user();
         $branchIds = $this->accessibleBranchIds($authUser);
+        $employee = $this->scopeEmployeeQuery(Employee::query())->findOrFail($id);
+        $requestedCompanyId = $this->companyIdFromEmployeeRequest($request, $authUser, $employee);
 
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'nullable|email',
+            'email' => [
+                'nullable',
+                'email',
+                Rule::unique('employees', 'email')
+                    ->where(fn ($query) => $query->where('company_id', $requestedCompanyId))
+                    ->ignore($employee->id),
+            ],
             'branch_id' => [
                 'required',
                 Rule::exists('branches', 'id')->when(
@@ -348,8 +353,6 @@ class EmployeeController extends Controller
             'join_date' => 'required|date',
             'residence_expiry_date' => 'nullable|date',
         ]);
-
-        $employee = $this->scopeEmployeeQuery(Employee::query())->findOrFail($id);
 
         if (! $this->isSuperAdmin($authUser)) {
             $validated['company_id'] = $authUser->company_id;
@@ -564,5 +567,49 @@ class EmployeeController extends Controller
         }
 
         return $query->where('company_id', $user->company_id);
+    }
+
+    private function companyIdFromEmployeeRequest(Request $request, $user, ?Employee $employee = null): ?int
+    {
+        if ($user->branch_id) {
+            return (int) $user->company_id;
+        }
+
+        if ($request->filled('branch_id')) {
+            $branchCompanyId = Branch::whereKey($request->integer('branch_id'))->value('company_id');
+
+            if ($branchCompanyId) {
+                return (int) $branchCompanyId;
+            }
+        }
+
+        if ($this->isSuperAdmin($user) && $request->filled('company_id')) {
+            return $request->integer('company_id');
+        }
+
+        return $user?->company_id ?: $employee?->company_id;
+    }
+
+    private function nextEmployeeIdForCompany(int $companyId): string
+    {
+        $lastEmployeeId = Employee::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('employee_id', 'like', 'EMP%')
+            ->orderByRaw('CAST(SUBSTRING(employee_id, 4) AS UNSIGNED) DESC')
+            ->value('employee_id');
+
+        $nextNumber = $lastEmployeeId ? ((int) substr($lastEmployeeId, 3)) + 1 : 1;
+
+        do {
+            $employeeId = 'EMP'.str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            $nextNumber++;
+        } while (
+            Employee::withoutGlobalScopes()
+                ->where('company_id', $companyId)
+                ->where('employee_id', $employeeId)
+                ->exists()
+        );
+
+        return $employeeId;
     }
 }
