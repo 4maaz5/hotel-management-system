@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 
 class RegisterTenantController extends Controller
 {
@@ -57,7 +57,7 @@ class RegisterTenantController extends Controller
             ]);
 
             $ownerRole = Role::firstOrCreate(
-                ['name' => 'owner', 'guard_name' => 'web'],
+                ['company_id' => null, 'name' => 'owner', 'guard_name' => 'web'],
                 ['description' => 'Tenant owner', 'status' => 'ACTIVE']
             );
             $owner->assignRole($ownerRole);

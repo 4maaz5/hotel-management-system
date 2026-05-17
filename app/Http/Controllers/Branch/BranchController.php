@@ -35,18 +35,9 @@ class BranchController extends Controller
             $brands = Brand::all();
             $companies = Company::all();
             $branchesCards = Branch::paginate(10);
-        } elseif ($user->branch_id) {
-            $branches = Branch::where('id', $user->branch_id)->get();
-            $branchesCards = Branch::where('id', $user->branch_id)->paginate(10);
-            $brands = Brand::whereHas('branches', function ($q) use ($user) {
-                $q->where('id', $user->branch_id);
-            })->get();
-            $companies = Company::whereHas('branches', function ($q) use ($user) {
-                $q->where('id', $user->branch_id);
-            })->get();
         } else {
-            $branches = Branch::with('documents')->where('company_id', $user->company_id)->get();
-            $branchesCards = Branch::where('company_id', $user->company_id)->paginate(10);
+            $branches = $this->scopeBranchManagementForUser(Branch::with('documents'), $user)->get();
+            $branchesCards = $this->scopeBranchManagementForUser(Branch::query(), $user)->paginate(10);
             $brands = Brand::where('company_id', $user->company_id)->get();
             $companies = $user->company_id
                 ? Company::whereKey($user->company_id)->get()
@@ -74,24 +65,57 @@ class BranchController extends Controller
      */
     public function store(Request $request)
     {
+        $user = Auth::user();
+
+        if (! $this->isSuperAdmin($user) && $user->company_id) {
+            $request->merge(['company_id' => $user->company_id]);
+        }
+
+        if (! $request->filled('brand_id') && $request->filled('company_id')) {
+            $brandQuery = Brand::where('company_id', $request->input('company_id'));
+            $brandQuery = $this->scopeBrandsForUser($brandQuery, $user);
+
+            if ($brandQuery->count() === 1) {
+                $request->merge(['brand_id' => $brandQuery->value('id')]);
+            }
+        }
+
+        if (! $request->filled('building_type')) {
+            $request->merge(['building_type' => 'owned']);
+        }
+
         // Validate request
         $validated = $request->validate([
             // existing branch rules ...
-            'branch_name' => 'required|string|max:255|unique:branches,name',
+            'branch_name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('branches', 'name')->where(fn ($query) => $query->where('company_id', $request->input('company_id'))),
+            ],
             'brand_id' => [
                 'required',
-                Rule::exists('brands', 'id')->where(fn ($query) => $this->scopeBrandsForUser($query, Auth::user())),
+                Rule::exists('brands', 'id')->where(fn ($query) => $this->scopeBrandsForUser($query, $user)),
             ],
             'company_id' => [
                 'required',
-                $this->isSuperAdmin(Auth::user())
+                $this->isSuperAdmin($user)
                     ? Rule::exists('companies', 'id')
-                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', Auth::user()->company_id)),
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $user->company_id)),
             ],
             'branch_address' => 'required|string|max:255',
             'branch_manager' => 'required|string|max:255',
-            'branch_email' => 'required|email|unique:branches,email',
-            'branch_phone' => 'required|string|max:20|unique:branches,phone',
+            'branch_email' => [
+                'required',
+                'email',
+                Rule::unique('branches', 'email')->where(fn ($query) => $query->where('company_id', $request->input('company_id'))),
+            ],
+            'branch_phone' => [
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('branches', 'phone')->where(fn ($query) => $query->where('company_id', $request->input('company_id'))),
+            ],
             'branch_status' => 'required|in:Active,Inactive',
 
             // extra branch fields
@@ -122,8 +146,8 @@ class BranchController extends Controller
         ]);
 
         // Create branch
-        if (! Auth::user()->isSuperAdmin()) {
-            $validated['company_id'] = Auth::user()->company_id;
+        if (! $user->isSuperAdmin()) {
+            $validated['company_id'] = $user->company_id;
         }
 
         $branch = new Branch;
@@ -252,13 +276,36 @@ class BranchController extends Controller
     public function update(Request $request)
     {
         try {
+            $branch = $this->scopeBranchManagementForUser(Branch::query(), Auth::user())->findOrFail($request->branchId);
+            $branchCompanyId = $branch->company_id;
+
             //  Validation - UPDATED FIELD NAMES
             $validated = $request->validate([
-                'edit_branch_name' => 'required|string|max:255',
+                'edit_branch_name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('branches', 'name')
+                        ->where(fn ($query) => $query->where('company_id', $branchCompanyId))
+                        ->ignore($request->branchId),
+                ],
                 'branch_location' => 'required|string|max:255',
                 'branch_manager' => 'required|string|max:255',
-                'branch_email' => 'required|email|unique:branches,email,'.$request->branchId,
-                'branch_phone' => 'required|string|max:20|unique:branches,phone,'.$request->branchId,
+                'branch_email' => [
+                    'required',
+                    'email',
+                    Rule::unique('branches', 'email')
+                        ->where(fn ($query) => $query->where('company_id', $branchCompanyId))
+                        ->ignore($request->branchId),
+                ],
+                'branch_phone' => [
+                    'required',
+                    'string',
+                    'max:20',
+                    Rule::unique('branches', 'phone')
+                        ->where(fn ($query) => $query->where('company_id', $branchCompanyId))
+                        ->ignore($request->branchId),
+                ],
                 'branch_status' => 'required|in:Active,Inactive',
 
                 // pricing
@@ -288,9 +335,6 @@ class BranchController extends Controller
                 'end_date_gregorian' => 'nullable|array',
                 'end_date_gregorian.*' => 'nullable|date',
             ]);
-
-            //  Find the branch
-            $branch = $this->scopeBranchesForUser(Branch::query(), Auth::user())->findOrFail($request->branchId);
 
             //  Update all fields
             $branch->update([
@@ -408,7 +452,7 @@ class BranchController extends Controller
      */
     public function destroy(Request $request)
     {
-        $branch = $this->scopeBranchesForUser(Branch::query(), Auth::user())->find($request->branchId);
+        $branch = $this->scopeBranchManagementForUser(Branch::query(), Auth::user())->find($request->branchId);
 
         if (! $branch) {
             return response()->json([
@@ -442,7 +486,7 @@ class BranchController extends Controller
 
     public function filter(Request $request)
     {
-        $query = $this->scopeBranchesForUser(Branch::query(), $request->user());
+        $query = $this->scopeBranchManagementForUser(Branch::query(), $request->user());
 
         if ($request->filled('name')) {
             $query->where('name', 'like', '%'.$request->name.'%');
@@ -473,7 +517,7 @@ class BranchController extends Controller
     public function getDocuments($id)
     {
         try {
-            $branch = $this->scopeBranchesForUser(Branch::with('documents'), Auth::user())->findOrFail($id);
+            $branch = $this->scopeBranchManagementForUser(Branch::with('documents'), Auth::user())->findOrFail($id);
 
             return response()->json([
                 'success' => true,
@@ -493,6 +537,15 @@ class BranchController extends Controller
     }
 
     private function scopeBrandsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function scopeBranchManagementForUser($query, $user)
     {
         if ($this->isSuperAdmin($user)) {
             return $query;

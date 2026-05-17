@@ -65,15 +65,16 @@
                 @php $totalCommission = 0; @endphp
                 @foreach ($records as $index => $record)
                     @php
-                        $commission = ($record->amount * $record->employee->commission_percentage) / 100;
+                        $commissionPercentage = $record->employee?->commission_percentage ?? 0;
+                        $commission = ($record->amount * $commissionPercentage) / 100;
                         $totalCommission += $commission;
                     @endphp
                     <tr>
                         <td>{{ $index + 1 }}</td>
-                        <td>{{ $record->employee->first_name }} {{ $record->employee->last_name }}</td>
-                        <td>{{ $record->branch->name }}</td>
+                        <td>{{ $record->employee ? trim($record->employee->first_name . ' ' . $record->employee->last_name) : '-' }}</td>
+                        <td>{{ $record->branch?->name ?? '-' }}</td>
                         <td>{{ number_format($record->amount, 2) }}</td>
-                        <td>{{ $record->employee->commission_percentage ?? 0 }}%</td>
+                        <td>{{ $commissionPercentage }}%</td>
                         <td>{{ number_format($commission, 2) }}</td>
                         <td>{{ \Carbon\Carbon::parse($record->income_date)->format('d-m-Y') }}</td>
                     </tr>

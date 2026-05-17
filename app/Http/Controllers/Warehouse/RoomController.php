@@ -8,6 +8,7 @@ use App\Models\Room;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class RoomController extends Controller
 {
@@ -27,7 +28,10 @@ class RoomController extends Controller
     {
         $validated = $request->validate([
             'room_name' => 'required|string|max:255',
-            'warehouse_id' => 'required|exists:warehouses,id',
+            'warehouse_id' => [
+                'required',
+                Rule::exists('warehouses', 'id')->where(fn ($query) => $this->scopeWarehousesForUser($query, $request->user())),
+            ],
         ]);
 
         abort_unless($this->userCanAccessWarehouse((int) $validated['warehouse_id'], Auth::user()), 403);
@@ -54,7 +58,10 @@ class RoomController extends Controller
         $request->validate([
             'id' => 'required|exists:rooms,id',
             'name' => 'required|string|max:255',
-            'warehouse_id' => 'required|exists:warehouses,id',
+            'warehouse_id' => [
+                'required',
+                Rule::exists('warehouses', 'id')->where(fn ($query) => $this->scopeWarehousesForUser($query, $request->user())),
+            ],
         ]);
 
         $user = Auth::user();

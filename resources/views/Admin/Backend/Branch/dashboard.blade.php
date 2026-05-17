@@ -226,6 +226,29 @@
 
                             <div class="form-row">
                                 <div class="form-group col-md-6">
+                                    <label>{{ __('dashboard.company_name') }}</label>
+                                    <select name="company_id" id="company_id" class="form-control">
+                                        <option value="">{{ __('dashboard.select_company') }}</option>
+                                        @foreach ($companies as $company)
+                                            <option value="{{ $company->id }}" @selected($companies->count() === 1)>{{ $company->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <div class="invalid-feedback" id="error-company_id"></div>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>{{ __('dashboard.brand_name') }}</label>
+                                    <select name="brand_id" id="brand_id" class="form-control">
+                                        <option value="">{{ __('dashboard.select_brand') }}</option>
+                                        @foreach ($brands as $brand)
+                                            <option value="{{ $brand->id }}" data-company-id="{{ $brand->company_id }}" @selected($brands->count() === 1)>{{ $brand->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <div class="invalid-feedback" id="error-brand_id"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
                                     <label>{{ __('dashboard.location_address') }}</label>
                                     <input type="text" name="branch_address" id="branch_address"
                                         class="form-control">
@@ -261,6 +284,15 @@
                                     <option value="Inactive">{{ __('dashboard.inactive') }}</option>
                                 </select>
                                 <div class="invalid-feedback" id="error-branch_status"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>{{ __('dashboard.building_type') }}</label>
+                                <select name="building_type" id="building_type" class="form-control">
+                                    <option value="owned">{{ __('dashboard.owned') }}</option>
+                                    <option value="rented">{{ __('dashboard.rented') }}</option>
+                                </select>
+                                <div class="invalid-feedback" id="error-building_type"></div>
                             </div>
 
                             <div class="text-right">
@@ -953,6 +985,34 @@
                 fetchBranches();
             });
 
+        });
+
+        $('#company_id').on('change', function() {
+            const companyId = $(this).val();
+
+            $('#brand_id').html('<option value="">{{ __('dashboard.select_brand') }}</option>');
+
+            if (!companyId) {
+                return;
+            }
+
+            $.ajax({
+                url: '/get-brands/' + companyId,
+                type: 'GET',
+                success: function(data) {
+                    $('#brand_id').empty().append('<option value="">{{ __('dashboard.select_brand') }}</option>');
+
+                    $.each(data, function(_, brand) {
+                        $('#brand_id').append(
+                            '<option value="' + brand.id + '">' + brand.name + '</option>'
+                        );
+                    });
+
+                    if (data.length === 1) {
+                        $('#brand_id').val(data[0].id);
+                    }
+                }
+            });
         });
 
         document.addEventListener('click', function(e) {

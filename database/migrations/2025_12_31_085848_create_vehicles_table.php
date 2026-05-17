@@ -26,7 +26,7 @@ return new class extends Migration
             // Vehicle Info
             $table->string('name');
             $table->string('model')->nullable();
-            $table->string('plate_number')->unique();
+            $table->string('plate_number');
 
             // Owner Info
             $table->string('owner_name')->nullable();
@@ -34,6 +34,7 @@ return new class extends Migration
             $table->string('owner_iqama')->nullable();
 
             $table->timestamps();
+            $table->unique(['company_id', 'plate_number'], 'vehicles_company_plate_unique');
         });
     }
 

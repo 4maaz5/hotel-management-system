@@ -34,6 +34,7 @@ class CardController extends Controller
     public function index()
     {
         $user = Auth::user();
+        $employeeRelations = ['brand', 'branch.brand', 'department'];
 
         // Initialize variables
         $employees = collect();
@@ -41,22 +42,22 @@ class CardController extends Controller
         $branches = collect();
 
         if ($user->hasRole('super_admin')) {
-            $employees = Employee::all(); // all employees for modals
-            $employeeCards = Employee::paginate(10);
-            $tableEmployees = Employee::paginate(10); // paginated for table
+            $employees = Employee::with($employeeRelations)->get(); // all employees for modals
+            $employeeCards = Employee::with($employeeRelations)->paginate(10);
+            $tableEmployees = Employee::with($employeeRelations)->paginate(10); // paginated for table
             $branches = Branch::all();
         } else {
             $branchId = $user->branch_id;
 
             if ($branchId) {
-                $employees = Employee::where('branch_id', $branchId)->get();
-                $employeeCards = Employee::where('branch_id', $branchId)->paginate(10);
-                $tableEmployees = Employee::where('branch_id', $branchId)->paginate(10);
+                $employees = Employee::with($employeeRelations)->where('branch_id', $branchId)->get();
+                $employeeCards = Employee::with($employeeRelations)->where('branch_id', $branchId)->paginate(10);
+                $tableEmployees = Employee::with($employeeRelations)->where('branch_id', $branchId)->paginate(10);
                 $branches = Branch::where('id', $branchId)->get();
             } else {
-                $employees = Employee::where('company_id', $user->company_id)->get();
-                $employeeCards = Employee::where('company_id', $user->company_id)->paginate(10);
-                $tableEmployees = Employee::where('company_id', $user->company_id)->paginate(10);
+                $employees = Employee::with($employeeRelations)->where('company_id', $user->company_id)->get();
+                $employeeCards = Employee::with($employeeRelations)->where('company_id', $user->company_id)->paginate(10);
+                $tableEmployees = Employee::with($employeeRelations)->where('company_id', $user->company_id)->paginate(10);
                 $branches = Branch::where('company_id', $user->company_id)->get();
             }
         }

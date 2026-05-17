@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('location');
             $table->string('manager');
-            $table->string('email')->unique();
+            $table->string('email');
             $table->string('phone')->nullable();
             $table->enum('status', ['Active', 'Inactive'])->default('Active');
             $table->decimal('market_price', 15, 2)->nullable();
@@ -29,6 +29,10 @@ return new class extends Migration
             $table->integer('installments')->nullable();
             $table->string('rent_agreement')->nullable();
             $table->timestamps();
+
+            $table->unique(['company_id', 'name'], 'branches_company_name_unique');
+            $table->unique(['company_id', 'email'], 'branches_company_email_unique');
+            $table->unique(['company_id', 'phone'], 'branches_company_phone_unique');
         });
     }
 

@@ -21,16 +21,8 @@ class ProductController extends Controller
         $products = $this->scopeVisibleProductsForUser(Product::query(), $user)->get();
         $categories = $this->scopeVisibleCategoriesForUser(Categories::query(), $user)->get();
 
-        if ($user->hasRole('super_admin')) {
-            $warehouses = Warehouse::all();
-            $rooms = Room::all();
-        } elseif ($user->branch_id) {
-            $warehouses = Warehouse::where('branch_id', $user->branch_id)->get();
-            $rooms = Room::whereHas('warehouse', fn ($q) => $q->where('branch_id', $user->branch_id))->get();
-        } else {
-            $warehouses = Warehouse::whereHas('branch.company', fn ($q) => $q->where('id', $user->company_id))->get();
-            $rooms = Room::whereHas('warehouse.branch.company', fn ($q) => $q->where('id', $user->company_id))->get();
-        }
+        $warehouses = $this->scopeWarehousesForUser(Warehouse::query(), $user)->get();
+        $rooms = Room::whereHas('warehouse', fn ($query) => $this->scopeWarehousesForUser($query, $user))->get();
 
         return view('Admin.Backend.Products.index', compact('products', 'categories', 'warehouses', 'rooms'));
     }

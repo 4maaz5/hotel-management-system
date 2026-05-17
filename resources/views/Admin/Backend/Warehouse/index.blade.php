@@ -20,12 +20,12 @@
                         <div class="card">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h4>{{ __('dashboard.warehouse') }}</h4>
-                                @if (Auth::user()->hasRole('super_admin'))
+                                @can('manage_warehouse')
                                     <button type="button" class="btn btn-primary" data-toggle="modal"
                                         data-target="#warehouseModal">
                                         {{ __('dashboard.add_warehouse') }}
                                     </button>
-                                @endif
+                                @endcan
 
                             </div>
 
@@ -40,9 +40,9 @@
                                                 <th>{{ __('dashboard.warehouse_name') }}</th>
                                                 <th>{{ __('dashboard.branch') }}</th>
                                                 <th>{{ __('dashboard.type') }}</th>
-                                                @if (Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('warehouse_manager'))
+                                                @can('manage_warehouse')
                                                     <th>{{ __('dashboard.action') }}</th>
-                                                @endif
+                                                @endcan
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -52,7 +52,7 @@
                                                     <td>{{ $warehouse->name }}</td>
                                                     <td>{{ $warehouse->branch->name ?? '-' }}</td>
                                                     <td>{{ $warehouse->type }}</td>
-                                                    @if (Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('warehouse_manager'))
+                                                    @can('manage_warehouse')
                                                         <td>
 
                                                             <a href="javascript:void(0)"
@@ -78,7 +78,7 @@
                                                             </a>
 
                                                         </td>
-                                                    @endif
+                                                    @endcan
                                                 </tr>
                                             @empty
                                             @endforelse
@@ -112,15 +112,14 @@
                             <div class="row">
                                 <!-- Branch -->
                                 <div class="form-group col-md-6">
-                                    <label class="form-label">{{ __('dashboard.warehouse_name') }}:</label>
-                                    <label
-                                        class="form-label">{{ __('dashboard.company') }}→{{ __('dashboard.brand') }}→{{ __('dashboard.branch') }}</label>
+                                    <label class="form-label">{{ __('dashboard.branch') }}</label>
+                                    <label class="form-label">{{ __('dashboard.company') }} -> {{ __('dashboard.brand') }} -> {{ __('dashboard.branch') }}</label>
                                     <select name="branch_id" class="form-control">
                                         <option value="">-- {{ __('dashboard.select_branch') }} --</option>
                                         @foreach ($branches as $branch)
                                             <option value="{{ $branch->id }}">
-                                                {{ $branch->company->name ?? 'N/A' }} →
-                                                {{ $branch->brand->name ?? 'N/A' }} → {{ $branch->name }}
+                                                {{ $branch->company->name ?? 'N/A' }} ->
+                                                {{ $branch->brand->name ?? 'N/A' }} -> {{ $branch->name }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -139,7 +138,9 @@
                                 <label for="type">{{ __('dashboard.warehouse_type') }}</label>
                                 <select name="type" id="type" class="form-control" required>
                                     <option value="">-- {{ __('dashboard.select_warehouse_type') }} --</option>
-                                    <option value="main">{{ __('dashboard.main_warehouse') }}</option>
+                                    @if (!Auth::user()->branch_id)
+                                        <option value="main">{{ __('dashboard.main_warehouse') }}</option>
+                                    @endif
                                     <option value="branch">{{ __('dashboard.branch_warehouse') }}</option>
                                 </select>
                             </div>
@@ -214,7 +215,9 @@
                                     <label class="form-label">{{ __('dashboard.type') }}</label>
                                     <select name="type" id="edit_warehouse_type" class="form-control">
                                         <option value="">-- {{ __('dashboard.select_type') }} --</option>
-                                        <option value="main">{{ __('dashboard.main_warehouse') }}</option>
+                                        @if (!Auth::user()->branch_id)
+                                            <option value="main">{{ __('dashboard.main_warehouse') }}</option>
+                                        @endif
                                         <option value="branch">{{ __('dashboard.branch_warehouse') }}</option>
                                     </select>
                                 </div>

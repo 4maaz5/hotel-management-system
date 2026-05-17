@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class PermissionsSeeder extends Seeder
@@ -127,15 +127,15 @@ class PermissionsSeeder extends Seeder
             : [];
 
         // Create Roles (HR roles)
-        $superAdmin = Role::firstOrCreate(['name' => 'super_admin']);
-        $manager = Role::firstOrCreate(['name' => 'manager']);
-        $employee = Role::firstOrCreate(['name' => 'employee']);
+        $superAdmin = Role::firstOrCreate(['company_id' => null, 'name' => 'super_admin', 'guard_name' => 'web']);
+        $manager = Role::firstOrCreate(['company_id' => null, 'name' => 'manager', 'guard_name' => 'web']);
+        $employee = Role::firstOrCreate(['company_id' => null, 'name' => 'employee', 'guard_name' => 'web']);
 
         // Create Reservation roles
-        $administrator = Role::firstOrCreate(['name' => 'Administrator', 'guard_name' => 'web']);
-        $owner = Role::firstOrCreate(['name' => 'owner', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'receptionist', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'housekeeping', 'guard_name' => 'web']);
+        $administrator = Role::firstOrCreate(['company_id' => null, 'name' => 'Administrator', 'guard_name' => 'web']);
+        $owner = Role::firstOrCreate(['company_id' => null, 'name' => 'owner', 'guard_name' => 'web']);
+        Role::firstOrCreate(['company_id' => null, 'name' => 'receptionist', 'guard_name' => 'web']);
+        Role::firstOrCreate(['company_id' => null, 'name' => 'housekeeping', 'guard_name' => 'web']);
 
         // Create all permissions
         foreach ($allPermissions as $permission) {

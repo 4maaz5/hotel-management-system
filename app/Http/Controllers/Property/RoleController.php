@@ -3,23 +3,20 @@
 namespace App\Http\Controllers\Property;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
     public function index(Request $request)
     {
-        $roles = Role::withCount('permissions')
+        $roles = $this->mutableRolesForUser(Role::withCount('permissions'), $request->user())
 
             ->when($request->filled('name'), function ($q) use ($request) {
                 $q->where('name', 'like', '%'.$request->name.'%');
-            })
-
-            ->when($request->filled('status'), function ($q) use ($request) {
-                $q->where('status', $request->status);
             })
 
             ->orderBy('created_at', 'desc')
@@ -31,19 +28,16 @@ class RoleController extends Controller
 
     public function create()
     {
-        $permissions = Permission::all()
-            ->groupBy(function ($permission) {
-                return explode('.', $permission->name)[0];
-            });
+        $permissions = $this->groupPermissions();
 
         return view('admin.role.create', compact('permissions'));
     }
 
     public function view(Role $role)
     {
-        $permissions = Permission::all()->groupBy(function ($permission) {
-            return explode('.', $permission->name)[0];
-        });
+        $this->authorizeTenantRole($role);
+
+        $permissions = $this->groupPermissions();
 
         $rolePermissions = $role->permissions->pluck('name')->toArray();
 
@@ -57,7 +51,11 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|unique:roles,name',
+            'name' => [
+                'required',
+                'string',
+                Rule::unique('roles', 'name')->where(fn ($query) => $this->roleTenantConstraint($query, $request->user())),
+            ],
             'description' => 'nullable|string',
             'access_type' => 'required|in:full,limited',
             'permissions' => 'array',
@@ -67,9 +65,11 @@ class RoleController extends Controller
 
             //  Create role
             $role = Role::create([
+                'company_id' => $this->roleCompanyId($request->user()),
                 'name' => $request->name,
                 'guard_name' => 'web',
                 'description' => $request->description,
+                'status' => 'ACTIVE',
             ]);
 
             //  Assign permissions
@@ -92,9 +92,9 @@ class RoleController extends Controller
 
     public function edit(Role $role)
     {
-        $permissions = Permission::all()->groupBy(function ($permission) {
-            return explode('.', $permission->name)[0];
-        });
+        $this->authorizeTenantRole($role);
+
+        $permissions = $this->groupPermissions();
 
         $rolePermissions = $role->permissions->pluck('name')->toArray();
 
@@ -107,9 +107,9 @@ class RoleController extends Controller
 
     public function copy(Role $role)
     {
-        $permissions = Permission::all()->groupBy(function ($permission) {
-            return explode('.', $permission->name)[0];
-        });
+        $this->authorizeTenantRole($role);
+
+        $permissions = $this->groupPermissions();
 
         $rolePermissions = $role->permissions->pluck('name')->toArray();
 
@@ -122,8 +122,17 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role)
     {
+        $this->authorizeTenantRole($role);
+
         $request->validate([
-            'name' => 'required|string|max:100',
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('roles', 'name')
+                    ->ignore($role->id)
+                    ->where(fn ($query) => $query->where('company_id', $role->company_id)),
+            ],
             'permissions' => 'nullable|array',
         ]);
 
@@ -146,8 +155,46 @@ class RoleController extends Controller
 
     public function delete(Role $role)
     {
+        $this->authorizeTenantRole($role);
+
         $role->delete();
 
         return redirect()->route('setup-sidebar.property-role.index')->with('danger', __('messages.role_deleted_successfully'));
+    }
+
+    private function groupPermissions()
+    {
+        return Permission::query()
+            ->orderBy('name')
+            ->get()
+            ->groupBy(function (Permission $permission): string {
+                return str_contains($permission->name, '.')
+                    ? explode('.', $permission->name, 2)[0]
+                    : 'general';
+            });
+    }
+
+    private function mutableRolesForUser($query, $user)
+    {
+        if ($user?->isSuperAdmin()) {
+            return $query;
+        }
+
+        return $query->where('company_id', $user?->company_id);
+    }
+
+    private function authorizeTenantRole(Role $role): void
+    {
+        abort_unless($this->mutableRolesForUser(Role::whereKey($role->id), auth()->user())->exists(), 404);
+    }
+
+    private function roleTenantConstraint($query, $user)
+    {
+        return $query->where('company_id', $this->roleCompanyId($user));
+    }
+
+    private function roleCompanyId($user): ?int
+    {
+        return $user?->isSuperAdmin() ? null : $user?->company_id;
     }
 }

@@ -629,9 +629,11 @@ Route::middleware('auth')->put('password', [UserController::class, 'updatePasswo
 
 Route::middleware(['auth', 'tenant.subscription', 'current.property'])->group(function () {
     Route::get('dashboard/attendance/scan', [MarkAttendanceController::class, 'scanView'])
+        ->middleware(['permission:manage_attendance'])
         ->name('employee.card.scan');
 
     Route::post('/attendance/scan', [MarkAttendanceController::class, 'scan'])
+        ->middleware(['permission:manage_attendance'])
         ->name('attendance.scan');
     Route::get('dashboard/setting/password', [UserController::class, 'updatePasswordView'])->name('dashboard.setting.user.password');
     Route::post('/user/change-password', [UserController::class, 'updatePassword'])
@@ -641,10 +643,13 @@ Route::middleware(['auth', 'tenant.subscription', 'current.property'])->group(fu
         ->name('notifications.markAllRead');
 
     Route::get('dashboard/meetings/', [App\Http\Controllers\Meetings\MeetingController::class, 'index'])
+        ->middleware(['permission:manage_dashboard'])
         ->name('dashboard.meetings.index');
     Route::post('dashboard/meetings/store', [App\Http\Controllers\Meetings\MeetingController::class, 'store'])
+        ->middleware(['permission:manage_dashboard'])
         ->name('dashboard.meetings.store');
     Route::delete('dashboard/meetings/destroy/{meeting}', [App\Http\Controllers\Meetings\MeetingController::class, 'destroy'])
+        ->middleware(['permission:manage_dashboard'])
         ->name('dashboard.meeting.destroy');
 
 });
@@ -652,7 +657,7 @@ Route::get('/meetings/{meeting}/join', [App\Http\Controllers\Meetings\MeetingCon
     ->name('meetings.join');
 
 Route::get('dashboard/programs', [DashboardController::class, 'program'])
-    ->middleware(['auth', 'tenant.subscription', 'current.property'])
+    ->middleware(['auth', 'tenant.subscription', 'current.property', 'permission:manage_dashboard|manage_employee|generate_card|manage_attendance|manage_payroll|manage_finance|manage_documents|manage_branch|manage_notification|manage_setting|manage_reports|manage_warehouse'])
     ->name('dashboard.program');
 Route::middleware(['auth', 'verified', 'tenant.subscription', 'current.property'])->get('/home', function () {
     return view('landing');

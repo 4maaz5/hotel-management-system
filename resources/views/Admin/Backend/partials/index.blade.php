@@ -15,14 +15,14 @@
             <a href="#" class="text-secondary view-employee-btn" data-id="{{ $employee->id }}" title="View">
                 <i class="fas fa-eye"></i>
             </a>
-            @if (Auth::user()->hasRole('super_admin') || Auth::user()->hasRole('manager'))
+            @can('manage_employee')
                 <a href="#" class="text-secondary edit-employee-btn" data-id="{{ $employee->id }}">
                     <i class="fas fa-edit"></i>
                 </a>
                 <a href="#" class="text-danger deleteEmployeeBtn" data-id="{{ $employee->id }}">
                     <i class="fas fa-trash-alt"></i>
                 </a>
-            @endif
+            @endcan
         </td>
     </tr>
 @empty

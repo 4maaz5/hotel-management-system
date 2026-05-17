@@ -11,6 +11,7 @@ use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class RequestController extends Controller
 {
@@ -20,8 +21,7 @@ class RequestController extends Controller
     {
         $user = Auth::user();
 
-        // Products (all users can see all products)
-        $products = Product::all();
+        $products = $this->scopeVisibleProductsForUser(Product::query(), $user)->get();
 
         // Stock requests
         $requestsQuery = StockRequest::with('items.product', 'branch')
@@ -44,7 +44,10 @@ class RequestController extends Controller
         // 2. Validate input
         $request->validate([
             'products' => 'required|array',
-            'products.*.product_id' => 'required|exists:products,id',
+            'products.*.product_id' => [
+                'required',
+                Rule::exists('products', 'id')->where(fn ($query) => $this->scopeVisibleProductsForUser($query, $request->user())),
+            ],
             'products.*.quantity' => 'required|integer|min:1',
         ]);
 
@@ -254,5 +257,17 @@ class RequestController extends Controller
         }
 
         return $query->whereHas('branch', fn ($branchQuery) => $branchQuery->where('company_id', $user->company_id));
+    }
+
+    private function scopeVisibleProductsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->where(function ($productQuery) use ($user) {
+            $productQuery->whereNull('company_id')
+                ->orWhere('company_id', $user->company_id);
+        });
     }
 }

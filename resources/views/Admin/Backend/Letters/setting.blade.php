@@ -129,43 +129,65 @@
                         <form id="letterSettingsForm" method="POST" action="{{ route('dashboard.letter.setting.store') }}"
                             enctype="multipart/form-data">
                             @csrf
+                            <input type="hidden" name="_modal_id" value="letterSettingsModal">
 
                             <div class="row">
 
                                 <!-- Company Name (Arabic) -->
                                 <div class="form-group col-md-6">
-                                    <label>{{ __('dashboard.company_name_ar') }}</label>
-                                    <input type="text" name="company_name_ar" class="form-control" required>
+                                    <label>{{ __('dashboard.company_name_ar') }} <span class="text-danger">*</span></label>
+                                    <input type="text" name="company_name_ar" class="form-control @error('company_name_ar') is-invalid @enderror" value="{{ old('company_name_ar') }}" required>
+                                    @error('company_name_ar')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
 
                                 <!-- Company Logo -->
                                 <div class="form-group col-md-6">
                                     <label>{{ __('dashboard.company_logo') }} ({{ __('dashboard.optional') }})</label>
-                                    <input type="file" name="company_logo" class="form-control" accept="image/*">
+                                    <input type="file" name="company_logo" class="form-control @error('company_logo') is-invalid @enderror" accept=".jpg,.jpeg,.png,.svg">
+                                    <small class="text-muted">{{ __('validation.max.file', ['attribute' => '', 'max' => '2MB']) }}</small>
+                                    @error('company_logo')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
 
                                 <!-- Authorized Sign Name -->
                                 <div class="form-group col-md-6">
-                                    <label>{{ __('dashboard.authorized_sign_name') }}</label>
-                                    <input type="text" name="authorized_sign_name" class="form-control" required>
+                                    <label>{{ __('dashboard.authorized_sign_name') }} <span class="text-danger">*</span></label>
+                                    <input type="text" name="authorized_sign_name" class="form-control @error('authorized_sign_name') is-invalid @enderror" value="{{ old('authorized_sign_name') }}" required>
+                                    @error('authorized_sign_name')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
 
                                 <!-- Authorized Sign Title -->
                                 <div class="form-group col-md-6">
-                                    <label>{{ __('dashboard.authorized_sign_title') }}</label>
-                                    <input type="text" name="authorized_sign_title" class="form-control" required>
+                                    <label>{{ __('dashboard.authorized_sign_title') }} <span class="text-danger">*</span></label>
+                                    <input type="text" name="authorized_sign_title" class="form-control @error('authorized_sign_title') is-invalid @enderror" value="{{ old('authorized_sign_title') }}" required>
+                                    @error('authorized_sign_title')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
 
                                 <!-- Signature Image -->
                                 <div class="form-group col-md-6">
                                     <label>{{ __('dashboard.signature_image') }} ({{ __('dashboard.optional') }})</label>
-                                    <input type="file" name="signature_image" class="form-control" accept="image/*">
+                                    <input type="file" name="signature_image" class="form-control @error('signature_image') is-invalid @enderror" accept=".jpg,.jpeg,.png,.svg">
+                                    <small class="text-muted">{{ __('validation.max.file', ['attribute' => '', 'max' => '2MB']) }}</small>
+                                    @error('signature_image')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
 
                                 <!-- Stamp Image -->
                                 <div class="form-group col-md-6">
                                     <label>{{ __('dashboard.stamp_image') }} ({{ __('dashboard.optional') }})</label>
-                                    <input type="file" name="stamp_image" class="form-control" accept="image/*">
+                                    <input type="file" name="stamp_image" class="form-control @error('stamp_image') is-invalid @enderror" accept=".jpg,.jpeg,.png,.svg">
+                                    <small class="text-muted">{{ __('validation.max.file', ['attribute' => '', 'max' => '2MB']) }}</small>
+                                    @error('stamp_image')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
 
                             </div>
@@ -209,13 +231,17 @@
                                 enctype="multipart/form-data">
                                 @csrf
                                 @method('put')
+                                <input type="hidden" name="_modal_id" value="editLetterSettingModal_{{ $letter->id }}">
                                 <div class="row">
 
                                     <!-- Company Name Arabic -->
                                     <div class="form-group col-md-12">
-                                        <label>{{ __('dashboard.company_name_ar') }}</label>
-                                        <input type="text" name="company_name_ar" class="form-control"
+                                        <label>{{ __('dashboard.company_name_ar') }} <span class="text-danger">*</span></label>
+                                        <input type="text" name="company_name_ar" class="form-control @error('company_name_ar') is-invalid @enderror"
                                             value="{{ old('company_name_ar', $letter->company_name_ar) }}" required>
+                                        @error('company_name_ar')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
 
                                     <!-- Company Logo -->
@@ -225,7 +251,6 @@
                                             ({{ __('dashboard.optional') }})
                                         </label>
 
-                                        {{-- Logo preview (BELOW label) --}}
                                         @if ($letter->company_logo)
                                             <div class="mb-2">
                                                 <img src="{{ asset('storage/' . $letter->company_logo) }}"
@@ -233,24 +258,34 @@
                                             </div>
                                         @endif
 
-                                        <input type="file" name="company_logo" class="form-control" accept="image/*">
+                                        <input type="file" name="company_logo" class="form-control @error('company_logo') is-invalid @enderror" accept=".jpg,.jpeg,.png,.svg">
+                                        <small class="text-muted">{{ __('validation.max.file', ['attribute' => '', 'max' => '2MB']) }}</small>
+                                        @error('company_logo')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
 
 
                                     <!-- Authorized Sign Name -->
                                     <div class="form-group col-md-6">
-                                        <label>{{ __('dashboard.authorized_sign_name') }}</label>
-                                        <input type="text" name="authorized_sign_name" class="form-control"
+                                        <label>{{ __('dashboard.authorized_sign_name') }} <span class="text-danger">*</span></label>
+                                        <input type="text" name="authorized_sign_name" class="form-control @error('authorized_sign_name') is-invalid @enderror"
                                             value="{{ old('authorized_sign_name', $letter->authorized_sign_name) }}"
                                             required>
+                                        @error('authorized_sign_name')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
 
                                     <!-- Authorized Sign Title -->
                                     <div class="form-group col-md-6">
-                                        <label>{{ __('dashboard.authorized_sign_title') }}</label>
-                                        <input type="text" name="authorized_sign_title" class="form-control"
+                                        <label>{{ __('dashboard.authorized_sign_title') }} <span class="text-danger">*</span></label>
+                                        <input type="text" name="authorized_sign_title" class="form-control @error('authorized_sign_title') is-invalid @enderror"
                                             value="{{ old('authorized_sign_title', $letter->authorized_sign_title) }}"
                                             required>
+                                        @error('authorized_sign_title')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
 
                                     <!-- Signature Image -->
@@ -267,8 +302,12 @@
                                             </div>
                                         @endif
 
-                                        <input type="file" name="signature_image" class="form-control"
-                                            accept="image/*">
+                                        <input type="file" name="signature_image" class="form-control @error('signature_image') is-invalid @enderror"
+                                            accept=".jpg,.jpeg,.png,.svg">
+                                        <small class="text-muted">{{ __('validation.max.file', ['attribute' => '', 'max' => '2MB']) }}</small>
+                                        @error('signature_image')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
 
                                     <!-- Stamp Image -->
@@ -285,7 +324,11 @@
                                             </div>
                                         @endif
 
-                                        <input type="file" name="stamp_image" class="form-control" accept="image/*">
+                                        <input type="file" name="stamp_image" class="form-control @error('stamp_image') is-invalid @enderror" accept=".jpg,.jpeg,.png,.svg">
+                                        <small class="text-muted">{{ __('validation.max.file', ['attribute' => '', 'max' => '2MB']) }}</small>
+                                        @error('stamp_image')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
 
                                 </div>
@@ -352,5 +395,25 @@
 
     </div>
 
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        @if ($errors->any())
+            var modalId = '{{ old('_modal_id') }}';
+            if (modalId) {
+                $('#' + modalId).modal('show');
+            } else {
+                @php
+                    $createFields = ['company_name_ar', 'company_logo', 'authorized_sign_name', 'authorized_sign_title', 'signature_image', 'stamp_image'];
+                    $hasCreateErrors = collect($createFields)->contains(fn($f) => $errors->has($f));
+                @endphp
+                @if ($hasCreateErrors)
+                    $('#letterSettingsModal').modal('show');
+                @endif
+            }
+        @endif
+    });
+</script>
+@endpush
 
 @endsection

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Financials;
 use App\Http\Controllers\Controller;
 use App\Models\Bank;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class BankAccountController extends Controller
 {
@@ -40,9 +41,16 @@ class BankAccountController extends Controller
 
     public function store(Request $request)
     {
+        $companyId = $request->user()?->company_id;
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'account_number' => 'required|string|max:150|unique:banks,account_number',
+            'account_number' => [
+                'required',
+                'string',
+                'max:150',
+                Rule::unique('banks', 'account_number')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
             'currency' => 'required|string|max:10',
             'iban' => 'nullable|string|max:150',
             'description' => 'nullable|string',
@@ -75,9 +83,18 @@ class BankAccountController extends Controller
 
     public function update(Request $request, Bank $bank)
     {
+        $companyId = $bank->company_id ?? $request->user()?->company_id;
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'account_number' => 'required|string|max:150|unique:banks,account_number,'.$bank->id,
+            'account_number' => [
+                'required',
+                'string',
+                'max:150',
+                Rule::unique('banks', 'account_number')
+                    ->where(fn ($query) => $query->where('company_id', $companyId))
+                    ->ignore($bank),
+            ],
             'currency' => 'required|string|max:10',
             'iban' => 'nullable|string|max:150',
             'description' => 'nullable|string',

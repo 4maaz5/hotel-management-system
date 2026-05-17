@@ -28,7 +28,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class DataIsolationTestSeeder extends Seeder
@@ -435,7 +435,7 @@ class DataIsolationTestSeeder extends Seeder
 
     private function giveFullAccess(User $user, string $roleName): void
     {
-        $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+        $role = Role::firstOrCreate(['company_id' => null, 'name' => $roleName, 'guard_name' => 'web']);
 
         if ($roleName === 'owner') {
             $role->syncPermissions(Permission::all());

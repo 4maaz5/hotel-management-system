@@ -103,6 +103,13 @@
         </section>
 
         @foreach ($employees as $employee)
+            @php
+                $cardBrand = $employee->brand ?? $employee->branch?->brand;
+                $brandLogo = $cardBrand?->logo ? asset('storage/' . $cardBrand->logo) : asset('img/default-logo.png');
+                $brandName = $cardBrand?->name ?? config('app.name', 'Company');
+                $employeeFullName = trim(($employee->first_name ?? '') . ' ' . ($employee->last_name ?? ''));
+                $departmentName = $employee->department?->name ?? '-';
+            @endphp
             <div class="modal fade" id="viewCardModal__{{ $employee->id }}" tabindex="-1" role="dialog"
                 aria-labelledby="viewCardModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
@@ -115,8 +122,8 @@
 
                                 <!-- Brand Logo -->
                                 <div class="text-center mt-3 brand-logo">
-                                    <img src="{{ $employee->brand->logo ? asset('storage/' . $employee->brand->logo) : asset('img/default-logo.png') }}"
-                                        alt="{{ $employee->brand->name }}"
+                                    <img src="{{ $brandLogo }}"
+                                        alt="{{ $brandName }}"
                                         style="width:190px; height:auto; object-fit:cover;">
                                 </div>
 
@@ -126,7 +133,7 @@
                                         style="display:inline-block; padding:5px; background:white; border-radius:50%; box-shadow:0 8px 20px rgba(0,0,0,0.15);">
                                         <img id="logo-img"
                                             src="{{ $employee->image ? asset('storage/' . $employee->image) : 'https://randomuser.me/api/portraits/men/75.jpg' }}"
-                                            alt="{{ $employee->full_name }}"
+                                            alt="{{ $employeeFullName }}"
                                             style="width:200px; height:200px; border-radius:50%; object-fit:cover;">
                                     </div>
 
@@ -136,7 +143,7 @@
                                 <div class="text-center mt-3 employeeId">
                                     <h4 class="font-weight-bold mb-1" style="color: #3182ce; font-weight:900;">
                                         {{ $employee->first_name . ' ' . $employee->last_name }}
-                                        ({{ $employee->department->name }})
+                                        ({{ $departmentName }})
                                     </h4>
 
                                     <span class="badge"

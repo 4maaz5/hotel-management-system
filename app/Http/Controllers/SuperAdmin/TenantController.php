@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\User;
@@ -10,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class TenantController extends Controller
 {
@@ -180,19 +180,19 @@ class TenantController extends Controller
     protected function ensureTenantRoles(): array
     {
         $owner = Role::firstOrCreate(
-            ['name' => 'owner', 'guard_name' => 'web'],
+            ['company_id' => null, 'name' => 'owner', 'guard_name' => 'web'],
             ['description' => 'Tenant owner', 'status' => 'ACTIVE']
         );
         $manager = Role::firstOrCreate(
-            ['name' => 'manager', 'guard_name' => 'web'],
+            ['company_id' => null, 'name' => 'manager', 'guard_name' => 'web'],
             ['description' => 'Property manager', 'status' => 'ACTIVE']
         );
         $receptionist = Role::firstOrCreate(
-            ['name' => 'receptionist', 'guard_name' => 'web'],
+            ['company_id' => null, 'name' => 'receptionist', 'guard_name' => 'web'],
             ['description' => 'Front desk operator', 'status' => 'ACTIVE']
         );
         $housekeeping = Role::firstOrCreate(
-            ['name' => 'housekeeping', 'guard_name' => 'web'],
+            ['company_id' => null, 'name' => 'housekeeping', 'guard_name' => 'web'],
             ['description' => 'Housekeeping operator', 'status' => 'ACTIVE']
         );
 

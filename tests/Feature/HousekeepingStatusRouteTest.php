@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\BuildsTenantHotelContext;
 use Tests\TestCase;
 
@@ -13,7 +15,12 @@ class HousekeepingStatusRouteTest extends TestCase
 
     public function test_housekeeping_status_page_uses_named_update_route_and_returns_json(): void
     {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        Permission::findOrCreate('unit_status.view', 'web');
+
         [$user, $property, $tenant] = $this->createTenantUserWithProperty();
+        $user->givePermissionTo('unit_status.view');
+
         $unit = $this->createUnitForProperty($property, $tenant, [
             'housekeeping_status' => 'dirty',
         ]);

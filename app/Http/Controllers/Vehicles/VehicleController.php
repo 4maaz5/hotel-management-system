@@ -30,15 +30,24 @@ class VehicleController extends Controller
 
     public function store(Request $request)
     {
+        $user = auth()->user();
+        $branch = Branch::whereKey($request->branch_id)->first();
+        $companyId = $branch?->company_id;
+
         //  Validation
         $request->validate([
             'branch_id' => [
                 'required',
-                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, auth()->user())),
+                $this->branchExistsRuleForUser($user),
             ],
             'name' => 'required|string|max:255',
             'model' => 'nullable|string|max:255',
-            'plate_number' => 'required|string|max:255|unique:vehicles,plate_number',
+            'plate_number' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('vehicles', 'plate_number')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
             'owner_name' => 'nullable|string|max:255',
             'owner_contact' => 'nullable|string|max:255',
             'owner_iqama' => 'nullable|string|max:255',
@@ -53,7 +62,7 @@ class VehicleController extends Controller
         try {
 
             //  Create Vehicle
-            $branch = Branch::findOrFail($request->branch_id);
+            $branch = $this->scopeBranchesForUser(Branch::query(), $user)->findOrFail($request->branch_id);
             $vehicle = Vehicle::create([
                 'company_id' => $branch->company_id,
                 'branch_id' => $request->branch_id,
@@ -108,12 +117,15 @@ class VehicleController extends Controller
 
     public function update(Request $request, Vehicle $vehicle)
     {
-        $vehicle = $this->scopeVehiclesForUser(Vehicle::query(), auth()->user())->findOrFail($vehicle->id);
+        $user = auth()->user();
+        $vehicle = $this->scopeVehiclesForUser(Vehicle::query(), $user)->findOrFail($vehicle->id);
+        $branch = Branch::whereKey($request->branch_id)->first();
+        $companyId = $branch?->company_id;
 
         $request->validate([
             'branch_id' => [
                 'required',
-                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, auth()->user())),
+                $this->branchExistsRuleForUser($user),
             ],
             'name' => 'required|string|max:255',
             'model' => 'nullable|string|max:255',
@@ -121,7 +133,9 @@ class VehicleController extends Controller
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('vehicles', 'plate_number')->ignore($vehicle),
+                Rule::unique('vehicles', 'plate_number')
+                    ->where(fn ($query) => $query->where('company_id', $companyId))
+                    ->ignore($vehicle),
             ],
             'owner_name' => 'nullable|string|max:255',
             'owner_contact' => 'nullable|string|max:255',
@@ -137,7 +151,7 @@ class VehicleController extends Controller
         try {
 
             // Update vehicle info
-            $branch = Branch::findOrFail($request->branch_id);
+            $branch = $this->scopeBranchesForUser(Branch::query(), $user)->findOrFail($request->branch_id);
             $vehicle->update([
                 'company_id' => $branch->company_id,
                 'branch_id' => $request->branch_id,
@@ -236,5 +250,22 @@ class VehicleController extends Controller
         }
 
         return $query->where('company_id', $user->company_id);
+    }
+
+    private function branchExistsRuleForUser($user)
+    {
+        return Rule::exists('branches', 'id')->where(function ($query) use ($user) {
+            if ($this->isSuperAdmin($user)) {
+                return;
+            }
+
+            if ($user->branch_id) {
+                $query->where('id', $user->branch_id);
+
+                return;
+            }
+
+            $query->where('company_id', $user->company_id);
+        });
     }
 }

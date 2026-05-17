@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers\Finance;
 
+use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Budget;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class BudgetController extends Controller
 {
+    use ScopesTenantAccess;
+
     // public function index()
     // {
     //     $user = auth()->user();
@@ -70,7 +74,10 @@ class BudgetController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => [
+                'required',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
             'total_budget' => 'required|numeric|min:0',
             'used_budget' => 'nullable|numeric|min:0',
             'start_date' => 'required|date',
@@ -91,23 +98,36 @@ class BudgetController extends Controller
 
     public function edit($id)
     {
-        $budget = Budget::with('branch')->findOrFail($id);
+        $budget = $this->scopeBudgetsForUser(Budget::with('branch'), Auth::user())->findOrFail($id);
 
         return response()->json($budget);
     }
 
     public function update(Request $request, $id)
     {
-        $budget = Budget::findOrFail($id);
+        $validated = $request->validate([
+            'branch_id' => [
+                'required',
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+            ],
+            'total_budget' => 'required|numeric|min:0',
+            'used_budget' => 'nullable|numeric|min:0',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'status' => 'required|string|in:On Track,At Risk,Over Spent',
+        ]);
+
+        $budget = $this->scopeBudgetsForUser(Budget::query(), $request->user())->findOrFail($id);
+        $usedBudget = $validated['used_budget'] ?? 0;
 
         $budget->update([
-            'branch_id' => $request->branch_id,
-            'total_budget' => $request->total_budget,
-            'used_budget' => $request->used_budget,
-            'remaining_budget' => $request->total_budget - $request->used_budget,
-            'start_date' => $request->start_date,
-            'end_date' => $request->end_date,
-            'status' => $request->status,
+            'branch_id' => $validated['branch_id'],
+            'total_budget' => $validated['total_budget'],
+            'used_budget' => $usedBudget,
+            'remaining_budget' => $validated['total_budget'] - $usedBudget,
+            'start_date' => $validated['start_date'],
+            'end_date' => $validated['end_date'],
+            'status' => $validated['status'],
         ]);
 
         // Load branch relationship for JS
@@ -122,7 +142,7 @@ class BudgetController extends Controller
 
     public function destroy($id)
     {
-        $budget = Budget::findOrFail($id);
+        $budget = $this->scopeBudgetsForUser(Budget::query(), Auth::user())->findOrFail($id);
         $budget->delete();
 
         return response()->json([
@@ -210,5 +230,18 @@ class BudgetController extends Controller
         return response()->json([
             'html' => $html,
         ]);
+    }
+
+    private function scopeBudgetsForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        return $query->whereIn('branch_id', Branch::where('company_id', $user->company_id)->pluck('id'));
     }
 }

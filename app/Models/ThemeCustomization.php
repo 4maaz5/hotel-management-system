@@ -69,7 +69,7 @@ class ThemeCustomization extends Model
             'sidebar_text_color' => '#e8eaf6',
             'sidebar_active_color' => '#3949ab',
             'sidebar_hover_color' => '#303f9f',
-            'topbar_bg_color' => '#A67C37',
+            'topbar_bg_color' => '#1a237e',
             'topbar_text_color' => '#ffffff',
             'text_color' => '#212529',
             'font_family' => 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif',
