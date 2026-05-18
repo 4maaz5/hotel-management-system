@@ -1,4 +1,60 @@
 <div class="main-sidebar sidebar-style-2">
+    @php
+        $employeeMenuActive = request()->routeIs(
+            'dashboard.employee.index',
+            'dashboard.employee.create',
+            'dashboard.employee.edit',
+            'dashboard.employee.update',
+            'dashboard.employee.destroy',
+            'dashboard.employee.show',
+            'dashboard.employee.profile.*',
+            'dashboard.employee.pdf',
+            'dashboard.employee.card',
+            'dashboard.shift.*'
+        );
+        $attendanceMenuActive = request()->routeIs(
+            'dashboard.employee.attendance.*',
+            'dashboard.employee.leave.*',
+            'dashboard.employee.overtime.*',
+            'dashboard.employee.absence.*'
+        );
+        $payrollMenuActive = request()->routeIs('dashboard.employee.payroll.*', 'dashboard.payroll.*');
+        $financeMenuActive = request()->routeIs('dashboard.finance.*');
+        $documentMenuActive = request()->routeIs('dashboard.document.*');
+        $branchInfoActive = request()->routeIs(
+            'dashboard.branch.*',
+            'dashboard.company.index',
+            'dashboard.company.store',
+            'dashboard.company.update',
+            'dashboard.company.filter',
+            'dashboard.company.report',
+            'dashboard.brand.*'
+        );
+        $lettersActive = request()->routeIs('dashboard.company.letter.*', 'dashboard.letter.setting.*');
+        $marketingActive = request()->routeIs('dashboard.company.agent.*', 'dashboard.company.quotation.*', 'dashboard.company.commission.*');
+        $subscriptionActive = request()->routeIs('dashboard.company.platform.*', 'dashboard.company.subscription.*', 'dashboard.company.revenue.*');
+        $clientActive = request()->routeIs('dashboard.company.client.*', 'dashboard.company.contract.*');
+        $vehicleActive = request()->routeIs('dashboard.company.vehicle.*', 'dashboard.company.driver.*', 'dashboard.company.accident.*');
+        $projectActive = request()->routeIs('dashboard.company.project.*', 'dashboard.company.executive.*', 'dashboard.company.tracker.*', 'dashboard.company.expense.*');
+        $companyMenuActive = $branchInfoActive || $lettersActive || $marketingActive || $subscriptionActive || $clientActive || $vehicleActive || $projectActive;
+        $notificationMenuActive = request()->routeIs('dashboard.notification.*');
+        $warehouseMenuActive = request()->routeIs(
+            'dashboard.warehouse.*',
+            'dashboard.warehouses.*',
+            'dashboard.room.*',
+            'dashboard.category.*',
+            'dashboard.product.*',
+            'dashboard.products.*',
+            'dashboard.inventory.*',
+            'dashboard.inventories.*',
+            'dashboard.requests.*'
+        );
+        $chatMenuActive = request()->is('chatify*') || request()->routeIs('dashboard.meetings.*');
+        $settingsMenuActive = request()->routeIs('dashboard.setting.*');
+        $reportsMenuActive = request()->routeIs('dashboard.finance.report', 'dashboard.employee.payroll.dashboard', 'dashboard.employee.attendance.dashboard');
+        $activeLink = fn (bool $active) => $active ? 'active text-secondary fw-bold' : '';
+        $openMenu = fn (bool $active) => $active ? 'display: block;' : '';
+    @endphp
     <aside id="sidebar-wrapper">
         <div class="sidebar-brand">
 
@@ -38,19 +94,19 @@
 
             @can('manage_employee')
                 <li class="menu-header">{{ __('dashboard.employee_management') }}</li>
-                <li class="dropdown {{ request()->is('dashboard/employee*') ? 'active' : '' }}">
+                <li class="dropdown {{ $employeeMenuActive ? 'active' : '' }}">
 
                     <a href="#"
-                        class="menu-toggle nav-link has-dropdown {{ request()->is('dashboard/employee*') ? 'text-secondary fw-bold' : '' }}">
+                        class="menu-toggle nav-link has-dropdown {{ $employeeMenuActive ? 'text-secondary fw-bold' : '' }}">
                         <i data-feather="users"
-                            class="{{ request()->is('dashboard/employee*') ? 'text-secondary' : '' }}"></i>
+                            class="{{ $employeeMenuActive ? 'text-secondary' : '' }}"></i>
                         <span>{{ __('dashboard.employee_management') }}</span>
                     </a>
 
 
 
 
-                    <ul class="dropdown-menu" style="{{ request()->is('dashboard/employee*') ? 'display: block;' : '' }}">
+                    <ul class="dropdown-menu" style="{{ $openMenu($employeeMenuActive) }}">
                         <li>
                             <a class="nav-link {{ request()->routeIs('dashboard.employee.index') ? 'active text-secondary fw-bold' : '' }}"
                                 href="{{ route('dashboard.employee.index') }}">
@@ -58,7 +114,7 @@
                             </a>
                         </li>
                         <li>
-                            <a class="nav-link" href="{{ route('dashboard.shift.index') }}">
+                            <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.shift.*')) }}" href="{{ route('dashboard.shift.index') }}">
                                 {{ __('dashboard.shifts') }}
                             </a>
                         </li>
@@ -74,11 +130,11 @@
             @endcan
 
             @can('manage_attendance')
-                <li class="dropdown">
-                    <a href="#" class="menu-toggle nav-link has-dropdown"><i
+                <li class="dropdown {{ $attendanceMenuActive ? 'active' : '' }}">
+                    <a href="#" class="menu-toggle nav-link has-dropdown {{ $attendanceMenuActive ? 'text-secondary fw-bold' : '' }}"><i
                             data-feather="clock"></i><span>{{ __('dashboard.attendance_and_leave') }}</span></a>
                     <ul class="dropdown-menu"
-                        style="{{ request()->is('dashboard/attendance/dashboard*') || request()->is('dashboard/attendance*') || request()->is('dashboard/leaves*') || request()->is('dashboard/overtime*') || request()->is('dashboard/attendance/absent*') ? 'display: block;' : '' }}">
+                        style="{{ $openMenu($attendanceMenuActive) }}">
 
                         <li>
                             <a class="nav-link {{ request()->routeIs('dashboard.employee.attendance.dashboard') ? 'active text-secondary fw-bold' : '' }}"
@@ -121,14 +177,13 @@
                 </li>
             @endcan
 
-            <li class="dropdown">
-                @can('manage_payroll')
+            @can('manage_payroll')
                 <li class="menu-header">{{ __('dashboard.finance') }}</li>
-                <li class="dropdown">
-                    <a href="#" class="menu-toggle nav-link has-dropdown"><i
+                <li class="dropdown {{ $payrollMenuActive ? 'active' : '' }}">
+                    <a href="#" class="menu-toggle nav-link has-dropdown {{ $payrollMenuActive ? 'text-secondary fw-bold' : '' }}"><i
                             data-feather="dollar-sign"></i><span>{{ __('dashboard.payroll_and_salary') }}</span></a>
                     <ul class="dropdown-menu"
-                        style="{{ request()->is('dashboard/payroll/dashboard*') || request()->is('dashboard/payroll*') ? 'display: block;' : '' }}">
+                        style="{{ $openMenu($payrollMenuActive) }}">
 
                         <li>
                             <a class="nav-link {{ request()->routeIs('dashboard.employee.payroll.dashboard') ? 'active text-secondary fw-bold' : '' }}"
@@ -145,7 +200,7 @@
                         </li>
 
                         <li>
-                            <a class="nav-link" href="{{ route('dashboard.payroll.salary') }}">
+                            <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.payroll.salary')) }}" href="{{ route('dashboard.payroll.salary') }}">
                                 {{ __('dashboard.salary_management') }}
                             </a>
                         </li>
@@ -161,10 +216,10 @@
                 </li>
             @endcan
             @can('manage_finance')
-                <li class="dropdown">
-                    <a href="#" class="menu-toggle nav-link has-dropdown"><i
+                <li class="dropdown {{ $financeMenuActive ? 'active' : '' }}">
+                    <a href="#" class="menu-toggle nav-link has-dropdown {{ $financeMenuActive ? 'text-secondary fw-bold' : '' }}"><i
                             data-feather="credit-card"></i><span>{{ __('dashboard.finance_and_account') }}</span></a>
-                    <ul class="dropdown-menu" style="{{ request()->is('dashboard/finance*') ? 'display: block;' : '' }}">
+                    <ul class="dropdown-menu" style="{{ $openMenu($financeMenuActive) }}">
 
                         <li>
                             <a class="nav-link {{ request()->routeIs('dashboard.finance.index') ? 'active text-secondary fw-bold' : '' }}"
@@ -201,13 +256,13 @@
                             </a>
                         </li>
                         <li>
-                            <a class="nav-link" href="{{ route('dashboard.finance.commission.index') }}">
+                            <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.finance.commission.*')) }}" href="{{ route('dashboard.finance.commission.index') }}">
                                 {{ __('dashboard.commission_report') }}
                             </a>
                         </li>
                         @if (Auth::user()->hasRole('super_admin'))
                             <li>
-                                <a class="nav-link" href="{{ route('dashboard.finance.partner.index') }}">
+                                <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.finance.partner.index', 'dashboard.finance.partner.store', 'dashboard.finance.partner.update', 'dashboard.finance.partner.delete')) }}" href="{{ route('dashboard.finance.partner.index') }}">
                                     {{ __('dashboard.company_partners') }}
                                 </a>
                             </li>
@@ -215,7 +270,7 @@
 
 
                             <li>
-                                <a class="nav-link" href="{{ route('dashboard.finance.partner.report') }}">
+                                <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.finance.partner.report', 'dashboard.finance.partner.reportView')) }}" href="{{ route('dashboard.finance.partner.report') }}">
                                     {{ __('dashboard.partner_reports') }}
                                 </a>
                             </li>
@@ -227,14 +282,13 @@
             @endcan
 
 
-            <li class="dropdown">
-                @can('manage_documents')
+            @can('manage_documents')
                 <li class="menu-header">{{ __('dashboard.documents_and_branch') }}</li>
-                <li class="dropdown">
+                <li class="dropdown {{ $documentMenuActive ? 'active' : '' }}">
 
-                    <a href="#" class="menu-toggle nav-link has-dropdown"><i
+                    <a href="#" class="menu-toggle nav-link has-dropdown {{ $documentMenuActive ? 'text-secondary fw-bold' : '' }}"><i
                             data-feather="file"></i><span>{{ __('dashboard.document_management') }}</span></a>
-                    <ul class="dropdown-menu" style="{{ request()->is('dashboard/document*') ? 'display: block;' : '' }}">
+                    <ul class="dropdown-menu" style="{{ $openMenu($documentMenuActive) }}">
 
                         <li>
                             <a class="nav-link {{ request()->routeIs('dashboard.document.employee.index') ? 'active text-secondary fw-bold' : '' }}"
@@ -265,20 +319,20 @@
             @endcan
 
             @can('manage_branch')
-                <li class="dropdown">
-                    <a href="#" class="menu-toggle nav-link has-dropdown">
+                <li class="dropdown {{ $companyMenuActive ? 'active' : '' }}">
+                    <a href="#" class="menu-toggle nav-link has-dropdown {{ $companyMenuActive ? 'text-secondary fw-bold' : '' }}">
                         <i data-feather="map-pin"></i>
                         <span>{{ __('dashboard.company_management') }}</span>
                     </a>
 
-                    <ul class="dropdown-menu" style="{{ request()->is('dashboard/branch*') ? 'display: block;' : '' }}">
+                    <ul class="dropdown-menu" style="{{ $openMenu($companyMenuActive) }}">
 
                         <!-- First Nested Dropdown: Branch & Company Info -->
-                        <li class="dropdown">
-                            <a href="#" class="menu-toggle nav-link has-dropdown">
+                        <li class="dropdown {{ $branchInfoActive ? 'active' : '' }}">
+                            <a href="#" class="menu-toggle nav-link has-dropdown {{ $branchInfoActive ? 'text-secondary fw-bold' : '' }}">
                                 {{ __('dashboard.branch_company_info') }}
                             </a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu" style="{{ $openMenu($branchInfoActive) }}">
                                 <li>
                                     <a class="nav-link {{ request()->routeIs('dashboard.branch.dashboard') ? 'active text-secondary fw-bold' : '' }}"
                                         href="{{ route('dashboard.branch.dashboard') }}">
@@ -286,12 +340,12 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.index', 'dashboard.company.store', 'dashboard.company.update', 'dashboard.company.filter')) }}" href="{{ route('dashboard.company.index') }}">
                                         {{ __('dashboard.company_list') }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.brand.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.brand.*')) }}" href="{{ route('dashboard.brand.index') }}">
                                         {{ __('dashboard.brands_list') }}
                                     </a>
                                 </li>
@@ -308,7 +362,7 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.report') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.report')) }}" href="{{ route('dashboard.company.report') }}">
                                         {{ __('dashboard.company_report') }}
                                     </a>
                                 </li>
@@ -316,18 +370,18 @@
                         </li>
 
                         <!-- Second Nested Dropdown: Company Letters -->
-                        <li class="dropdown">
-                            <a href="#" class="menu-toggle nav-link has-dropdown">
+                        <li class="dropdown {{ $lettersActive ? 'active' : '' }}">
+                            <a href="#" class="menu-toggle nav-link has-dropdown {{ $lettersActive ? 'text-secondary fw-bold' : '' }}">
                                 {{ __('dashboard.company_letters') }}
                             </a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu" style="{{ $openMenu($lettersActive) }}">
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.letter.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.letter.*')) }}" href="{{ route('dashboard.company.letter.index') }}">
                                         {{ __('dashboard.company_letter') }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.letter.setting.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.letter.setting.*')) }}" href="{{ route('dashboard.letter.setting.index') }}">
                                         {{ __('dashboard.letter_setting') }}
                                     </a>
                                 </li>
@@ -335,23 +389,23 @@
                         </li>
 
                         <!-- Third Nested Dropdown: Marketing -->
-                        <li class="dropdown">
-                            <a href="#" class="menu-toggle nav-link has-dropdown">
+                        <li class="dropdown {{ $marketingActive ? 'active' : '' }}">
+                            <a href="#" class="menu-toggle nav-link has-dropdown {{ $marketingActive ? 'text-secondary fw-bold' : '' }}">
                                 {{ __('dashboard.marketing') }}
                             </a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu" style="{{ $openMenu($marketingActive) }}">
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.agent.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.agent.*')) }}" href="{{ route('dashboard.company.agent.index') }}">
                                         {{ __('dashboard.create_agent') }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.quotation.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.quotation.*')) }}" href="{{ route('dashboard.company.quotation.index') }}">
                                         {{ __('dashboard.marketing_quotations') }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.commission.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.commission.*')) }}" href="{{ route('dashboard.company.commission.index') }}">
                                         {{ __('dashboard.marketing_commission') }}
                                     </a>
                                 </li>
@@ -359,23 +413,23 @@
                         </li>
 
                         <!-- Fourth Nested Dropdown: Subscription & Platform -->
-                        <li class="dropdown">
-                            <a href="#" class="menu-toggle nav-link has-dropdown">
+                        <li class="dropdown {{ $subscriptionActive ? 'active' : '' }}">
+                            <a href="#" class="menu-toggle nav-link has-dropdown {{ $subscriptionActive ? 'text-secondary fw-bold' : '' }}">
                                 {{ __('dashboard.subscription_management') }}
                             </a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu" style="{{ $openMenu($subscriptionActive) }}">
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.platform.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.platform.*')) }}" href="{{ route('dashboard.company.platform.index') }}">
                                         {{ __('dashboard.subscription_platforms') }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.subscription.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.subscription.*')) }}" href="{{ route('dashboard.company.subscription.index') }}">
                                         {{ __('dashboard.subscription') }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.revenue.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.revenue.*')) }}" href="{{ route('dashboard.company.revenue.index') }}">
                                         {{ __('dashboard.subscription_revenue') }}
                                     </a>
                                 </li>
@@ -383,18 +437,18 @@
                         </li>
 
                         <!-- Fourth Nested Dropdown: Subscription & Platform -->
-                        <li class="dropdown">
-                            <a href="#" class="menu-toggle nav-link has-dropdown">
+                        <li class="dropdown {{ $clientActive ? 'active' : '' }}">
+                            <a href="#" class="menu-toggle nav-link has-dropdown {{ $clientActive ? 'text-secondary fw-bold' : '' }}">
                                 {{ __('dashboard.client_management') }}
                             </a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu" style="{{ $openMenu($clientActive) }}">
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.client.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.client.*')) }}" href="{{ route('dashboard.company.client.index') }}">
                                         {{ __('dashboard.client_list') }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.contract.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.contract.*')) }}" href="{{ route('dashboard.company.contract.index') }}">
                                         {{ __('dashboard.contracts') }}
                                     </a>
                                 </li>
@@ -403,23 +457,23 @@
                         </li>
 
                         <!-- Fifth Nested Dropdown: vehicles & drivers -->
-                        <li class="dropdown">
-                            <a href="#" class="menu-toggle nav-link has-dropdown">
+                        <li class="dropdown {{ $vehicleActive ? 'active' : '' }}">
+                            <a href="#" class="menu-toggle nav-link has-dropdown {{ $vehicleActive ? 'text-secondary fw-bold' : '' }}">
                                 {{ __('dashboard.vehicle_management') }}
                             </a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu" style="{{ $openMenu($vehicleActive) }}">
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.vehicle.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.vehicle.*')) }}" href="{{ route('dashboard.company.vehicle.index') }}">
                                         {{ __('dashboard.vehicle_list') }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.driver.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.driver.*')) }}" href="{{ route('dashboard.company.driver.index') }}">
                                         {{ __('dashboard.driver') }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.accident.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.accident.*')) }}" href="{{ route('dashboard.company.accident.index') }}">
                                         {{ __('dashboard.accidents') }}
                                     </a>
                                 </li>
@@ -427,28 +481,28 @@
                         </li>
 
                         <!-- sixth Nested Dropdown: vehicles & drivers -->
-                        <li class="dropdown">
-                            <a href="#" class="menu-toggle nav-link has-dropdown">
+                        <li class="dropdown {{ $projectActive ? 'active' : '' }}">
+                            <a href="#" class="menu-toggle nav-link has-dropdown {{ $projectActive ? 'text-secondary fw-bold' : '' }}">
                                 {{ __('dashboard.project_management') }}
                             </a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu" style="{{ $openMenu($projectActive) }}">
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.project.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.project.*')) }}" href="{{ route('dashboard.company.project.index') }}">
                                         {{ __('dashboard.project_list') }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.executive.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.executive.*')) }}" href="{{ route('dashboard.company.executive.index') }}">
                                         {{ __('dashboard.project_executives') }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.tracker.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.tracker.*')) }}" href="{{ route('dashboard.company.tracker.index') }}">
                                         {{ __('dashboard.project_trackers') }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="nav-link" href="{{ route('dashboard.company.expense.index') }}">
+                                    <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.company.expense.*')) }}" href="{{ route('dashboard.company.expense.index') }}">
                                         {{ __('dashboard.project_expenses') }}
                                     </a>
                                 </li>
@@ -459,11 +513,11 @@
                 </li>
             @endcan
             @can('manage_notification')
-                <li class="dropdown">
-                    <a href="#" class="menu-toggle nav-link has-dropdown"><i
+                <li class="dropdown {{ $notificationMenuActive ? 'active' : '' }}">
+                    <a href="#" class="menu-toggle nav-link has-dropdown {{ $notificationMenuActive ? 'text-secondary fw-bold' : '' }}"><i
                             data-feather="bell"></i><span>{{ __('dashboard.notification_and_alerts') }}</span></a>
                     <ul class="dropdown-menu"
-                        style="{{ request()->is('dashboard/notification*') ? 'display: block;' : '' }}">
+                        style="{{ $openMenu($notificationMenuActive) }}">
 
                         <li>
                             <a class="nav-link {{ request()->routeIs('dashboard.notification.dashboard') ? 'active text-secondary fw-bold' : '' }}"
@@ -484,54 +538,53 @@
                 </li>
             @endcan
 
-            <li class="dropdown">
-                @can('manage_warehouse')
+            @can('manage_warehouse')
                 <li class="menu-header">{{ __('dashboard.warehouse_management') }}</li>
 
-                <li class="dropdown">
-                    <a href="#" class="menu-toggle nav-link has-dropdown"><i
+                <li class="dropdown {{ $warehouseMenuActive ? 'active' : '' }}">
+                    <a href="#" class="menu-toggle nav-link has-dropdown {{ $warehouseMenuActive ? 'text-secondary fw-bold' : '' }}"><i
                             data-feather="dollar-sign"></i><span>{{ __('dashboard.warehouses') }}</span></a>
                     @if (Auth::user()->hasRole('super_admin') && $pendingStockRequestsCount > 0)
                         <span class="badge badge-danger" style="margin-left:150px;margin-top:-80px;">
                             {{ $pendingStockRequestsCount }}
                         </span>
                     @endif
-                    <ul class="dropdown-menu" style="">
+                    <ul class="dropdown-menu" style="{{ $openMenu($warehouseMenuActive) }}">
 
 
                         @can('manage_warehouse')
                             <li>
-                                <a class="nav-link" href="{{ route('dashboard.warehouse.index') }}"
+                                <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.warehouse.*', 'dashboard.warehouses.*')) }}" href="{{ route('dashboard.warehouse.index') }}"
                                     style="margin-top:-10px;">
                                     {{ __('dashboard.warehouse') }}
                                 </a>
                             </li>
 
                             <li>
-                                <a class="nav-link" href="{{ route('dashboard.room.index') }}">
+                                <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.room.*')) }}" href="{{ route('dashboard.room.index') }}">
                                     {{ __('dashboard.create_section') }}
                                 </a>
                             </li>
                             <li>
-                                <a class="nav-link" href="{{ route('dashboard.category.index') }}">
+                                <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.category.*')) }}" href="{{ route('dashboard.category.index') }}">
                                     {{ __('dashboard.type') }}
                                 </a>
                             </li>
                             <li>
-                                <a class="nav-link" href="{{ route('dashboard.product.index') }}">
+                                <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.product.*', 'dashboard.products.*')) }}" href="{{ route('dashboard.product.index') }}">
                                     {{ __('dashboard.classify') }}
                                 </a>
                             </li>
 
 
                             <li>
-                                <a class="nav-link" href="{{ route('dashboard.inventory.index') }}">
+                                <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.inventory.*', 'dashboard.inventories.*')) }}" href="{{ route('dashboard.inventory.index') }}">
                                     {{ __('dashboard.inventory') }}
                                 </a>
                             </li>
                         @endcan
                         <li>
-                            <a class="nav-link" href="{{ route('dashboard.requests.index') }}">
+                            <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.requests.*')) }}" href="{{ route('dashboard.requests.index') }}">
                                 {{ __('dashboard.request') }}
 
                             </a>
@@ -548,20 +601,19 @@
             @endcan
 
             @can('manage_dashboard')
-            <li class="dropdown">
                 <li class="menu-header">{{ __('dashboard.chatting_system') }}</li>
-            <li class="dropdown">
-                <a href="#" class="menu-toggle nav-link has-dropdown"><i
+            <li class="dropdown {{ $chatMenuActive ? 'active' : '' }}">
+                <a href="#" class="menu-toggle nav-link has-dropdown {{ $chatMenuActive ? 'text-secondary fw-bold' : '' }}"><i
                         data-feather="message-circle"></i><span>{{ __('dashboard.chatting') }}</span></a>
-                <ul class="dropdown-menu" style="">
+                <ul class="dropdown-menu" style="{{ $openMenu($chatMenuActive) }}">
 
                     <li>
-                        <a class="nav-link" href="{{ url('/chatify') }}">
+                        <a class="nav-link {{ $activeLink(request()->is('chatify*')) }}" href="{{ url('/chatify') }}">
                             {{ __('dashboard.start_chat') }}
                         </a>
                     </li>
                     <li>
-                        <a class="nav-link" href="{{ route('dashboard.meetings.index') }}">
+                        <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.meetings.*')) }}" href="{{ route('dashboard.meetings.index') }}">
                             {{ __('dashboard.meetings') }}
                         </a>
                     </li>
@@ -570,15 +622,14 @@
             </li>
             @endcan
 
-            <li class="dropdown">
-                @can('manage_setting')
+            @can('manage_setting')
                 <li class="menu-header">{{ __('dashboard.setting_and_reports') }}</li>
-                <li class="dropdown">
+                <li class="dropdown {{ $settingsMenuActive ? 'active' : '' }}">
 
-                    <a href="#" class="menu-toggle nav-link has-dropdown"><i
+                    <a href="#" class="menu-toggle nav-link has-dropdown {{ $settingsMenuActive ? 'text-secondary fw-bold' : '' }}"><i
                             data-feather="settings"></i><span>{{ __('dashboard.setting_and_configuration') }}</span></a>
                     <ul class="dropdown-menu"
-                        style="{{ request()->is('dashboard/setting*') ? 'display: block;' : '' }}">
+                        style="{{ $openMenu($settingsMenuActive) }}">
 
                         <li>
                             <a class="nav-link {{ request()->routeIs('dashboard.setting.general.index') ? 'active text-secondary fw-bold' : '' }}"
@@ -608,11 +659,11 @@
             @endcan
 
             @can('manage_reports')
-                <li class="dropdown">
-                    <a href="#" class="menu-toggle nav-link has-dropdown"><i
+                <li class="dropdown {{ $reportsMenuActive ? 'active' : '' }}">
+                    <a href="#" class="menu-toggle nav-link has-dropdown {{ $reportsMenuActive ? 'text-secondary fw-bold' : '' }}"><i
                             data-feather="bar-chart-2"></i><span>{{ __('dashboard.report_and_analytics') }}</span></a>
                     <ul class="dropdown-menu"
-                        style="{{ request()->is('dashboard/employee/payroll') || request()->is('dashboard/finance*') || request()->is('dashboard/employee/attendance*') ? 'display: block;' : '' }}">
+                        style="{{ $openMenu($reportsMenuActive) }}">
 
                         <li>
                             <a class="nav-link {{ request()->routeIs('dashboard.employee.payroll.dashboard') ? 'active text-secondary fw-bold' : '' }}"
@@ -622,7 +673,7 @@
                         </li>
 
                         <li>
-                            <a class="nav-link {{ request()->routeIs('dashboard.finance.index') ? 'active text-secondary fw-bold' : '' }}"
+                            <a class="nav-link {{ $activeLink(request()->routeIs('dashboard.finance.report')) }}"
                                 href="{{ route('dashboard.finance.report') }}">
                                 {{ __('dashboard.financial_reports') }}
                             </a>
@@ -652,10 +703,6 @@
                     <i data-feather="calendar"></i>
                     <span>{{ __('Reservation Dashboard') }}</span>
                 </a>
-            </li>
-
-            </li>
-            </li>
             </li>
         </ul>
     </aside>

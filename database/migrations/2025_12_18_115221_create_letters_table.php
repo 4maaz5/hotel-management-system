@@ -32,7 +32,7 @@ return new class extends Migration
 
             $table->enum('letter_type', ['open', 'warning']);
 
-            $table->string('letter_number', 50)->unique();
+            $table->string('letter_number', 50);
 
             $table->string('subject', 255);
 
@@ -49,6 +49,8 @@ return new class extends Migration
             $table->string('pdf_path')->nullable();
 
             $table->timestamps();
+
+            $table->unique(['company_id', 'letter_number'], 'letters_company_letter_number_unique');
         });
 
     }

@@ -41,8 +41,8 @@
                                                 <tr>
                                                     <td>{{ $contract->contract_number }}</td>
                                                     <td>{{ $contract->title }}</td>
-                                                    <td>{{ $contract->client->company_name }}</td>
-                                                    <td>{{ $contract->company->legal_name }}</td>
+                                                    <td>{{ $contract->client?->company_name ?? '-' }}</td>
+                                                    <td>{{ $contract->company?->legal_name ?? $contract->company?->name ?? '-' }}</td>
                                                     <td>{{ ucfirst($contract->status) }}</td>
                                                     <td>{{ $contract->start_date->format('d-m-Y') }}</td>
                                                     <td>{{ $contract->end_date->format('d-m-Y') }}</td>
@@ -336,7 +336,7 @@
                                             <div class="mt-2">
                                                 <strong>{{ __('dashboard.all_doc') }}:</strong>
                                                 <div class="d-flex flex-wrap mt-1">
-                                                    @foreach (json_decode($contract->file) as $file)
+                                                    @foreach (json_decode($contract->file) ?? [] as $file)
                                                         <div class="me-2 mb-1">
                                                             <a href="{{ asset('storage/' . $file) }}" target="_blank">
                                                                 <i class="fas fa-file-alt text-secondary"></i>

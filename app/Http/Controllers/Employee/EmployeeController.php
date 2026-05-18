@@ -79,34 +79,34 @@ class EmployeeController extends Controller
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
                 'email' => [
-                    'nullable',
+                    'required',
                     'email',
                     Rule::unique('employees', 'email')->where(fn ($query) => $query->where('company_id', $requestedCompanyId)),
                 ],
-                'phone' => 'nullable|string|max:20',
-                'designation' => 'nullable|string|max:255',
+                'phone' => 'required|string|max:20',
+                'designation' => 'required|string|max:255',
                 'company_id' => [
-                    'nullable',
+                    'required',
                     $this->isSuperAdmin($authUser)
                         ? Rule::exists('companies', 'id')
                         : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $authUser->company_id)),
                 ],
                 'brand_id' => [
-                    'nullable',
+                    'required',
                     Rule::exists('brands', 'id')->when(
                         ! $this->isSuperAdmin($authUser),
                         fn ($rule) => $rule->where(fn ($query) => $query->where('company_id', $authUser->company_id))
                     ),
                 ],
                 'department_id' => [
-                    'nullable',
+                    'required',
                     Rule::exists('departments', 'id')->when(
                         $branchIds !== null,
                         fn ($rule) => $rule->where(fn ($query) => $query->whereIn('branch_id', $branchIds))
                     ),
                 ],
                 'branch_id' => [
-                    'nullable',
+                    'required',
                     Rule::exists('branches', 'id')->when(
                         $branchIds !== null,
                         fn ($rule) => $rule->where(fn ($query) => $query->whereIn('id', $branchIds))
@@ -119,16 +119,65 @@ class EmployeeController extends Controller
                         fn ($rule) => $rule->where(fn ($query) => $query->whereIn('branch_id', $branchIds))
                     ),
                 ],
-                'join_date' => 'nullable|date',
+                'join_date' => 'required|date',
                 'residence_expiry_date' => 'nullable|date',
-                'bank_name' => 'nullable|string|max:255',
-                'account_number' => 'nullable|string|max:50',
-                'base_salary' => 'nullable|numeric|min:0',
+                'bank_name' => 'required|string|max:255',
+                'account_number' => 'required|string|max:50',
+                'base_salary' => 'required|numeric|min:0',
                 'salary_type' => 'nullable|string|in:monthly,weekly,daily,hourly',
                 'commission_percentage' => 'nullable|numeric|min:0|max:100',
                 'commission_type' => 'nullable|string|in:sales,profit,revenue',
                 'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
                 'overtime' => 'nullable|numeric|min:0',
+                'insurances' => 'nullable|array',
+                'insurances.*.provider_name' => 'required_with:insurances|string|max:255',
+                'insurances.*.policy_number' => 'required_with:insurances|string|max:255',
+                'insurances.*.policy_type' => 'nullable|string|max:255',
+                'insurances.*.start_date' => 'required_with:insurances|date',
+                'insurances.*.expiry_date' => 'required_with:insurances|date',
+                'insurances.*.premium_amount' => 'nullable|numeric|min:0',
+                'insurances.*.document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'documents' => 'nullable|array',
+                'documents.*.type' => 'required_with:documents|string|max:255',
+                'documents.*.document_number' => 'nullable|string|max:255',
+                'documents.*.issue_date' => 'nullable|date',
+                'documents.*.expiry_date' => 'nullable|date',
+                'documents.*.document_path' => 'required_with:documents|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            ], [
+                'first_name.required' => 'First name is required.',
+                'last_name.required' => 'Last name is required.',
+                'email.required' => 'Email address is required.',
+                'email.email' => 'Please enter a valid email address.',
+                'email.unique' => 'This email is already used by an employee in this tenant.',
+                'phone.required' => 'Phone number is required.',
+                'designation.required' => 'Designation is required.',
+                'company_id.required' => 'Please select a company.',
+                'company_id.exists' => 'The selected company is not available for your tenant.',
+                'brand_id.required' => 'Please select a brand.',
+                'brand_id.exists' => 'The selected brand is not available for your tenant.',
+                'branch_id.required' => 'Please select a branch.',
+                'branch_id.exists' => 'The selected branch is not available for your tenant.',
+                'department_id.required' => 'Please select a department.',
+                'department_id.exists' => 'The selected department is not available for your tenant.',
+                'shift_id.exists' => 'The selected shift is not available for your tenant.',
+                'join_date.required' => 'Join date is required.',
+                'bank_name.required' => 'Bank name is required.',
+                'account_number.required' => 'Account number is required.',
+                'base_salary.required' => 'Base salary is required.',
+                'base_salary.numeric' => 'Base salary must be a valid number.',
+                'image.image' => 'Employee image must be a valid image file.',
+                'image.mimes' => 'Employee image must be JPG, JPEG, PNG, or WEBP.',
+                'image.max' => 'Employee image must not be larger than 2MB.',
+                'insurances.*.provider_name.required_with' => 'Insurance provider name is required.',
+                'insurances.*.policy_number.required_with' => 'Insurance policy number is required.',
+                'insurances.*.start_date.required_with' => 'Insurance start date is required.',
+                'insurances.*.expiry_date.required_with' => 'Insurance expiry date is required.',
+                'insurances.*.document.mimes' => 'Insurance document must be a PDF, JPG, JPEG, or PNG file.',
+                'insurances.*.document.max' => 'Insurance document must not be larger than 2MB.',
+                'documents.*.type.required_with' => 'Document type is required.',
+                'documents.*.document_path.required_with' => 'Document file is required.',
+                'documents.*.document_path.mimes' => 'Document file must be a PDF, JPG, JPEG, or PNG file.',
+                'documents.*.document_path.max' => 'Document file must not be larger than 2MB.',
             ]);
 
             if (! $this->isSuperAdmin($authUser)) {
@@ -278,6 +327,7 @@ class EmployeeController extends Controller
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
+                'message' => 'Please fix the highlighted employee form errors.',
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {

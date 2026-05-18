@@ -14,7 +14,7 @@ class ProjectController extends Controller
 
     public function index()
     {
-        $projects = $this->scopeProjectsForUser(Project::query(), Auth::user())->get();
+        $projects = $this->scopeProjectsForUser(Project::withoutGlobalScopes(), Auth::user())->get();
 
         return view('Admin.Backend.Projects.index', compact('projects'));
     }
@@ -63,7 +63,7 @@ class ProjectController extends Controller
 
     public function update(Request $request, $project)
     {
-        $project = $this->scopeProjectsForUser(Project::query(), Auth::user())->findOrFail($project);
+        $project = $this->scopeProjectsForUser(Project::withoutGlobalScopes(), Auth::user())->findOrFail($project);
 
         // 1. Validate request
         $request->validate([
@@ -109,7 +109,7 @@ class ProjectController extends Controller
 
     public function destroy($id)
     {
-        $project = $this->scopeProjectsForUser(Project::query(), Auth::user())->findOrFail($id);
+        $project = $this->scopeProjectsForUser(Project::withoutGlobalScopes(), Auth::user())->findOrFail($id);
 
         // Delete files from storage
         if ($project->documents) {
@@ -135,7 +135,10 @@ class ProjectController extends Controller
         $query->where('company_id', $this->companyIdForUser($user));
 
         if ($user->branch_id) {
-            $query->where('branch_id', $user->branch_id);
+            $query->where(function ($query) use ($user) {
+                $query->whereNull('branch_id')
+                    ->orWhere('branch_id', $user->branch_id);
+            });
         }
 
         return $query;

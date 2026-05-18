@@ -9,9 +9,9 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Letter;
 use App\Models\LetterSetting;
+use App\Support\TenantContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -21,22 +21,13 @@ class LetterController extends Controller
 
     public function index()
     {
-        // Generate sequential letter number
-        $year = now()->year;
-
-        // Get last number used this year
-        $lastNumber = Letter::whereYear('created_at', $year)
-            ->max(DB::raw("CAST(SUBSTRING_INDEX(letter_number, '-', -1) AS UNSIGNED)"));
-
-        $nextNumber = str_pad(($lastNumber + 1), 5, '0', STR_PAD_LEFT);
-
-        $generatedLetterNumber = "LTR-{$year}-{$nextNumber}";
+        $generatedLetterNumber = $this->nextLetterNumber();
         $user = auth()->user();
-        $companies = $user->isSuperAdmin() ? Company::all() : Company::whereKey($user->company_id)->get();
+        $companies = $this->isGlobalSuperAdmin($user) ? Company::all() : Company::whereKey($this->tenantIdForUser($user))->get();
         $branches = $this->scopeBranchesForUser(Branch::query(), $user)->get();
         $employees = $this->scopeEmployeesForUser(Employee::query(), $user)->get();
         $letters = $this->scopeLettersForUser(Letter::with('letterSetting'), $user)->get();
-        $letterSettings = LetterSetting::all();
+        $letterSettings = $this->scopeLetterSettingsForUser(LetterSetting::query(), $user)->latest()->get();
 
         return view('Admin.Backend.Letters.company', compact('companies', 'branches', 'employees', 'generatedLetterNumber', 'letters', 'letterSettings'));
     }
@@ -47,9 +38,9 @@ class LetterController extends Controller
         $request->validate([
             'company_id' => [
                 'required',
-                $this->isSuperAdmin($request->user())
+                $this->isGlobalSuperAdmin($request->user())
                     ? Rule::exists('companies', 'id')
-                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $this->tenantIdForUser($request->user()))),
             ],
             'branch_id' => [
                 'required',
@@ -59,7 +50,10 @@ class LetterController extends Controller
                 'nullable',
                 Rule::exists('employees', 'id')->where(fn ($query) => $this->scopeEmployeesForUser($query, $request->user())),
             ],
-            'letter_setting_id' => 'nullable|exists:letter_settings,id',
+            'letter_setting_id' => [
+                'nullable',
+                Rule::exists('letter_settings', 'id')->where(fn ($query) => $this->scopeLetterSettingsForUser($query, $request->user())),
+            ],
             'letter_type' => 'required|in:open,warning',
             'subject' => 'required|string|max:255',
             'body' => 'required|string',
@@ -67,12 +61,7 @@ class LetterController extends Controller
             'receiver_name' => 'nullable|string',
         ]);
 
-        //  Generate Letter Number
-        $year = now()->year;
-        $lastNumber = Letter::whereYear('created_at', $year)
-            ->max(DB::raw("CAST(SUBSTRING_INDEX(letter_number, '-', -1) AS UNSIGNED)"));
-        $nextNumber = str_pad(($lastNumber + 1), 5, '0', STR_PAD_LEFT);
-        $letterNumber = "LTR-{$year}-{$nextNumber}";
+        $letterNumber = $this->nextLetterNumber();
 
         //  Prepare data
         $data = $request->only([
@@ -85,8 +74,8 @@ class LetterController extends Controller
             'receiver_name',
             'letter_setting_id',
         ]);
-        if (! $this->isSuperAdmin($request->user())) {
-            $data['company_id'] = $request->user()->company_id;
+        if (! $this->isGlobalSuperAdmin($request->user())) {
+            $data['company_id'] = $this->tenantIdForUser($request->user());
         }
         $data['letter_number'] = $letterNumber;
         $data['gregorian_date'] = now();
@@ -114,9 +103,9 @@ class LetterController extends Controller
         $request->validate([
             'company_id' => [
                 'required',
-                $this->isSuperAdmin($request->user())
+                $this->isGlobalSuperAdmin($request->user())
                     ? Rule::exists('companies', 'id')
-                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $request->user()->company_id)),
+                    : Rule::exists('companies', 'id')->where(fn ($query) => $query->where('id', $this->tenantIdForUser($request->user()))),
             ],
             'branch_id' => [
                 'required',
@@ -126,7 +115,10 @@ class LetterController extends Controller
                 'nullable',
                 Rule::exists('employees', 'id')->where(fn ($query) => $this->scopeEmployeesForUser($query, $request->user())),
             ],
-            'letter_setting_id' => 'nullable|exists:letter_settings,id',
+            'letter_setting_id' => [
+                'nullable',
+                Rule::exists('letter_settings', 'id')->where(fn ($query) => $this->scopeLetterSettingsForUser($query, $request->user())),
+            ],
             'letter_type' => 'required|in:open,warning',
             'subject' => 'required|string|max:255',
             'body' => 'required|string',
@@ -147,8 +139,8 @@ class LetterController extends Controller
             'receiver_name',
             'letter_setting_id',
         ]);
-        if (! $this->isSuperAdmin($request->user())) {
-            $data['company_id'] = $request->user()->company_id;
+        if (! $this->isGlobalSuperAdmin($request->user())) {
+            $data['company_id'] = $this->tenantIdForUser($request->user());
         }
 
         $letter->update($data);
@@ -174,7 +166,7 @@ class LetterController extends Controller
 
     private function scopeLettersForUser($query, $user)
     {
-        if ($this->isSuperAdmin($user)) {
+        if ($this->isGlobalSuperAdmin($user)) {
             return $query;
         }
 
@@ -182,12 +174,12 @@ class LetterController extends Controller
             return $query->where('branch_id', $user->branch_id);
         }
 
-        return $query->where('company_id', $user->company_id);
+        return $query->where('company_id', $this->tenantIdForUser($user));
     }
 
     private function scopeEmployeesForUser($query, $user)
     {
-        if ($this->isSuperAdmin($user)) {
+        if ($this->isGlobalSuperAdmin($user)) {
             return $query;
         }
 
@@ -195,6 +187,41 @@ class LetterController extends Controller
             return $query->where('branch_id', $user->branch_id);
         }
 
-        return $query->where('company_id', $user->company_id);
+        return $query->where('company_id', $this->tenantIdForUser($user));
+    }
+
+    private function scopeLetterSettingsForUser($query, $user)
+    {
+        if ($this->isGlobalSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->where('company_id', $this->tenantIdForUser($user));
+    }
+
+    private function tenantIdForUser($user): ?int
+    {
+        return app(TenantContext::class)->id() ?: $user?->company_id;
+    }
+
+    private function isGlobalSuperAdmin($user): bool
+    {
+        return ! $this->tenantIdForUser($user)
+            && ($user?->hasRole('super_admin') || $user?->role === 'super_admin');
+    }
+
+    private function nextLetterNumber(): string
+    {
+        $year = now()->year;
+        $lastNumber = Letter::whereYear('created_at', $year)
+            ->pluck('letter_number')
+            ->map(function ($letterNumber) {
+                $parts = explode('-', (string) $letterNumber);
+
+                return (int) end($parts);
+            })
+            ->max() ?? 0;
+
+        return sprintf('LTR-%s-%05d', $year, $lastNumber + 1);
     }
 }

@@ -4,14 +4,18 @@ namespace App\Http\Controllers\Notifications;
 
 use App\Http\Controllers\Controller;
 use App\Mail\DepartmentNotificationMail;
+use App\Models\Branch;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\SystemNotification;
 use App\Models\User;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 
 class DashboardController extends Controller
 {
@@ -19,13 +23,16 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        $query = \DB::table('system_notifications');
+        $query = $this->scopeNotificationsForUser(\DB::table('system_notifications'), $user);
 
         // Apply role-based filtering only if NOT super_admin
-        if (! $user->hasRole('super_admin')) {
+        if (! $this->isGlobalSuperAdmin($user)) {
             $query->where(function ($q) use ($user) {
                 // Notifications meant for everyone
                 $q->where('recipient_type', 'all');
+
+                // Department notifications already tenant/branch scoped above.
+                $q->orWhere('recipient_type', 'department');
 
                 // Branch-specific notifications (for managers)
                 if ($user->branch_id && $user->hasRole('manager')) {
@@ -91,12 +98,21 @@ class DashboardController extends Controller
             // 'recipient_type' => 'required|string',
             'status' => 'required|in:pending,sent,failed',
             'department_ids' => 'required|array',
+            'department_ids.*' => [
+                'integer',
+                Rule::exists('departments', 'id')->where(
+                    fn ($query) => $this->scopeDepartmentsForUser($query, $request->user())
+                ),
+            ],
         ]);
 
         $user = $request->user();
 
         // Fetch employees in the selected departments
-        $employees = Employee::whereIn('department_id', $request->department_ids)->get();
+        $employees = $this->scopeEmployeesForUser(
+            Employee::whereIn('department_id', $request->department_ids),
+            $user
+        )->get();
         if ($employees->isEmpty()) {
             return response()->json([
                 'success' => false,
@@ -105,9 +121,17 @@ class DashboardController extends Controller
         }
 
         // Get their linked user accounts
-        $recipients = User::whereIn('id', $employees->pluck('user_id'))
+        $recipients = User::with('employee')
+            ->whereIn('id', $employees->pluck('user_id')->filter())
+            ->when($this->tenantIdForUser($user), fn ($query, $tenantId) => $query->where('company_id', $tenantId))
             // ->role('employee')
             ->get();
+        if ($recipients->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.no_employees_found_in_selected_departments'),
+            ], 422);
+        }
 
         foreach ($recipients as $recipient) {
 
@@ -118,7 +142,7 @@ class DashboardController extends Controller
                 'recipient_type' => 'department',
                 'recipient_id' => null,
                 'status' => $request->status,
-                'department_id' => $recipient->employee->department_id,
+                'department_id' => $recipient->employee?->department_id,
                 'created_by' => $user->id,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -293,7 +317,7 @@ class DashboardController extends Controller
 
     public function destroy($id)
     {
-        $notification = SystemNotification::findOrFail($id);
+        $notification = $this->scopeNotificationsForUser(SystemNotification::query(), request()->user())->findOrFail($id);
         $notification->delete();
 
         return response()->json([
@@ -357,7 +381,7 @@ class DashboardController extends Controller
 
     public function filter(Request $request)
     {
-        $query = SystemNotification::query();
+        $query = $this->scopeNotificationsForUser(SystemNotification::query(), $request->user());
 
         //  Filter by Type (sms, email, system)
         if ($request->type) {
@@ -378,5 +402,73 @@ class DashboardController extends Controller
         return response()->json([
             'html' => $html,
         ]);
+    }
+
+    private function scopeDepartmentsForUser($query, $user)
+    {
+        $tenantId = $this->tenantIdForUser($user);
+
+        if ($this->isGlobalSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        $branchIds = Branch::where('company_id', $tenantId)->pluck('id');
+
+        return $query->where(function ($query) use ($tenantId, $branchIds) {
+            $query->where('company_id', $tenantId)
+                ->orWhereIn('branch_id', $branchIds);
+        });
+    }
+
+    private function scopeEmployeesForUser($query, $user)
+    {
+        $tenantId = $this->tenantIdForUser($user);
+
+        if ($this->isGlobalSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        $branchIds = Branch::where('company_id', $tenantId)->pluck('id');
+
+        return $query->where(function ($query) use ($tenantId, $branchIds) {
+            $query->where('company_id', $tenantId)
+                ->orWhereIn('branch_id', $branchIds);
+        });
+    }
+
+    private function scopeNotificationsForUser($query, $user)
+    {
+        $tenantId = $this->tenantIdForUser($user);
+
+        if ($this->isGlobalSuperAdmin($user)) {
+            return $query;
+        }
+
+        $departmentIds = $this->scopeDepartmentsForUser(Department::query(), $user)->pluck('id');
+
+        return $query->where(function ($query) use ($tenantId, $departmentIds) {
+            $query->whereIn('department_id', $departmentIds)
+                ->orWhereIn('created_by', User::query()
+                    ->where('company_id', $tenantId)
+                    ->select('id'));
+        });
+    }
+
+    private function tenantIdForUser($user): ?int
+    {
+        return app(TenantContext::class)->id() ?: $user?->company_id;
+    }
+
+    private function isGlobalSuperAdmin($user): bool
+    {
+        return ! $this->tenantIdForUser($user) && $user->hasRole('super_admin');
     }
 }

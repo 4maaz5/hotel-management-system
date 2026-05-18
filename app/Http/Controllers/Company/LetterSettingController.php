@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\LetterSetting;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -11,7 +12,9 @@ class LetterSettingController extends Controller
 {
     public function index()
     {
-        $letterSettings = LetterSetting::latest()->get();
+        $letterSettings = $this->scopeLetterSettingsForUser(LetterSetting::query(), auth()->user())
+            ->latest()
+            ->get();
 
         return view('Admin.Backend.Letters.setting', compact('letterSettings'));
     }
@@ -43,6 +46,7 @@ class LetterSettingController extends Controller
             'authorized_sign_name',
             'authorized_sign_title',
         ]);
+        $data['company_id'] = $this->tenantIdForUser($request->user());
 
         // Handle file uploads
         if ($request->hasFile('company_logo')) {
@@ -89,7 +93,7 @@ class LetterSettingController extends Controller
         ]);
 
         // Find record
-        $letter = LetterSetting::findOrFail($id);
+        $letter = $this->scopeLetterSettingsForUser(LetterSetting::query(), $request->user())->findOrFail($id);
 
         // Prepare data
         $data = $request->only([
@@ -142,7 +146,7 @@ class LetterSettingController extends Controller
     public function destroy($letterSetting)
     {
         // Find the letter setting record
-        $setting = LetterSetting::findOrFail($letterSetting);
+        $setting = $this->scopeLetterSettingsForUser(LetterSetting::query(), auth()->user())->findOrFail($letterSetting);
 
         // Delete images if they exist
         if ($setting->company_logo && Storage::disk('public')->exists($setting->company_logo)) {
@@ -162,5 +166,25 @@ class LetterSettingController extends Controller
 
         // Return response
         return redirect()->back()->with('delete', __('messages.letter_settings_deleted_successfully'));
+    }
+
+    private function scopeLetterSettingsForUser($query, $user)
+    {
+        if ($this->isGlobalSuperAdmin($user)) {
+            return $query;
+        }
+
+        return $query->where('company_id', $this->tenantIdForUser($user));
+    }
+
+    private function tenantIdForUser($user): ?int
+    {
+        return app(TenantContext::class)->id() ?: $user?->company_id;
+    }
+
+    private function isGlobalSuperAdmin($user): bool
+    {
+        return ! $this->tenantIdForUser($user)
+            && ($user?->hasRole('super_admin') || $user?->role === 'super_admin');
     }
 }

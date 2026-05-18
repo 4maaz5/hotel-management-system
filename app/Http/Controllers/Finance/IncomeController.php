@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\Income;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -71,34 +72,10 @@ class IncomeController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('super_admin')) {
-            // Super admin sees everything
-            $branches = Branch::all();
-            $employees = Employee::all();
-            $incomes = Income::with(['branch', 'employee'])->latest()->get();
-            $incomeCards = Income::with(['branch', 'employee'])->latest()->paginate(10);
-        } else {
-            $branchId = $user->branch_id;
-
-            if ($branchId) {
-                $branches = Branch::where('id', $branchId)->get();
-                $employees = Employee::where('branch_id', $branchId)->get();
-                $incomes = Income::with(['branch', 'employee'])
-                    ->where('branch_id', $branchId)
-                    ->latest()
-                    ->get();
-                $incomeCards = Income::with(['branch', 'employee'])
-                    ->where('branch_id', $branchId)
-                    ->latest()
-                    ->paginate(10);
-            } else {
-                $branches = Branch::where('company_id', $user->company_id)->get();
-                $branchIds = $branches->pluck('id');
-                $employees = Employee::where('company_id', $user->company_id)->get();
-                $incomes = Income::with(['branch', 'employee'])->whereIn('branch_id', $branchIds)->latest()->get();
-                $incomeCards = Income::with(['branch', 'employee'])->whereIn('branch_id', $branchIds)->latest()->paginate(10);
-            }
-        }
+        $branches = $this->scopeBranchesForIncome(Branch::with(['company', 'brand']), $user)->get();
+        $employees = $this->scopeEmployeesForUser(Employee::query(), $user)->get();
+        $incomes = $this->scopeIncomesForUser(Income::with(['branch', 'employee']), $user)->latest()->get();
+        $incomeCards = $this->scopeIncomesForUser(Income::with(['branch', 'employee']), $user)->latest()->paginate(10);
 
         return view('Admin.Backend.Income.index', compact(
             'incomes',
@@ -110,10 +87,14 @@ class IncomeController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge([
+            'branch_id' => $this->branchIdFromRequest($request),
+        ]);
+
         $validated = $request->validate([
             'branch_id' => [
                 'required',
-                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForIncome($query, $request->user())),
             ],
             'type' => 'required|string',
             'employee_id' => [
@@ -153,10 +134,14 @@ class IncomeController extends Controller
 
     public function update(Request $request, $id)
     {
+        $request->merge([
+            'branch_id' => $this->branchIdFromRequest($request),
+        ]);
+
         $validated = $request->validate([
             'branch_id' => [
                 'required',
-                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForUser($query, $request->user())),
+                Rule::exists('branches', 'id')->where(fn ($query) => $this->scopeBranchesForIncome($query, $request->user())),
             ],
             'type' => 'required|string',
             'amount' => 'required|numeric|min:0',
@@ -238,7 +223,7 @@ class IncomeController extends Controller
 
         $query = $this->scopeIncomesForUser(Income::with('branch'), $user);
 
-        if ($user->hasRole('super_admin')) {
+        if (! $this->tenantIdForUser($user) && $user->hasRole('super_admin')) {
             // Super admin → can filter by branch if provided
             if ($request->filled('branch_id')) {
                 $query->where('branch_id', $request->branch_id);
@@ -280,7 +265,7 @@ class IncomeController extends Controller
 
     private function scopeIncomesForUser($query, $user)
     {
-        if ($this->isSuperAdmin($user)) {
+        if (! $this->tenantIdForUser($user) && $this->isSuperAdmin($user)) {
             return $query;
         }
 
@@ -288,14 +273,14 @@ class IncomeController extends Controller
             return $query->where('branch_id', $user->branch_id);
         }
 
-        $branchIds = Branch::where('company_id', $user->company_id)->pluck('id');
+        $branchIds = Branch::where('company_id', $this->tenantIdForUser($user))->pluck('id');
 
         return $query->whereIn('branch_id', $branchIds);
     }
 
     private function scopeEmployeesForUser($query, $user)
     {
-        if ($this->isSuperAdmin($user)) {
+        if (! $this->tenantIdForUser($user) && $this->isSuperAdmin($user)) {
             return $query;
         }
 
@@ -303,6 +288,35 @@ class IncomeController extends Controller
             return $query->where('branch_id', $user->branch_id);
         }
 
-        return $query->where('company_id', $user->company_id);
+        return $query->where('company_id', $this->tenantIdForUser($user));
+    }
+
+    private function scopeBranchesForIncome($query, $user)
+    {
+        if (! $this->tenantIdForUser($user) && $this->isSuperAdmin($user)) {
+            return $query;
+        }
+
+        if ($user->branch_id) {
+            return $query->where('id', $user->branch_id);
+        }
+
+        return $query->where('company_id', $this->tenantIdForUser($user));
+    }
+
+    private function branchIdFromRequest(Request $request): ?int
+    {
+        if ($request->filled('branch_id')) {
+            return $request->integer('branch_id');
+        }
+
+        $branches = $this->scopeBranchesForIncome(Branch::query(), $request->user())->pluck('id');
+
+        return $branches->count() === 1 ? (int) $branches->first() : null;
+    }
+
+    private function tenantIdForUser($user): ?int
+    {
+        return app(TenantContext::class)->id() ?: $user?->company_id;
     }
 }

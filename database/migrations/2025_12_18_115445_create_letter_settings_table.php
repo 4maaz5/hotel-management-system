@@ -14,6 +14,11 @@ return new class extends Migration
         Schema::create('letter_settings', function (Blueprint $table) {
             $table->id();
 
+            $table->foreignId('company_id')
+                ->nullable()
+                ->constrained('companies')
+                ->nullOnDelete();
+
             $table->string('company_name_ar');
 
             $table->string('company_logo')->nullable();

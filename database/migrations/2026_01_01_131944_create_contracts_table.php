@@ -16,13 +16,15 @@ return new class extends Migration
             $table->foreignId('client_id')->constrained('clients')->cascadeOnDelete();
             $table->foreignId('company_id')->constrained('companies')->cascadeOnDelete();
             $table->string('title');
-            $table->string('contract_number')->unique();
+            $table->string('contract_number');
             $table->string('file')->nullable();
             $table->enum('status', ['active', 'near_expiry', 'expired', 'ended'])->default('active');
             $table->date('start_date');
             $table->date('end_date');
             $table->text('remarks')->nullable();
             $table->timestamps();
+
+            $table->unique(['company_id', 'contract_number'], 'contracts_company_contract_number_unique');
         });
 
     }

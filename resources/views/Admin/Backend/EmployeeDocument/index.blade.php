@@ -24,13 +24,15 @@
                             <p class="mb-1"><strong>{{ __('dashboard.expiry_date') }}:</strong>
                                 {{ $doc->expiration_date ?? '-' }}</p>
 
-                            @if ($doc->file_path)
+                            @if ($doc->hasStoredFile())
                                 <div class="text-center my-2">
                                     <a href="#" class="view-pdf"
                                         data-file="{{ route('dashboard.document.employee.file', $doc) }}" title="View PDF">
                                         <i class="fas fa-file-pdf text-secondary" style="font-size: 28px;"></i>
                                     </a>
                                 </div>
+                            @elseif ($doc->file_path)
+                                <span class="text-muted small">{{ __('File missing') }}</span>
                             @else
                                 -
                             @endif
