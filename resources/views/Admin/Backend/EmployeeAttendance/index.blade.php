@@ -243,11 +243,9 @@
                                         ({{ __('dashboard.hours') }})</label>
                                     <input type="number"
                                         class="form-control @error('overtime_hours') is-invalid @enderror"
-                                        id="overtime_hours" name="overtime_hours" value="{{ old('overtime_hours') }}">
+                                        id="overtime_hours" name="overtime_hours" value="{{ old('overtime_hours')??'0' }}">
                                     <span class="text-danger error-text overtime_hours_error"></span>
                                 </div>
-
-
 
                             </div>
 

@@ -143,8 +143,8 @@
 
                             <div class="form-row">
 
-                                {{-- Branch Selection for Super Admin --}}
-                                @if (Auth::user()->hasRole('super_admin'))
+                                {{-- Branch Selection --}}
+                                @if ($branches->count() > 1)
                                     <div class="form-group col-md-6">
                                         <label class="form-label">{{ __('dashboard.branch') }}:</label>
                                         <label
@@ -160,7 +160,7 @@
                                         </select>
                                     </div>
                                 @else
-                                    <input type="hidden" name="branch_id" value="{{ Auth::user()->branch_id }}">
+                                    <input type="hidden" name="branch_id" value="{{ $branches->first()?->id }}">
                                 @endif
 
                                 {{-- Income Type --}}
@@ -251,8 +251,8 @@
                         <div class="modal-body">
                             <div class="form-row">
 
-                                {{-- Branch (Only for Super Admin) --}}
-                                @if (Auth::user()->hasRole('super_admin'))
+                                {{-- Branch --}}
+                                @if ($branches->count() > 1)
                                     <div class="form-group col-md-6">
                                         <label class="form-label">{{ __('dashboard.branch') }}:</label>
                                         <label
@@ -269,7 +269,7 @@
                                     </div>
                                 @else
                                     <input type="hidden" name="branch_id" id="editBranchId"
-                                        value="{{ Auth::user()->branch_id }}">
+                                        value="{{ $branches->first()?->id }}">
                                 @endif
 
                                 <div class="form-group col-md-6">
@@ -384,7 +384,7 @@
                 let formData = form.serialize();
 
                 // Clear old validation messages and invalid styles
-                form.find('.text-danger').remove();
+                form.find('.income-validation-error').remove();
                 form.find('.is-invalid').removeClass('is-invalid');
 
                 $.ajax({
@@ -420,7 +420,7 @@
                                 if (input.length > 0) {
                                     input.addClass('is-invalid');
                                     input.after(
-                                        `<span class="text-danger">${messages[0]}</span>`
+                                        `<span class="text-danger income-validation-error">${messages[0]}</span>`
                                     );
                                 }
                             });
@@ -483,13 +483,13 @@
                 },
 
                 error: function(xhr) {
-                    form.find(".text-danger").remove();
+                    form.find(".income-validation-error").remove();
 
                     if (xhr.status === 422) {
                         $.each(xhr.responseJSON.errors, function(key, messages) {
                             let input = form.find(`[name="${key}"]`);
                             if (input.length) {
-                                input.after(`<span class="text-danger">${messages[0]}</span>`);
+                                input.after(`<span class="text-danger income-validation-error">${messages[0]}</span>`);
                             }
                         });
                     } else {

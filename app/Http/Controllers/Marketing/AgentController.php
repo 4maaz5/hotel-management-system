@@ -21,7 +21,7 @@ class AgentController extends Controller
         $companies = $this->isSuperAdmin($user) ? Company::all() : Company::whereKey($this->companyIdForUser($user))->get();
         $brands = $this->scopeBrandsForUser(Brand::query(), $user)->get();
         $branches = $this->scopeBranchesForUser(Branch::query(), $user)->get();
-        $agents = $this->scopeMarketingAgentsForUser(MarketingAgent::query(), $user)->get();
+        $agents = $this->scopeMarketingAgentsForUser(MarketingAgent::withoutGlobalScopes(), $user)->get();
 
         return view('Admin.Backend.Marketing.index', compact('companies', 'brands', 'branches', 'agents'));
     }
@@ -56,7 +56,7 @@ class AgentController extends Controller
     public function update(Request $request, MarketingAgent $marketingAgent)
     {
         $user = auth()->user();
-        $marketingAgent = $this->scopeMarketingAgentsForUser(MarketingAgent::query(), $user)->findOrFail($marketingAgent->id);
+        $marketingAgent = $this->scopeMarketingAgentsForUser(MarketingAgent::withoutGlobalScopes(), $user)->findOrFail($marketingAgent->id);
         $companyId = $this->inputCompanyId($request, $user);
 
         //  Validate input
@@ -83,7 +83,7 @@ class AgentController extends Controller
 
     public function destroy(MarketingAgent $marketingAgent)
     {
-        $marketingAgent = $this->scopeMarketingAgentsForUser(MarketingAgent::query(), auth()->user())->findOrFail($marketingAgent->id);
+        $marketingAgent = $this->scopeMarketingAgentsForUser(MarketingAgent::withoutGlobalScopes(), auth()->user())->findOrFail($marketingAgent->id);
         $marketingAgent->delete();
 
         return redirect()->back()->with('delete', __('messages.marketing_agent_deleted_successfully'));

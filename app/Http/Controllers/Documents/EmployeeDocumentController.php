@@ -285,15 +285,19 @@ class EmployeeDocumentController extends Controller
 
         $path = $document->{$column};
 
-        abort_unless($path && Storage::disk(self::DOCUMENT_DISK)->exists($path), 404);
+        $disk = $column === 'image'
+            ? $document->storedImageDisk()
+            : $document->storedFileDisk();
+
+        abort_unless($path && $disk, 404);
 
         $filename = basename($path);
 
         if ($request->boolean('download')) {
-            return Storage::disk(self::DOCUMENT_DISK)->download($path, $filename);
+            return Storage::disk($disk)->download($path, $filename);
         }
 
-        return Storage::disk(self::DOCUMENT_DISK)->response($path, $filename, [
+        return Storage::disk($disk)->response($path, $filename, [
             'Cache-Control' => 'private, no-store',
         ]);
     }

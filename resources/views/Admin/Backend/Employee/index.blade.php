@@ -193,7 +193,7 @@
                                                 </option>
                                             @endforeach
                                         </select>
-                                        <span class="text-danger error-text shift_error"></span>
+                                        <span class="text-danger error-text shift_id_error"></span>
                                     </div>
                                 </div>
 
@@ -208,7 +208,7 @@
                                                 <option value="{{ $company->id }}">{{ $company->name }}</option>
                                             @endforeach
                                         </select>
-                                        <span class="text-danger error-text branch_id_error"></span>
+                                        <span class="text-danger error-text company_id_error"></span>
                                     </div>
                                     <div class="form-group col-md-6">
                                         <label>{{ __('dashboard.select_brand') }} <span
@@ -220,7 +220,7 @@
                                                 <option value="{{ $brand->id }}">{{ $brand->name }}</option>
                                             @endforeach
                                         </select>
-                                        <span class="text-danger error-text department_id_error"></span>
+                                        <span class="text-danger error-text brand_id_error"></span>
                                     </div>
                                 </div>
 
@@ -263,7 +263,7 @@
                                     <div class="form-group col-md-4">
                                         <label>{{ __('dashboard.overtime') }}</label>
                                         <input type="hour" class="form-control" name="overtime">
-                                        <span class="text-danger error-text residence_expiry_date_error"></span>
+                                        <span class="text-danger error-text overtime_error"></span>
                                     </div>
                                 </div>
 
@@ -329,17 +329,19 @@
                                             <div class="form-group col-md-4">
                                                 <label>{{ __('dashboard.provider_name') }} <span
                                                         class="text-danger">*</span></label>
-                                                <input type="text" class="form-control"
-                                                    name="insurances[0][provider_name]"
-                                                    placeholder="{{ __('dashboard.provider_name') }}" required>
-                                            </div>
+                                            <input type="text" class="form-control"
+                                                name="insurances[0][provider_name]"
+                                                placeholder="{{ __('dashboard.provider_name') }}" required>
+                                            <span class="text-danger error-text"></span>
+                                        </div>
                                             <div class="form-group col-md-4">
                                                 <label>{{ __('dashboard.policy_number') }} <span
                                                         class="text-danger">*</span></label>
-                                                <input type="text" class="form-control"
-                                                    name="insurances[0][policy_number]"
-                                                    placeholder="{{ __('dashboard.policy_number') }}" required>
-                                            </div>
+                                            <input type="text" class="form-control"
+                                                name="insurances[0][policy_number]"
+                                                placeholder="{{ __('dashboard.policy_number') }}" required>
+                                            <span class="text-danger error-text"></span>
+                                        </div>
                                             <div class="form-group col-md-4">
                                                 <label>{{ __('dashboard.policy_type') }}</label>
                                                 <select class="form-control" name="insurances[0][policy_type]">
@@ -354,26 +356,30 @@
                                             <div class="form-group col-md-4">
                                                 <label>{{ __('dashboard.start_date') }} <span
                                                         class="text-danger">*</span></label>
-                                                <input type="date" class="form-control"
-                                                    name="insurances[0][start_date]" required>
-                                            </div>
+                                            <input type="date" class="form-control"
+                                                name="insurances[0][start_date]" required>
+                                            <span class="text-danger error-text"></span>
+                                        </div>
                                             <div class="form-group col-md-4">
                                                 <label>{{ __('dashboard.expiry_date') }} <span
                                                         class="text-danger">*</span></label>
-                                                <input type="date" class="form-control"
-                                                    name="insurances[0][expiry_date]" required>
-                                            </div>
+                                            <input type="date" class="form-control"
+                                                name="insurances[0][expiry_date]" required>
+                                            <span class="text-danger error-text"></span>
+                                        </div>
                                             <div class="form-group col-md-4">
                                                 <label>{{ __('dashboard.premium_amount') }}</label>
-                                                <input type="number" class="form-control"
-                                                    name="insurances[0][premium_amount]"
-                                                    placeholder="{{ __('dashboard.premium_amount') }}" step="0.01">
-                                            </div>
+                                            <input type="number" class="form-control"
+                                                name="insurances[0][premium_amount]"
+                                                placeholder="{{ __('dashboard.premium_amount') }}" step="0.01">
+                                            <span class="text-danger error-text"></span>
+                                        </div>
                                         </div>
                                         <div class="form-group">
                                             <label>{{ __('dashboard.insurance_document') }}</label>
                                             <input type="file" class="form-control" name="insurances[0][document]"
                                                 accept=".pdf,.jpg,.jpeg,.png">
+                                            <span class="text-danger error-text"></span>
                                         </div>
                                     </div>
                                 </div>
@@ -413,28 +419,33 @@
                                                     <option value="Experience">{{ __('dashboard.experience') }}</option>
                                                     <option value="Other">{{ __('dashboard.other') }}</option>
                                                 </select>
+                                                <span class="text-danger error-text"></span>
                                             </div>
                                             <div class="form-group col-md-3">
                                                 <label>{{ __('dashboard.document_number') }}</label>
                                                 <input type="text" class="form-control"
                                                     name="documents[0][document_number]"
                                                     placeholder="{{ __('dashboard.document_number') }}">
+                                                <span class="text-danger error-text"></span>
                                             </div>
                                             <div class="form-group col-md-3">
                                                 <label>{{ __('dashboard.issue_date') }}</label>
                                                 <input type="date" class="form-control"
                                                     name="documents[0][issue_date]">
+                                                <span class="text-danger error-text"></span>
                                             </div>
                                             <div class="form-group col-md-3">
                                                 <label>{{ __('dashboard.expiry_date') }}</label>
                                                 <input type="date" class="form-control"
                                                     name="documents[0][expiry_date]">
+                                                <span class="text-danger error-text"></span>
                                             </div>
                                         </div>
                                         <div class="form-group">
                                             <label>{{ __('dashboard.file') }}</label>
                                             <input type="file" class="form-control" name="documents[0][document_path]"
                                                 accept=".pdf,.jpg,.jpeg,.png">
+                                            <span class="text-danger error-text"></span>
                                         </div>
                                     </div>
                                 </div>
@@ -483,6 +494,7 @@
                                             <input type="number" class="form-control" name="commission_percentage"
                                                 placeholder="{{ __('dashboard.commission_percentage') }}" step="0.01"
                                                 min="0" max="100">
+                                            <span class="text-danger error-text commission_percentage_error"></span>
                                         </div>
                                         <div class="form-group col-md-6">
                                             <label>{{ __('dashboard.commission_type') }}</label>
@@ -491,6 +503,7 @@
                                                 <option value="profit">{{ __('dashboard.profit') }}</option>
                                                 <option value="revenue">{{ __('dashboard.revenue') }}</option>
                                             </select>
+                                            <span class="text-danger error-text commission_type_error"></span>
                                         </div>
                                     </div>
                                 </div>
@@ -931,11 +944,100 @@
                         if (!$(this).val().trim()) {
                             isValid = false;
                             $(this).addClass('is-invalid');
+                            $(this).closest('.form-group').find('.error-text').first().text('This field is required');
+                        }
+                    });
+                }
+
+                if (step === 3) {
+                    $('#step3 [name$="[document_path]"]').each(function() {
+                        if (!this.files || !this.files.length) {
+                            isValid = false;
+                            $(this).addClass('is-invalid');
+                            $(this).closest('.form-group').find('.error-text').first().text('Document file is required');
                         }
                     });
                 }
 
                 return isValid;
+            }
+
+            function fieldNameFromErrorKey(field) {
+                const parts = field.split('.');
+
+                return parts[0] + parts.slice(1).map(part => `[${part}]`).join('');
+            }
+
+            function stepForField(field) {
+                if (field.startsWith('insurances.')) {
+                    return 2;
+                }
+
+                if (field.startsWith('documents.')) {
+                    return 3;
+                }
+
+                if ([
+                    'base_salary',
+                    'salary_type',
+                    'is_commission',
+                    'commission_percentage',
+                    'commission_type'
+                ].includes(field)) {
+                    return 4;
+                }
+
+                return 1;
+            }
+
+            function showValidationErrors(errors) {
+                let firstStep = null;
+                let firstField = null;
+                let errorMessage = 'Please fix the following errors:<br>';
+
+                $('.error-text').text('');
+                $('.is-invalid').removeClass('is-invalid');
+
+                $.each(errors, function(field, messages) {
+                    const message = messages[0] || 'Invalid value.';
+                    const inputName = fieldNameFromErrorKey(field);
+                    const $field = $(`[name="${inputName}"]`).first();
+                    const targetStep = stepForField(field);
+
+                    if (firstStep === null) {
+                        firstStep = targetStep;
+                    }
+
+                    if ($field.length) {
+                        $field.addClass('is-invalid');
+                        $field.closest('.form-group').find('.error-text').first().text(message);
+
+                        if (!firstField) {
+                            firstField = $field;
+                        }
+                    } else {
+                        $('.' + field + '_error').first().text(message);
+                    }
+
+                    errorMessage += `&bull; ${message}<br>`;
+                });
+
+                if (firstStep) {
+                    currentStep = firstStep;
+                    updateStepDisplay();
+                }
+
+                if (firstField && firstField.length) {
+                    setTimeout(function() {
+                        firstField.trigger('focus');
+                    }, 150);
+                }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validation Error',
+                    html: errorMessage
+                });
             }
 
             // Email validation helper
@@ -964,10 +1066,12 @@
                     <div class="form-group col-md-4">
                         <label>{{ __('dashboard.provider_name') }} <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="insurances[${insuranceCount}][provider_name]"  required>
+                        <span class="text-danger error-text"></span>
                     </div>
                     <div class="form-group col-md-4">
                         <label>{{ __('dashboard.policy_number') }} <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="insurances[${insuranceCount}][policy_number]"  required>
+                        <span class="text-danger error-text"></span>
                     </div>
                     <div class="form-group col-md-4">
                         <label>{{ __('dashboard.policy_type') }}</label>
@@ -983,19 +1087,23 @@
                     <div class="form-group col-md-4">
                         <label>{{ __('dashboard.start_date') }} <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" name="insurances[${insuranceCount}][start_date]" required>
+                        <span class="text-danger error-text"></span>
                     </div>
                     <div class="form-group col-md-4">
                         <label>{{ __('dashboard.expiry_date') }} <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" name="insurances[${insuranceCount}][expiry_date]" required>
+                        <span class="text-danger error-text"></span>
                     </div>
                     <div class="form-group col-md-4">
                         <label>{{ __('dashboard.premium_amount') }}</label>
                         <input type="number" class="form-control" name="insurances[${insuranceCount}][premium_amount]" placeholder="{{ __('dashboard.premium_amount') }}" step="0.01">
+                        <span class="text-danger error-text"></span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>{{ __('dashboard.insurance_document') }}</label>
                     <input type="file" class="form-control" name="insurances[${insuranceCount}][document]" accept=".pdf,.jpg,.jpeg,.png">
+                    <span class="text-danger error-text"></span>
                 </div>
             </div>
         `;
@@ -1061,23 +1169,28 @@
                                                     <option value="Experience">{{ __('dashboard.experience') }}</option>
                             <option value="Other">{{ __('dashboard.other') }}</option>
                         </select>
+                        <span class="text-danger error-text"></span>
                     </div>
                     <div class="form-group col-md-3">
                         <label>{{ __('dashboard.document_number') }}</label>
                         <input type="text" class="form-control" name="documents[${documentCount}][document_number]" >
+                        <span class="text-danger error-text"></span>
                     </div>
                     <div class="form-group col-md-3">
                         <label>{{ __('dashboard.issue_date') }}</label>
                         <input type="date" class="form-control" name="documents[${documentCount}][issue_date]">
+                        <span class="text-danger error-text"></span>
                     </div>
                     <div class="form-group col-md-3">
                         <label>{{ __('dashboard.expiry_date') }}</label>
                         <input type="date" class="form-control" name="documents[${documentCount}][expiry_date]">
+                        <span class="text-danger error-text"></span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>{{ __('dashboard.file') }}</label>
                     <input type="file" class="form-control" name="documents[${documentCount}][document_path]" accept=".pdf,.jpg,.jpeg,.png">
+                    <span class="text-danger error-text"></span>
                 </div>
             </div>
         `;
@@ -1247,6 +1360,8 @@
                         $btn.prop('disabled', false).html(originalText);
 
                         if (xhr.status === 422) {
+                            showValidationErrors(xhr.responseJSON.errors || {});
+                            return;
                             // Validation errors
                             const errors = xhr.responseJSON.errors;
                             let errorMessage = 'Please fix the following errors:<br>';
@@ -1259,7 +1374,7 @@
                                 'Method not allowed. Please check if the route exists.',
                                 'error');
                         } else {
-                            Swal.fire('Error', 'Failed to save employee. Please try again.',
+                            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to save employee. Please try again.',
                                 'error');
                         }
                     }
@@ -1290,6 +1405,37 @@
             }
         });
 
+        function loadEditEmployeeDepartments(branchId, selectedDepartmentId = null) {
+            const modal = $('#editEmployeeModal');
+            const departmentSelect = modal.find('select[name="department_id"]');
+
+            departmentSelect.html('<option selected disabled>Loading...</option>');
+
+            if (!branchId) {
+                departmentSelect.html('<option selected disabled>Select Departments</option>');
+                return;
+            }
+
+            $.ajax({
+                url: '/branches/' + branchId + '/departments',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    let options = '<option selected disabled>Select Departments</option>';
+
+                    $.each(data, function(index, department) {
+                        const selected = String(department.id) === String(selectedDepartmentId) ? 'selected' : '';
+                        options += `<option value="${department.id}" ${selected}>${department.name}</option>`;
+                    });
+
+                    departmentSelect.html(options);
+                },
+                error: function() {
+                    departmentSelect.html('<option selected disabled>Select Departments</option>');
+                }
+            });
+        }
+
         $(document).on('click', '.edit-employee-btn', function(e) {
             e.preventDefault();
             let id = $(this).data('id');
@@ -1313,7 +1459,7 @@
                         modal.find('select[name="branch_id"]').val(emp.branch_id);
                         modal.find('select[name="company_id"]').val(emp.company_id);
                         modal.find('select[name="brand_id"]').val(emp.brand_id);
-                        modal.find('select[name="department_id"]').val(emp.department_id);
+                        loadEditEmployeeDepartments(emp.branch_id, emp.department_id);
 
                         //  NEW: Set Shift Selected
                         modal.find('select[name="shift_id"]').val(emp.shift_id);
@@ -1346,6 +1492,10 @@
                         'error');
                 }
             });
+        });
+
+        $(document).on('change', '#editEmployeeModal select[name="branch_id"]', function() {
+            loadEditEmployeeDepartments($(this).val());
         });
 
 

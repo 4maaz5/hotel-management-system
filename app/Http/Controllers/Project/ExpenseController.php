@@ -16,7 +16,7 @@ class ExpenseController extends Controller
 
     public function index()
     {
-        $projects = $this->scopeProjectsForUser(Project::query(), auth()->user())->get();
+        $projects = $this->scopeProjectsForUser(Project::withoutGlobalScopes(), auth()->user())->get();
         $expenses = $this->scopeProjectExpensesForUser(ProjectExpense::with('project'), auth()->user())->get();
 
         return view('Admin.Backend.Projects.expense', compact('projects', 'expenses'));
@@ -121,14 +121,22 @@ class ExpenseController extends Controller
         }
 
         if ($user->branch_id) {
-            return $query->where('branch_id', $user->branch_id);
+            return $query->where(function ($query) use ($user) {
+                $query->whereNull('branch_id')
+                    ->orWhere('branch_id', $user->branch_id);
+            });
         }
 
-        return $query->where('company_id', $user->company_id);
+        return $query->where('company_id', $this->companyIdForUser($user));
     }
 
     private function scopeProjectExpensesForUser($query, $user)
     {
         return $query->whereHas('project', fn ($projectQuery) => $this->scopeProjectsForUser($projectQuery, $user));
+    }
+
+    private function companyIdForUser($user): ?int
+    {
+        return $user?->company_id ?: $user?->branch?->company_id;
     }
 }

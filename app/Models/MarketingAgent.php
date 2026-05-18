@@ -3,13 +3,12 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
-use App\Models\Concerns\BelongsToCurrentProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class MarketingAgent extends Model
 {
-    use BelongsToCurrentProperty, BelongsToTenant, HasFactory;
+    use BelongsToTenant, HasFactory;
 
     protected $table = 'marketing_agents';
 

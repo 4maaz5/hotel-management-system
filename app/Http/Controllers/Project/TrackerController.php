@@ -17,7 +17,7 @@ class TrackerController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $projects = $this->scopeProjectsForUser(Project::query(), $user)->get();
+        $projects = $this->scopeProjectsForUser(Project::withoutGlobalScopes(), $user)->get();
         $trackers = $this->scopeTrackersForUser(ProjectTracker::with('project'), $user)->get();
 
         return view('Admin.Backend.Projects.tracker', compact('projects', 'trackers'));
@@ -55,7 +55,10 @@ class TrackerController extends Controller
         $query->where('company_id', $this->companyIdForUser($user));
 
         if ($user->branch_id) {
-            $query->where('branch_id', $user->branch_id);
+            $query->where(function ($query) use ($user) {
+                $query->whereNull('branch_id')
+                    ->orWhere('branch_id', $user->branch_id);
+            });
         }
 
         return $query;
@@ -80,7 +83,10 @@ class TrackerController extends Controller
             $query->where('company_id', $this->companyIdForUser($user));
 
             if ($user->branch_id) {
-                $query->where('branch_id', $user->branch_id);
+                $query->where(function ($query) use ($user) {
+                    $query->whereNull('branch_id')
+                        ->orWhere('branch_id', $user->branch_id);
+                });
             }
         });
     }

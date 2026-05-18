@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Branch;
 use App\Models\Employee;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -252,8 +253,18 @@ class MarkAttendanceController extends Controller
         $user = Auth::user();
         $query = Attendance::with('employee');
 
+        $tenantId = app(TenantContext::class)->id() ?: $user->company_id;
+
         // Branch-based access
-        if ($user->hasRole('super_admin')) {
+        if ($tenantId) {
+            $query->whereHas('employee', function ($q) use ($tenantId, $user) {
+                $q->where('company_id', $tenantId);
+
+                if ($user->branch_id) {
+                    $q->where('branch_id', $user->branch_id);
+                }
+            });
+        } elseif ($user->hasRole('super_admin')) {
             if ($request->filled('branch_id')) {
                 $query->whereHas('employee', function ($q) use ($request) {
                     $q->where('branch_id', $request->branch_id);

@@ -17,7 +17,7 @@ class QuotationController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $marketingAgents = $this->scopeMarketingAgentsForUser(MarketingAgent::query(), $user)->get();
+        $marketingAgents = $this->scopeMarketingAgentsForUser(MarketingAgent::withoutGlobalScopes(), $user)->get();
         $branches = $this->scopeBranchesForUser(Branch::query(), $user)->get();
         $quotations = $this->scopeMarketingQuotationsForUser(MarketingQuotation::withoutGlobalScopes()->with(['agent', 'branch']), $user)->get();
         $nextQuotationNumber = 'Q'.str_pad(
