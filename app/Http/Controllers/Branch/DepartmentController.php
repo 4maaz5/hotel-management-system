@@ -48,6 +48,7 @@ class DepartmentController extends Controller
         }
 
         $department = Department::create([
+            'company_id' => $branch->company_id,
             'branch_id' => $request->branch_id,
             'name' => $request->dep_name,
         ]);
@@ -88,6 +89,7 @@ class DepartmentController extends Controller
         }
 
         $department->update([
+            'company_id' => $branch->company_id,
             'name' => $request->dep_name,
             'branch_id' => $request->branch_id,
         ]);

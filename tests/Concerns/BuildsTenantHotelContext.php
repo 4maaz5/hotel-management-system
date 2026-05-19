@@ -65,7 +65,7 @@ trait BuildsTenantHotelContext
             'location' => 'Riyadh',
             'manager' => 'Manager',
             'email' => 'branch-'.Str::lower(Str::random(8)).'@example.com',
-            'phone' => '+966500000000',
+            'phone' => '+9665'.random_int(10000000, 99999999),
             'status' => 'Active',
         ]);
 
@@ -131,7 +131,7 @@ trait BuildsTenantHotelContext
             'is_active' => true,
         ]);
 
-        UnitTypeCustomization::create([
+        $unitTypeCustomization = UnitTypeCustomization::create([
             'company_id' => $tenant->id,
             'unit_type_id' => $unitType->id,
             'name' => "Room {$suffix}",
@@ -171,7 +171,7 @@ trait BuildsTenantHotelContext
             'branch_id' => $property->branch_id,
             'unit_number' => 'U'.Str::upper(Str::random(8)),
             'unit_class_id' => $unitClass->id,
-            'unit_type_id' => $unitType->id,
+            'unit_type_id' => $unitTypeCustomization->id,
             'block_id' => $block->id,
             'floor_id' => $floor->id,
             'base_occupancy' => 4,

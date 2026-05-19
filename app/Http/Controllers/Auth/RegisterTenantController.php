@@ -26,7 +26,7 @@ class RegisterTenantController extends Controller
             'subdomain' => ['required', 'string', 'max:63', 'alpha_dash', 'unique:companies,subdomain'],
             'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 

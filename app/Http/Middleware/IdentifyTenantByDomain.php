@@ -55,18 +55,29 @@ class IdentifyTenantByDomain
 
     protected function extractSubdomain(string $host, string $baseDomain): ?string
     {
-        $suffix = '.'.$baseDomain;
+        $host = strtolower($host);
+        $baseDomain = strtolower($baseDomain);
+        $candidateBaseDomains = array_values(array_unique(array_filter([
+            $baseDomain,
+            'localhost',
+        ])));
 
-        if (! str_ends_with($host, $suffix)) {
-            return null;
+        foreach ($candidateBaseDomains as $candidateBaseDomain) {
+            $suffix = '.'.$candidateBaseDomain;
+
+            if (! str_ends_with($host, $suffix)) {
+                continue;
+            }
+
+            $prefix = substr($host, 0, -strlen($suffix));
+
+            if ($prefix === '' || $prefix === 'www') {
+                return null;
+            }
+
+            return $prefix;
         }
 
-        $prefix = substr($host, 0, -strlen($suffix));
-
-        if ($prefix === '' || $prefix === 'www') {
-            return null;
-        }
-
-        return $prefix;
+        return null;
     }
 }

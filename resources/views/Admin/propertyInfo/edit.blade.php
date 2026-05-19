@@ -327,9 +327,22 @@
 
         <!-- Form -->
         <div id="form">
-            <form method="post" action="{{ route('setup-sidebar.property-info.save') }}" novalidate
+            <form method="post" action="{{ route('setup-sidebar.property-info.save', $property) }}" novalidate
                 enctype="multipart/form-data">
                 @csrf
+                <input type="hidden" name="property_id" value="{{ $property->id }}">
+
+                @if ($errors->any())
+                    <div class="alert alert-danger mb-4" role="alert">
+                        <div class="fw-semibold mb-2">{{ __('Please fix the highlighted fields and try again.') }}</div>
+                        <ul class="mb-0 ps-3">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 <!-- Tourism License Details Panel -->
                 <div class="form-panel">
                     <div class="form-panel-header" data-toggle="collapse" data-target="#tourism-license">
@@ -345,23 +358,25 @@
                             <div class="col-md-3">
                                 <label class="form-label required-field">{{ __('dashboard.tourism_activity_type') }}</label>
                                 <div class="position-relative">
-                                    <select class="form-control form-control--light" name="unitClass" required
-                                        value="hotel"
-                                        {{ old('unitClass', $property->tourismLicense?->unit_class) == 'hotel' ? 'selected' : '' }}>
-                                        <option value="hotel">{{ __('dashboard.hotel') }}</option>
-                                        <option value="serviced_apartment">{{ __('dashboard.serviced_apartments') }}
+                                    <select class="form-control form-control--light @error('unitClass') is-invalid @enderror"
+                                        name="unitClass" required>
+                                        <option value="hotel" {{ old('unitClass', $property->tourismLicense?->tourism_activity_type) == 'hotel' ? 'selected' : '' }}>{{ __('dashboard.hotel') }}</option>
+                                        <option value="serviced_apartment" {{ old('unitClass', $property->tourismLicense?->tourism_activity_type) == 'serviced_apartment' ? 'selected' : '' }}>{{ __('dashboard.serviced_apartments') }}
                                         </option>
-                                        <option value="apartment_hotel">{{ __('dashboard.apartment_hotel') }}</option>
-                                        <option value="resort">{{ __('dashboard.resort') }}</option>
-                                        <option value="hotel_villa">{{ __('dashboard.hotel_villa') }}</option>
-                                        <option value="hostel">{{ __('dashboard.hostel') }}</option>
-                                        <option value="heritage_hotel">{{ __('dashboard.heritage_hotel') }}</option>
-                                        <option value="camp">{{ __('dashboard.camp') }}</option>
-                                        <option value="holiday_house">{{ __('dashboard.holiday_house') }}</option>
-                                        <option value="pop_up_accommodation">{{ __('dashboard.pop_up_accomodation') }}
+                                        <option value="apartment_hotel" {{ old('unitClass', $property->tourismLicense?->tourism_activity_type) == 'apartment_hotel' ? 'selected' : '' }}>{{ __('dashboard.apartment_hotel') }}</option>
+                                        <option value="resort" {{ old('unitClass', $property->tourismLicense?->tourism_activity_type) == 'resort' ? 'selected' : '' }}>{{ __('dashboard.resort') }}</option>
+                                        <option value="hotel_villa" {{ old('unitClass', $property->tourismLicense?->tourism_activity_type) == 'hotel_villa' ? 'selected' : '' }}>{{ __('dashboard.hotel_villa') }}</option>
+                                        <option value="hostel" {{ old('unitClass', $property->tourismLicense?->tourism_activity_type) == 'hostel' ? 'selected' : '' }}>{{ __('dashboard.hostel') }}</option>
+                                        <option value="heritage_hotel" {{ old('unitClass', $property->tourismLicense?->tourism_activity_type) == 'heritage_hotel' ? 'selected' : '' }}>{{ __('dashboard.heritage_hotel') }}</option>
+                                        <option value="camp" {{ old('unitClass', $property->tourismLicense?->tourism_activity_type) == 'camp' ? 'selected' : '' }}>{{ __('dashboard.camp') }}</option>
+                                        <option value="holiday_house" {{ old('unitClass', $property->tourismLicense?->tourism_activity_type) == 'holiday_house' ? 'selected' : '' }}>{{ __('dashboard.holiday_house') }}</option>
+                                        <option value="pop_up_accommodation" {{ old('unitClass', $property->tourismLicense?->tourism_activity_type) == 'pop_up_accommodation' ? 'selected' : '' }}>{{ __('dashboard.pop_up_accomodation') }}
                                         </option>
                                     </select>
                                 </div>
+                                @error('unitClass')
+                                    <span class="text-danger">{{ $message }}</span>
+                                @enderror
                                 <div class="form__input-msg"></div>
                             </div>
 
@@ -370,7 +385,7 @@
                                 <label class="form-label">{{ __('dashboard.tourism_license_no') }}</label>
                                 <div class="position-relative">
                                     <input type="text" name="Tourismlicensenumber" id="Tourismlicensenumber"
-                                        class="form-control form-control--light" maxlength="15"
+                                        class="form-control form-control--light @error('Tourismlicensenumber') is-invalid @enderror" maxlength="15"
                                         placeholder="{{ __('dashboard.enter_license_number') }}" required
                                         value="{{ old('Tourismlicensenumber', $property->tourismLicense?->license_number ?? '') }}">
                                 </div>
@@ -389,7 +404,7 @@
                                 </label>
                                 <div class="position-relative">
                                     <input type="date" name="tourismLicenseExpDate"
-                                        class="form-control form-control--light"
+                                        class="form-control form-control--light @error('tourismLicenseExpDate') is-invalid @enderror"
                                         placeholder="{{ __('dashboard.select_expiration_date') }}"
                                         value="{{ old('tourismLicenseExpDate', optional($property->tourismLicense?->license_expiry_date)->format('Y-m-d')) }}">
                                 </div>
@@ -404,10 +419,13 @@
                                 <label class="form-label">{{ __('dashboard.number_of_rooms') }}</label>
                                 <div class="position-relative">
                                     <input type="number" name="NoOfRooms" id="noOfRooms"
-                                        class="form-control form-control--light"
+                                        class="form-control form-control--light @error('NoOfRooms') is-invalid @enderror"
                                         placeholder="{{ __('dashboard.enter_number_of_rooms') }}" min="0"
                                         value="{{ old('NoOfRooms', $property->tourismLicense?->number_of_rooms ?? '') }}">
                                 </div>
+                                @error('NoOfRooms')
+                                    <span class="text-danger">{{ $message }}</span>
+                                @enderror
                                 <div class="form__input-msg"></div>
                             </div>
 
@@ -416,10 +434,13 @@
                                 <label class="form-label">{{ __('dashboard.number_of_beds') }}</label>
                                 <div class="position-relative">
                                     <input type="number" name="NoOfBeds" id="noOfBeds"
-                                        class="form-control form-control--light"
+                                        class="form-control form-control--light @error('NoOfBeds') is-invalid @enderror"
                                         placeholder="{{ __('dashboard.enter_number_of_beds') }}" min="0"
                                         value="{{ old('NoOfBeds', $property->tourismLicense?->number_of_beds ?? '') }}">
                                 </div>
+                                @error('NoOfBeds')
+                                    <span class="text-danger">{{ $message }}</span>
+                                @enderror
                                 <div class="form__input-msg"></div>
                             </div>
 
@@ -432,7 +453,7 @@
                                         <div>{{ __('dashboard.upload_document') }}</div>
                                     </label>
                                     <div class="custom-file-upload__info">
-                                        PNG, TIFF {{ __('dashboard.files_are_supported') }}
+                                        PDF, TIFF {{ __('dashboard.files_are_supported') }}
                                     </div>
                                     <input type="file" id="file-upload" accept=".pdf,.tiff" name="file-upload"
                                         style="display: none;">
@@ -466,8 +487,8 @@
                                             title="Commercial registration number"></i>
                                     </label>
                                     <div class="position-relative">
-                                        <input type="number" name="CommercialRegistrationNumber"
-                                            id="CommercialRegistrationNumber" class="form-control form-control--light"
+                                        <input type="text" name="CommercialRegistrationNumber"
+                                            id="CommercialRegistrationNumber" class="form-control form-control--light @error('CommercialRegistrationNumber') is-invalid @enderror"
                                             placeholder="{{ __('dashboard.enter_registration_number') }}" maxlength="50"
                                             required
                                             value="{{ old('CommercialRegistrationNumber', $property->commercialDetail?->registration_number ?? '') }}">
@@ -487,11 +508,14 @@
                                         title="Commercial activity license number"></i>
                                 </label>
                                 <div class="position-relative">
-                                    <input type="number" name="CommActivityLicenseNo" id="CommActivityLicenseNo"
-                                        class="form-control form-control--light"
+                                    <input type="text" name="CommActivityLicenseNo" id="CommActivityLicenseNo"
+                                        class="form-control form-control--light @error('CommActivityLicenseNo') is-invalid @enderror"
                                         placeholder="{{ __('dashboard.enter_license_number') }}" maxlength="15"
                                         value="{{ old('CommActivityLicenseNo', $property->commercialDetail?->activity_license_number ?? '') }}">
                                 </div>
+                                @error('CommActivityLicenseNo')
+                                    <span class="text-danger">{{ $message }}</span>
+                                @enderror
                                 <div class="form__input-msg"></div>
                             </div>
 
@@ -504,7 +528,7 @@
                                     </label>
                                     <div class="position-relative">
                                         <input type="number" name="taxRegistrationNo" id="TaxRegistrationNo"
-                                            class="form-control form-control--light"
+                                            class="form-control form-control--light @error('taxRegistrationNo') is-invalid @enderror"
                                             placeholder="{{ __('dashboard.enter_vat_number') }}" maxlength="20" required
                                             value="{{ old('taxRegistrationNo', $property->commercialDetail?->vat_registration_number ?? '') }}">
                                     </div>
@@ -528,7 +552,7 @@
                                         <div>{{ __('dashboard.upload_document') }}</div>
                                     </label>
                                     <div class="custom-file-upload__info">
-                                        PNG, TIFF {{ __('dashboard.files_are_supported') }}
+                                        PDF, TIFF {{ __('dashboard.files_are_supported') }}
                                     </div>
                                     <input type="file" id="file-upload-2" accept=".pdf,.tiff" name="file-upload-2"
                                         style="display: none;">
@@ -558,11 +582,14 @@
                                 <label class="form-label">{{ __('dashboard.distance_from_haram') }} (km)</label>
                                 <div class="position-relative">
                                     <input type="number" name="distancefromHaram" id="distancefromHaram"
-                                        class="form-control form-control--light"
+                                        class="form-control form-control--light @error('distancefromHaram') is-invalid @enderror"
                                         placeholder="{{ __('dashboard.enter_distance_in_km') }}" maxlength="50"
                                         step="0.1" min="0"
                                         value="{{ old('distancefromHaram', $property->additionalDetail?->distance_from_haram_km ?? '') }}">
                                 </div>
+                                @error('distancefromHaram')
+                                    <span class="text-danger">{{ $message }}</span>
+                                @enderror
                                 <div class="form__input-msg"></div>
                             </div>
 
@@ -574,10 +601,13 @@
                                     <div class="dropdown">
                                         <div>
                                             <div class="position-relative">
-                                                <textarea name="description" class="form-control form-control--light max-height-250" rows="5"
-                                                    placeholder="{{ __('dashboard.description') }}">{{ $property->additionalDetail?->description_en ?? '' }}</textarea>
+                                                <textarea name="description" class="form-control form-control--light max-height-250 @error('description') is-invalid @enderror" rows="5"
+                                                    placeholder="{{ __('dashboard.description') }}">{{ old('description', $property->additionalDetail?->description_en ?? '') }}</textarea>
 
                                             </div>
+                                            @error('description')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
                                             <div class="form__input-msg"></div>
                                         </div>
 
@@ -604,10 +634,13 @@
                                 <i class="fas fa-plus-circle"></i>
                                 <p>Max File Size:<br>750 KB.<br>(JPG, PNG recommended)</p>
                             </div>
-                            <input type="file" name="photos[]" id="photo-input" multiple hidden>
+                            <input type="file" name="photos[]" id="photo-input" accept=".jpg,.jpeg,.png" multiple hidden>
                         </div>
                         @error('photos')
                             <span class="text-danger">{{ $message }}</span>
+                        @enderror
+                        @error('photos.*')
+                            <span class="text-danger d-block">{{ $message }}</span>
                         @enderror
                     </div>
                 </div>

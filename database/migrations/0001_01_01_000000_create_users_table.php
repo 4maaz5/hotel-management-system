@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('company_id')->nullable()->index();
             $table->string('name');
-            $table->string('email')->unique();
+            $table->string('email');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->json('profile_data')->nullable();
@@ -34,6 +34,8 @@ return new class extends Migration
             $table->string('messenger_color')->nullable();
             $table->rememberToken();
             $table->timestamps();
+
+            $table->unique(['company_id', 'email'], 'users_company_email_unique');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

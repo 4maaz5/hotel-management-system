@@ -125,27 +125,27 @@ class Property extends Model
 
     public function tourismLicense()
     {
-        return $this->hasOne(PropertyTourismLicense::class, 'branch_id', 'branch_id');
+        return $this->hasOne(PropertyTourismLicense::class, 'branch_id', 'branch_id')->withoutGlobalScopes();
     }
 
     public function commercialDetail()
     {
-        return $this->hasOne(PropertyCommercialDetail::class, 'branch_id', 'branch_id');
+        return $this->hasOne(PropertyCommercialDetail::class, 'branch_id', 'branch_id')->withoutGlobalScopes();
     }
 
     public function additionalDetail()
     {
-        return $this->hasOne(PropertyAdditionalDetail::class, 'branch_id', 'branch_id');
+        return $this->hasOne(PropertyAdditionalDetail::class, 'branch_id', 'branch_id')->withoutGlobalScopes();
     }
 
     public function photos()
     {
-        return $this->hasMany(PropertyPhoto::class, 'branch_id', 'branch_id');
+        return $this->hasMany(PropertyPhoto::class, 'branch_id', 'branch_id')->withoutGlobalScopes();
     }
 
     public function mainPhoto()
     {
-        return $this->hasOne(PropertyPhoto::class, 'branch_id', 'branch_id')->where('is_main', true);
+        return $this->hasOne(PropertyPhoto::class, 'branch_id', 'branch_id')->withoutGlobalScopes()->where('is_main', true);
     }
 
     public static function current(array $relations = []): ?self

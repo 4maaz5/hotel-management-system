@@ -12,9 +12,13 @@ use App\Models\CostCenter;
 use App\Models\Reservation;
 use App\Models\Vendor;
 use App\Models\TaxFeeCustomization;
+use App\Support\PropertyContext;
+use App\Support\TenantContext;
 use App\Support\UserActivityLogger;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class PaymentController extends Controller
 {
@@ -126,11 +130,16 @@ class PaymentController extends Controller
 
     public function store(Request $request)
     {
+        [$companyId, $branchId] = $this->currentTenantAndBranch($request);
+        $this->validateVoucherRequest($request, $companyId, $branchId);
+
         $reservationId = $this->resolvedReservationId($request);
         $guestId = $this->resolvedGuestId($request);
 
         $voucher = PaymentVoucher::create([
-            'voucher_number' => PaymentVoucher::generateVoucherNumber(),
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
+            'voucher_number' => PaymentVoucher::generateVoucherNumber($companyId, $branchId),
             'date' => $request->date ?? now()->toDateString(),
             'time' => $request->time ?? now()->format('H:i:s'),
             'cost_center_id' => $request->cost_center_id ?? null,
@@ -172,6 +181,10 @@ class PaymentController extends Controller
     public function update(Request $request, $id)
     {
         $voucher = PaymentVoucher::findOrFail($id);
+        $companyId = (int) ($voucher->company_id ?: app(TenantContext::class)->id() ?: $request->user()?->company_id);
+        $branchId = (int) ($voucher->branch_id ?: app(PropertyContext::class)->branchId() ?: $request->user()?->branch_id);
+        $this->validateVoucherRequest($request, $companyId, $branchId);
+
         $before = $this->paymentVoucherActivityData($voucher);
         $guestId = $request->filled('guest_id')
             ? $this->resolvedGuestId($request)
@@ -276,6 +289,65 @@ class PaymentController extends Controller
     protected function visibleGuests(Request $request): Builder
     {
         return Guest::query();
+    }
+
+    protected function currentTenantAndBranch(Request $request): array
+    {
+        $companyId = app(TenantContext::class)->id() ?: $request->user()?->company_id;
+        $branchId = app(PropertyContext::class)->branchId() ?: $request->user()?->branch_id;
+
+        if (! $companyId || ! $branchId) {
+            throw ValidationException::withMessages([
+                'branch_id' => __('Please select or create a branch first.'),
+            ]);
+        }
+
+        return [(int) $companyId, (int) $branchId];
+    }
+
+    protected function validateVoucherRequest(Request $request, int $companyId, int $branchId): void
+    {
+        $request->validate([
+            'date' => ['nullable', 'date'],
+            'time' => ['nullable', 'date_format:H:i'],
+            'cost_center_id' => [
+                'nullable',
+                Rule::exists('cost_centers', 'id')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
+            'purpose' => ['nullable', 'string', 'max:255'],
+            'comment' => ['nullable', 'string'],
+            'vendor_name' => ['nullable', 'string', 'max:255'],
+            'vendor_tax_no' => ['nullable', 'string', 'max:255'],
+            'vendor_invoice_no' => ['nullable', 'string', 'max:255'],
+            'amount' => ['required', 'numeric', 'min:0'],
+            'vat_amount' => ['nullable', 'numeric', 'min:0'],
+            'amount_before_vat' => ['nullable', 'numeric', 'min:0'],
+            'apply_vat' => ['nullable', 'boolean'],
+            'vat_type' => ['nullable', 'string', 'max:50'],
+            'vat_percentage' => ['nullable', 'numeric', 'min:0'],
+            'payment_method_id' => [
+                'required',
+                Rule::exists('payment_method_configs', 'id')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
+            'receiving_bank_id' => [
+                'nullable',
+                Rule::exists('banks', 'id')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
+            'transaction_number' => ['nullable', 'string', 'max:255'],
+            'sending_bank_name' => ['nullable', 'string', 'max:255'],
+            'cheque_number' => ['nullable', 'string', 'max:255'],
+            'reservation_id' => [
+                'nullable',
+                Rule::exists('reservations', 'id')
+                    ->where(fn ($query) => $query->where('company_id', $companyId)->where('branch_id', $branchId)),
+            ],
+            'guest_id' => [
+                'nullable',
+                Rule::exists('guests', 'id')
+                    ->where(fn ($query) => $query->where('company_id', $companyId)->where('branch_id', $branchId)),
+            ],
+            'voucher_type' => ['nullable', Rule::in(['payment', 'refund'])],
+        ]);
     }
 
     protected function paymentVoucherActivityData(PaymentVoucher $voucher): array

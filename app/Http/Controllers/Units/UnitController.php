@@ -11,6 +11,7 @@ use App\Models\Unit;
 use App\Models\UnitClass;
 use App\Models\UnitTypeCustomization;
 use App\Support\PropertyContext;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -81,12 +82,16 @@ class UnitController extends Controller
 
     public function store(Request $request)
     {
-        $branchId = app(PropertyContext::class)->branchId();
+        [$companyId, $branchId] = $this->currentTenantAndBranch($request);
 
         abort_unless($branchId, 422, 'Please select or create a branch first.');
 
         $validated = $request->validate([
-            'unit_number' => 'required|string|unique:units,unit_number',
+            'unit_number' => [
+                'required',
+                'string',
+                $this->uniqueUnitNumberRule($companyId, $branchId),
+            ],
             'unit_class_id' => 'required|exists:unit_classes,id',
             'unit_type_id' => 'required|exists:unit_type_customizations,id',
             'block_id' => [
@@ -156,10 +161,14 @@ class UnitController extends Controller
     public function update(Request $request, $id)
     {
         $unit = Unit::findOrFail($id);
-        $branchId = app(PropertyContext::class)->branchId();
+        [$companyId, $branchId] = $this->currentTenantAndBranch($request, $unit);
 
         $validated = $request->validate([
-            'unit_number' => 'required|string|unique:units,unit_number,'.$unit->id,
+            'unit_number' => [
+                'required',
+                'string',
+                $this->uniqueUnitNumberRule($companyId, $branchId, $unit->id),
+            ],
             'unit_class_id' => 'required|exists:unit_classes,id',
             'unit_type_id' => 'required|exists:unit_type_customizations,id',
             'block_id' => [
@@ -236,5 +245,30 @@ class UnitController extends Controller
         return redirect()
             ->route('setup-sidebar.unit.index')
             ->with('danger', __('messages.unit_deleted_successfully'));
+    }
+
+    private function currentTenantAndBranch(Request $request, ?Unit $unit = null): array
+    {
+        $propertyContext = app(PropertyContext::class);
+        $tenantContext = app(TenantContext::class);
+
+        $branchId = $propertyContext->branchId() ?: $unit?->branch_id;
+        $companyId = $tenantContext->id() ?: $unit?->company_id ?: $request->user()?->company_id;
+
+        return [$companyId, $branchId];
+    }
+
+    private function uniqueUnitNumberRule(?int $companyId, ?int $branchId, ?int $ignoreId = null): \Illuminate\Validation\Rules\Unique
+    {
+        $rule = Rule::unique('units', 'unit_number')
+            ->where(fn ($query) => $query
+                ->where('company_id', $companyId)
+                ->where('branch_id', $branchId));
+
+        if ($ignoreId) {
+            $rule->ignore($ignoreId);
+        }
+
+        return $rule;
     }
 }

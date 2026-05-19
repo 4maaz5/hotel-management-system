@@ -32,13 +32,16 @@ return new class extends Migration
                 'pop_up_accommodation',
             ]);
 
-            $table->string('license_number')->unique();
+            $table->string('license_number');
             $table->date('license_expiry_date');
             $table->unsignedInteger('number_of_rooms')->nullable();
             $table->unsignedInteger('number_of_beds')->nullable();
             $table->string('license_file_path')->nullable();
 
             $table->timestamps();
+
+            $table->unique(['company_id', 'license_number'], 'ptl_company_license_unique');
+            $table->unique(['company_id', 'branch_id'], 'ptl_company_branch_unique');
         });
     }
 
@@ -50,4 +53,3 @@ return new class extends Migration
         Schema::dropIfExists('property_tourism_licenses');
     }
 };
-

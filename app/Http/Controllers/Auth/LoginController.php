@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -21,6 +22,9 @@ class LoginController extends Controller
         ]);
 
         $credentials = $request->only('email', 'password');
+        $tenantId = app(TenantContext::class)->id();
+
+        $credentials['company_id'] = $tenantId ?: null;
 
         if (Auth::attempt($credentials, $request->remember)) {
             $request->session()->regenerate();

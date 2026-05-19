@@ -149,4 +149,42 @@ class ReservationCreationFlowTest extends TestCase
         $this->assertSame($additionalGuest->id, $occupants->firstWhere('is_primary', false)?->guest_id);
         $this->assertSame('spouse', $occupants->firstWhere('is_primary', false)?->relationship);
     }
+
+    public function test_reservation_numbers_can_repeat_across_tenants(): void
+    {
+        [, $propertyA, $tenantA] = $this->createTenantUserWithProperty();
+        [, $propertyB, $tenantB] = $this->createTenantUserWithProperty();
+        $unitA = $this->createUnitForProperty($propertyA, $tenantA);
+        $unitB = $this->createUnitForProperty($propertyB, $tenantB);
+
+        $number = 'RES'.now()->format('ymd').'0001';
+
+        $this->createReservationForTenant($tenantA->id, $propertyA->branch_id, $unitA->id, $number);
+        $this->createReservationForTenant($tenantB->id, $propertyB->branch_id, $unitB->id, $number);
+
+        $this->assertSame(2, Reservation::withoutGlobalScopes()
+            ->where('reservation_number', $number)
+            ->count());
+
+        $this->setTenantAndPropertyContext($tenantB, $propertyB);
+        $this->assertSame(
+            'RES'.now()->format('ymd').'0002',
+            Reservation::generateReservationNumber($tenantB->id)
+        );
+    }
+
+    private function createReservationForTenant(int $companyId, int $branchId, int $unitId, string $reservationNumber): Reservation
+    {
+        return Reservation::create([
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
+            'reservation_number' => $reservationNumber,
+            'unit_id' => $unitId,
+            'check_in_date' => now()->toDateString(),
+            'check_out_date' => now()->addDay()->toDateString(),
+            'nights' => 1,
+            'reservation_type' => 'daily',
+            'status' => 'pending',
+        ]);
+    }
 }

@@ -5,6 +5,9 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToStaffCurrentProperty;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Scopes\StaffCurrentPropertyScope;
+use App\Models\Scopes\TenantScope;
+use App\Support\PropertyContext;
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 
 class PaymentVoucher extends Model
@@ -85,12 +88,20 @@ class PaymentVoucher extends Model
         return $this->belongsTo(Property::class, 'branch_id', 'branch_id');
     }
 
-    public static function generateVoucherNumber()
+    public static function generateVoucherNumber(?int $companyId = null, ?int $branchId = null): string
     {
+        $companyId ??= app(TenantContext::class)->id();
+        $branchId ??= app(PropertyContext::class)->branchId();
+
         $lastVoucher = self::withoutGlobalScope(StaffCurrentPropertyScope::class)
-            ->orderBy('id', 'desc')
+            ->withoutGlobalScope(TenantScope::class)
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+            ->orderByDesc('voucher_number')
             ->first();
-        $nextNumber = $lastVoucher ? $lastVoucher->id + 1 : 1;
+
+        $nextNumber = $lastVoucher ? ((int) $lastVoucher->voucher_number) + 1 : 1;
+
         return str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
     }
 }

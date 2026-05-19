@@ -413,7 +413,8 @@
                                     <select name="unit_id" class="form-select form-select-sm" required>
                                         <option value="">{{ __('dashboard.select_unit') }}</option>
                                         @foreach ($availableUnits as $unit)
-                                            <option value="{{ $unit->id }}">
+                                            <option value="{{ $unit->id }}"
+                                                data-unit-type-id="{{ $unit->unitTypeCustomization?->unit_type_id }}">
                                                 {{ $unit->unit_number }}
                                             </option>
                                         @endforeach
@@ -639,24 +640,6 @@
             checkboxes.forEach(cb => cb.checked = this.checked);
         });
 
-        document.addEventListener("DOMContentLoaded", function() {
-
-            const buttons = document.querySelectorAll(".assign-unit-btn");
-
-            buttons.forEach(button => {
-                button.addEventListener("click", function() {
-
-                    let unitTypeId = this.getAttribute("data-unit-type-id");
-                    let unitTypeName = this.getAttribute("data-unit-type-name");
-
-                    document.getElementById("modal_unit_type_id").value = unitTypeId;
-                    document.getElementById("modal_unit_type_name").value = unitTypeName;
-
-                });
-            });
-
-        });
-
         function filterAssignedUnits(unitTypeId) {
             const rows = document.querySelectorAll('#assigned-units-body .assigned-unit-row');
             const messageRow = document.getElementById('no-assigned-units-message');
@@ -678,6 +661,23 @@
             }
         }
 
+        function filterAvailableUnits(unitTypeId) {
+            const select = document.querySelector('#addUnitModal select[name="unit_id"]');
+            if (!select) {
+                return;
+            }
+
+            select.value = '';
+            select.querySelectorAll('option').forEach(option => {
+                if (!option.value) {
+                    option.hidden = false;
+                    return;
+                }
+
+                option.hidden = option.dataset.unitTypeId != unitTypeId;
+            });
+        }
+
         // When the modal is opened
         document.querySelectorAll('.assign-unit-btn').forEach(button => {
             button.addEventListener('click', function() {
@@ -688,6 +688,7 @@
                 document.getElementById('modal_unit_type_name').value = unitTypeName;
 
                 filterAssignedUnits(unitTypeId);
+                filterAvailableUnits(unitTypeId);
             });
         });
     </script>

@@ -3,15 +3,17 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\BelongsToStaffCurrentProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class NightAudit extends Model
 {
-    use BelongsToTenant, HasFactory;
+    use BelongsToStaffCurrentProperty, BelongsToTenant, HasFactory;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'start_date_time',
         'end_date_time',
         'status',
@@ -55,21 +57,28 @@ class NightAudit extends Model
         return $query;
     }
 
-    public static function calculateFinancialSummary($periodDateFrom, $periodDateTo)
+    public static function calculateFinancialSummary($periodDateFrom, $periodDateTo, ?int $companyId = null, ?int $branchId = null)
     {
         $cashMethodIds = \App\Models\PaymentMethodConfig::idsForMethodNameLike('%cash%');
         $cardMethodIds = \App\Models\PaymentMethodConfig::idsForMethodNames(['Credit Cards', 'Mada', 'GCCNET', 'Digital Payments']);
         $knownMethodIds = array_values(array_unique(array_merge($cashMethodIds, $cardMethodIds)));
 
         $receipts = \App\Models\ReceiptVoucher::whereBetween('date', [$periodDateFrom, $periodDateTo])
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->whereNotIn('status', ['cancelled'])
             ->get();
 
         $payments = \App\Models\PaymentVoucher::whereBetween('date', [$periodDateFrom, $periodDateTo])
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
             ->whereNotIn('status', ['cancelled'])
             ->get();
 
-        $dropCash = \App\Models\DropCashVoucher::whereBetween('date_from', [$periodDateFrom, $periodDateTo])->get();
+        $dropCash = \App\Models\DropCashVoucher::whereBetween('date_from', [$periodDateFrom, $periodDateTo])
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+            ->get();
 
         $cashReceived = $receipts->whereIn('payment_method_id', $cashMethodIds)->sum('amount');
         $cardReceived = $receipts->whereIn('payment_method_id', $cardMethodIds)->sum('amount');

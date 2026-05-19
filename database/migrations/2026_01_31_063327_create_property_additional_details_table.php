@@ -24,6 +24,8 @@ return new class extends Migration
             $table->text('description_ar')->nullable();
 
             $table->timestamps();
+
+            $table->unique(['company_id', 'branch_id'], 'pad_company_branch_unique');
         });
     }
 
@@ -35,4 +37,3 @@ return new class extends Migration
         Schema::dropIfExists('property_additional_details');
     }
 };
-

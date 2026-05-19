@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToCurrentProperty;
 use App\Models\Concerns\BelongsToTenant;
+use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -82,11 +83,21 @@ class Reservation extends Model
         'grand_total' => 'decimal:2',
     ];
 
-    public static function generateReservationNumber()
+    public static function generateReservationNumber(?int $companyId = null): string
     {
         $prefix = 'RES';
         $date = now()->format('ymd');
-        $lastReservation = self::whereDate('created_at', today())
+
+        $companyId ??= app(TenantContext::class)->id();
+
+        $query = self::query()
+            ->whereDate('created_at', today());
+
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        }
+
+        $lastReservation = $query
             ->orderBy('id', 'desc')
             ->first();
 

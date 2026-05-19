@@ -218,6 +218,7 @@ class ReservationController extends Controller
         $beforeReservation = $this->reservationActivityData($reservation);
         $propertyId = app(PropertyContext::class)->id();
         $branchId = app(PropertyContext::class)->branchId();
+        $companyId = app(PropertyContext::class)->property()?->company_id;
 
         $validated = $request->validate([
             'check_in_date' => 'required|date',
@@ -240,6 +241,10 @@ class ReservationController extends Controller
             'paid_amount' => 'nullable|numeric|min:0',
             'balance' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:pending,confirmed,checked_in,checked_out,cancelled,no_show',
+            'guest_class_id' => [
+                'nullable',
+                Rule::exists('guest_classes', 'id')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
         ] + $this->guestSelectionRules($branchId));
 
         $settings = ReservationSetting::getSettings();
@@ -505,6 +510,10 @@ class ReservationController extends Controller
             'paid_amount' => 'nullable|numeric|min:0',
             'balance' => 'nullable|numeric|min:0',
             'status' => 'nullable|in:pending,confirmed,checked_in,checked_out,cancelled,no_show',
+            'guest_class_id' => [
+                'nullable',
+                Rule::exists('guest_classes', 'id')->where(fn ($query) => $query->where('company_id', $companyId)),
+            ],
         ] + $this->guestSelectionRules($branchId));
 
         $settings = ReservationSetting::getSettings();
@@ -544,7 +553,7 @@ class ReservationController extends Controller
 
         $reservation = Reservation::create([
             'company_id' => $companyId,
-            'reservation_number' => Reservation::generateReservationNumber(),
+            'reservation_number' => Reservation::generateReservationNumber($companyId),
             'branch_id' => $branchId,
             'guest_id' => $request->guest_id ?? null,
             'corporate_id' => $request->corporate_id ?? null,
@@ -850,7 +859,9 @@ class ReservationController extends Controller
             $refundVoucher = PaymentVoucher::create([
                 'reservation_id' => $reservation->id,
                 'guest_id' => $reservation->guest_id,
-                'voucher_number' => PaymentVoucher::generateVoucherNumber(),
+                'company_id' => $reservation->company_id,
+                'branch_id' => $reservation->branch_id,
+                'voucher_number' => PaymentVoucher::generateVoucherNumber($reservation->company_id, $reservation->branch_id),
                 'voucher_type' => 'refund',
                 'amount' => $refundAmount,
                 'date' => now()->toDateString(),

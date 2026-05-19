@@ -4,25 +4,52 @@ namespace App\Http\Controllers\Reporting;
 
 use App\Http\Controllers\Controller;
 use App\Models\PrintingOption;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PrintingController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $options = PrintingOption::all();
-        $reportSetting = PrintingOption::first();
+        $companyId = $this->currentCompanyId($request);
+        abort_unless($companyId, 422, 'Tenant context is required to manage printing options.');
+
+        PrintingOption::ensureDefaultsForTenant($companyId);
+
+        $options = PrintingOption::query()
+            ->orderBy('id')
+            ->get();
+        $reportSetting = PrintingOption::query()->first();
 
         return view('admin.print_option.index', compact('options', 'reportSetting'));
     }
 
     public function update(Request $request)
     {
+        $companyId = $this->currentCompanyId($request);
+        abort_unless($companyId, 422, 'Tenant context is required to manage printing options.');
+
+        PrintingOption::ensureDefaultsForTenant($companyId);
+
+        $request->validate([
+            'contract_template_type' => ['required', Rule::in(['double', 'single'])],
+            'reports' => ['nullable', 'array'],
+            'reports.*.enabled' => ['nullable'],
+            'reports.*.letter_head' => ['nullable'],
+            'reports.*.blank_paper' => ['nullable'],
+            'reports.*.cashier_paper' => ['nullable'],
+        ]);
+
         $reports = $request->input('reports', []);
 
-        foreach ($reports as $id => $data) {
+        $options = PrintingOption::query()->get()->keyBy('id');
 
-            PrintingOption::where('id', $id)->update([
+        foreach ($options as $option) {
+            $data = $reports[$option->id] ?? [];
+
+            $option->update([
+                'enabled' => isset($data['enabled']),
                 'letter_head' => isset($data['letter_head']),
                 'blank_paper' => isset($data['blank_paper']),
                 'cashier_paper' => isset($data['cashier_paper']),
@@ -31,5 +58,10 @@ class PrintingController extends Controller
         }
 
         return back()->with('success', __('messages.printing_options_updated_successfully'));
+    }
+
+    private function currentCompanyId(Request $request): ?int
+    {
+        return app(TenantContext::class)->id() ?: $request->user()?->company_id;
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\ProjectExpense;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -116,7 +117,7 @@ class ExpenseController extends Controller
 
     private function scopeProjectsForUser($query, $user)
     {
-        if ($this->isSuperAdmin($user)) {
+        if ($this->isGlobalSuperAdmin($user)) {
             return $query;
         }
 
@@ -137,6 +138,11 @@ class ExpenseController extends Controller
 
     private function companyIdForUser($user): ?int
     {
-        return $user?->company_id ?: $user?->branch?->company_id;
+        return app(TenantContext::class)->id() ?: $user?->company_id ?: $user?->branch?->company_id;
+    }
+
+    private function isGlobalSuperAdmin($user): bool
+    {
+        return ! $this->companyIdForUser($user) && $this->isSuperAdmin($user);
     }
 }

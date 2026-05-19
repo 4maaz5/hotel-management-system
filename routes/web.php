@@ -205,6 +205,7 @@ Route::middleware([
 
     // Fetch Employees by Branch
     Route::get('/dashboard/employees/{branch}', [App\Http\Controllers\Employee\DropDownController::class, 'getDepartments']);
+    Route::get('/dashboard/branches/{branch}/shifts', [App\Http\Controllers\Employee\DropDownController::class, 'getShifts']);
 });
 Route::middleware([
     'auth',

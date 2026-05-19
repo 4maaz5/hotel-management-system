@@ -143,10 +143,10 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::middleware(['permission:property_info.edit'])->group(function () {
-        Route::get('/dashboard/setup-sidebar/property-info-edit', [PropertyInfoController::class, 'edit'])
+        Route::get('/dashboard/setup-sidebar/property-info-edit/{property?}', [PropertyInfoController::class, 'edit'])
             ->name('setup-sidebar.property-info.edit');
 
-        Route::post('/dashboard/setup-sidebar/property-info-save', [PropertyInfoController::class, 'savePropertyDetails'])
+        Route::post('/dashboard/setup-sidebar/property-info-save/{property?}', [PropertyInfoController::class, 'savePropertyDetails'])
             ->name('setup-sidebar.property-info.save');
     });
 

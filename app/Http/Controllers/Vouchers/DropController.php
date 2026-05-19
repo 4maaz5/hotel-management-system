@@ -8,7 +8,10 @@ use App\Models\DropCashVoucher;
 use App\Models\PaymentMethod;
 use App\Models\PaymentMethodConfig;
 use App\Models\ReceiptVoucher;
+use App\Support\PropertyContext;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class DropController extends Controller
 {
@@ -103,18 +106,25 @@ class DropController extends Controller
 
     public function store(Request $request)
     {
+        $companyId = app(TenantContext::class)->id() ?: $request->user()?->company_id;
+        $branchId = app(PropertyContext::class)->branchId() ?: $request->user()?->branch_id;
+
+        abort_unless($companyId && $branchId, 422, 'Please select or create a branch first.');
+
         $request->validate([
             'date_from' => 'required',
             'date_to' => 'required',
             'amount' => 'required|numeric|min:0.01',
-            'drop_method' => 'required',
+            'drop_method' => ['required', Rule::in(array_keys(DropCashVoucher::getDropMethods()))],
             'paid_to' => 'required|max:100',
             'purpose' => 'required|max:200',
         ]);
 
         try {
             $voucher = DropCashVoucher::create([
-                'voucher_number' => DropCashVoucher::generateVoucherNumber(),
+                'voucher_number' => DropCashVoucher::generateVoucherNumber($companyId, $branchId),
+                'company_id' => $companyId,
+                'branch_id' => $branchId,
                 'user_id' => auth()->id(),
                 'date_from' => $request->date_from,
                 'date_to' => $request->date_to,

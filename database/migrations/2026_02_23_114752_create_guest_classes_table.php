@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('guest_classes', function (Blueprint $table) {
 
             $table->id();
+            $table->foreignId('company_id')->nullable()->index();
 
             $table->boolean('blacklist')->default(false);
 

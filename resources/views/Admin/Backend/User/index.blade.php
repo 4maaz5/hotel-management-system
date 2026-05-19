@@ -423,11 +423,21 @@
                         }
                     },
                     error: function(xhr) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: xhr.responseJSON?.message || 'Error updating user'
-                        });
+                        if (xhr.status === 422) {
+                            let errors = xhr.responseJSON.errors;
+                            let errorText = Object.values(errors).flat().join('<br>');
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Validation Error',
+                                html: errorText
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: xhr.responseJSON?.message || 'Error updating user'
+                            });
+                        }
                     }
                 });
             });

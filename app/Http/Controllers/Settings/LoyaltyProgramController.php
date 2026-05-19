@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\LoyaltyAutoSetting;
 use App\Models\LoyaltySetting;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class LoyaltyProgramController extends Controller
 {
@@ -36,7 +38,11 @@ class LoyaltyProgramController extends Controller
         $request->validate([
             'criteria' => 'required',
             'threshold_value' => 'required|integer',
-            'upgrade_to_class_id' => 'required|exists:guest_classes,id',
+            'upgrade_to_class_id' => [
+                'required',
+                Rule::exists('guest_classes', 'id')
+                    ->where(fn ($query) => $query->where('company_id', $this->currentCompanyId($request))),
+            ],
         ]);
 
         LoyaltySetting::create([
@@ -57,7 +63,11 @@ class LoyaltyProgramController extends Controller
         $request->validate([
             'criteria' => 'required',
             'threshold_value' => 'required|integer',
-            'upgrade_to_class_id' => 'required|exists:guest_classes,id',
+            'upgrade_to_class_id' => [
+                'required',
+                Rule::exists('guest_classes', 'id')
+                    ->where(fn ($query) => $query->where('company_id', $this->currentCompanyId($request))),
+            ],
         ]);
 
         $setting = LoyaltySetting::findOrFail($id);
@@ -102,5 +112,10 @@ class LoyaltyProgramController extends Controller
             'success',
             __('messages.loyality_auto_setting_updated_successfully')
         );
+    }
+
+    private function currentCompanyId(Request $request): ?int
+    {
+        return app(TenantContext::class)->id() ?: $request->user()?->company_id;
     }
 }

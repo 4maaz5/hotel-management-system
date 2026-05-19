@@ -8,9 +8,12 @@ use App\Models\PropertyAdditionalDetail;
 use App\Models\PropertyCommercialDetail;
 use App\Models\PropertyPhoto;
 use App\Models\PropertyTourismLicense;
+use App\Support\PropertyContext;
+use App\Support\TenantContext;
 use App\Support\UserActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class PropertyInfoController extends Controller
 {
@@ -21,6 +24,11 @@ class PropertyInfoController extends Controller
             'commercialDetail',
             'photos',
         ]);
+
+        if ($tenantId = $this->tenantIdForUser($request->user())) {
+            $query->where('company_id', $tenantId);
+        }
+
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('property_name_en', 'like', '%'.$request->search.'%')
@@ -67,85 +75,116 @@ class PropertyInfoController extends Controller
         return view('admin.propertyInfo.index', compact('properties'));
     }
 
-    public function edit()
+    public function edit(Request $request, ?Property $property = null)
     {
-        $property = Property::current([
+        $property = $this->propertyForRequest($request, $property, [
             'tourismLicense',
             'commercialDetail',
+            'additionalDetail',
             'photos',
         ]);
 
         return view('admin.propertyInfo.edit', compact('property'));
     }
 
-    public function savePropertyDetails(Request $request)
+    public function savePropertyDetails(Request $request, ?Property $property = null)
     {
-        $request->validate([
-            'Tourismlicensenumber' => 'required|string|max:15',
-            'tourismLicenseExpDate' => 'required|date',
-            'file-upload' => 'nullable|file|mimes:pdf,tiff|max:10240',
-            'CommercialRegistrationNumber' => 'required|numeric',
-            'taxRegistrationNo' => 'required|numeric',
-            'file-upload-2' => 'nullable|file|mimes:pdf,tiff|max:10240',
-            'photos.*' => 'nullable|image|mimes:jpeg,png|max:750',
-        ]);
-
-        $property = Property::current();
-        abort_unless($property, 404);
-        $before = $this->propertyInfoActivityData($property->load([
+        $property = $this->propertyForRequest($request, $property, [
             'tourismLicense',
             'commercialDetail',
             'additionalDetail',
             'photos',
-        ]));
+        ]);
+
+        $tenantId = $this->tenantIdForUser($request->user()) ?: $property->company_id;
+        abort_unless($tenantId && (int) $tenantId === (int) $property->company_id, 404);
+
+        $request->validate([
+            'unitClass' => ['required', Rule::in([
+                'hotel',
+                'serviced_apartment',
+                'camp',
+                'holiday_house',
+                'hostel',
+                'apartment_hotel',
+                'resort',
+                'hotel_villa',
+                'heritage_hotel',
+                'pop_up_accommodation',
+            ])],
+            'Tourismlicensenumber' => 'required|string|max:15',
+            'tourismLicenseExpDate' => 'required|date',
+            'file-upload' => 'nullable|file|mimes:pdf,tiff|max:10240',
+            'CommercialRegistrationNumber' => 'required|string|max:50',
+            'taxRegistrationNo' => 'required|numeric',
+            'file-upload-2' => 'nullable|file|mimes:pdf,tiff|max:10240',
+            'photos.*' => 'nullable|image|mimes:jpeg,png|max:750',
+            'NoOfRooms' => 'nullable|integer|min:0',
+            'NoOfBeds' => 'nullable|integer|min:0',
+            'distancefromHaram' => 'nullable|numeric|min:0',
+        ]);
+
+        $request->validate([
+            'Tourismlicensenumber' => [
+                Rule::unique('property_tourism_licenses', 'license_number')
+                    ->where(fn ($query) => $query->where('company_id', $tenantId))
+                    ->ignore($this->propertyTourismLicense($property)?->id),
+            ],
+            'CommercialRegistrationNumber' => [
+                Rule::unique('property_commercial_details', 'registration_number')
+                    ->where(fn ($query) => $query->where('company_id', $tenantId))
+                    ->ignore($this->propertyCommercialDetail($property)?->id),
+            ],
+        ]);
+
+        $before = $this->propertyInfoActivityData($property);
         $propertyId = $property->id;
         $companyId = $property->company_id;
         $branchId = $property->branch_id;
 
-        DB::transaction(function () use ($request, $companyId, $branchId) {
+        DB::transaction(function () use ($request, $property, $companyId, $branchId) {
 
-            $tourismFilePath = null;
+            $tourismData = [
+                'company_id' => $companyId,
+                'branch_id' => $branchId,
+                'tourism_activity_type' => $request->unitClass,
+                'license_number' => $request->Tourismlicensenumber,
+                'license_expiry_date' => $request->tourismLicenseExpDate,
+                'number_of_rooms' => $request->NoOfRooms,
+                'number_of_beds' => $request->NoOfBeds,
+            ];
 
             if ($request->hasFile('file-upload')) {
-                $tourismFilePath = $request->file('file-upload')
+                $tourismData['license_file_path'] = $request->file('file-upload')
                     ->store('property/license', 'public');
             }
 
-            PropertyTourismLicense::updateOrCreate(
-                ['branch_id' => $branchId],
-                [
-                    'company_id' => $companyId,
-                    'tourism_activity_type' => $request->unitClass,
-                    'license_number' => $request->Tourismlicensenumber,
-                    'license_expiry_date' => $request->tourismLicenseExpDate,
-                    'number_of_rooms' => $request->NoOfRooms,
-                    'number_of_beds' => $request->NoOfBeds,
-                    'license_file_path' => $tourismFilePath,
-                ]
+            PropertyTourismLicense::withoutGlobalScopes()->updateOrCreate(
+                ['company_id' => $companyId, 'branch_id' => $branchId],
+                $tourismData
             );
 
-            $commercialFilePath = null;
+            $commercialData = [
+                'company_id' => $companyId,
+                'branch_id' => $branchId,
+                'registration_number' => $request->CommercialRegistrationNumber,
+                'activity_license_number' => $request->CommActivityLicenseNo,
+                'vat_registration_number' => $request->taxRegistrationNo,
+            ];
 
             if ($request->hasFile('file-upload-2')) {
-                $commercialFilePath = $request->file('file-upload-2')
+                $commercialData['registration_file_path'] = $request->file('file-upload-2')
                     ->store('property/commercial', 'public');
             }
 
-            PropertyCommercialDetail::updateOrCreate(
-                ['branch_id' => $branchId],
-                [
-                    'company_id' => $companyId,
-                    'registration_number' => $request->CommercialRegistrationNumber,
-                    'activity_license_number' => $request->CommActivityLicenseNo,
-                    'vat_registration_number' => $request->taxRegistrationNo,
-                    'registration_file_path' => $commercialFilePath,
-                ]
+            PropertyCommercialDetail::withoutGlobalScopes()->updateOrCreate(
+                ['company_id' => $companyId, 'branch_id' => $branchId],
+                $commercialData
             );
 
-            PropertyAdditionalDetail::updateOrCreate(
-                ['branch_id' => $branchId],
+            PropertyAdditionalDetail::withoutGlobalScopes()->updateOrCreate(
+                ['company_id' => $companyId, 'branch_id' => $branchId],
                 [
-                    'company_id' => $companyId,
                     'distance_from_haram_km' => $request->distancefromHaram,
                     'description_en' => $request->description,
                     'description_ar' => $request->description,
@@ -192,6 +231,55 @@ class PropertyInfoController extends Controller
         );
 
         return redirect()->route('setup-sidebar.property-info.index')->with('success', __('messages.property_details_saved_successfully'));
+    }
+
+    private function tenantIdForUser($user): ?int
+    {
+        return app(TenantContext::class)->id()
+            ?: $user?->company_id
+            ?: $user?->branch?->company_id;
+    }
+
+    private function propertyForRequest(Request $request, ?Property $property = null, array $relations = []): Property
+    {
+        $requestedPropertyId = $property?->id ?: $request->integer('property_id');
+        $user = $request->user();
+
+        if ($requestedPropertyId && $user) {
+            $query = $user->accessiblePropertiesQuery();
+
+            if ($relations !== []) {
+                $query->with($relations);
+            }
+
+            $property = $query->whereKey($requestedPropertyId)->first();
+            abort_unless($property, 404);
+
+            return $property;
+        }
+
+        abort_unless(app(PropertyContext::class)->branchId(), 404);
+
+        $property = Property::current($relations);
+        abort_unless($property, 404);
+
+        return $property;
+    }
+
+    private function propertyTourismLicense(Property $property): ?PropertyTourismLicense
+    {
+        return PropertyTourismLicense::withoutGlobalScopes()
+            ->where('company_id', $property->company_id)
+            ->where('branch_id', $property->branch_id)
+            ->first();
+    }
+
+    private function propertyCommercialDetail(Property $property): ?PropertyCommercialDetail
+    {
+        return PropertyCommercialDetail::withoutGlobalScopes()
+            ->where('company_id', $property->company_id)
+            ->where('branch_id', $property->branch_id)
+            ->first();
     }
 
     protected function propertyInfoActivityData(Property $property): array

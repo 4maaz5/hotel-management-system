@@ -586,10 +586,21 @@
         toggleBtn?.addEventListener('click', function() { filterContainer.style.display = filterContainer.style.display === 'none' ? 'block' : 'none'; });
         @if(request()->hasAny(['voucher_number', 'vendor_name', 'status', 'payment_method', 'date_from', 'date_to'])) filterContainer.style.display = 'block'; @endif
 
-        const paymentVoucherBaseUrl = @json(url('/app/dashboard/vouchers-payment'));
+        const paymentVoucherIndexUrl = @json(route('dashboard.payment.store'));
+        const paymentVoucherShowUrlTemplate = @json(route('dashboard.payment.show', ['id' => '__PAYMENT__']));
+        const paymentVoucherPrintUrlTemplate = @json(route('dashboard.payment.print', ['id' => '__PAYMENT__']));
+        const paymentVoucherUpdateUrlTemplate = @json(route('dashboard.payment.update', ['id' => '__PAYMENT__']));
+        const paymentVoucherCancelUrlTemplate = @json(route('dashboard.payment.cancel', ['id' => '__PAYMENT__']));
+        const paymentVoucherSearchVendorsUrl = @json(route('dashboard.payment.searchVendors'));
+        const paymentVoucherJsonHeaders = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        };
+        const paymentVoucherUrl = (template, id) => template.replace('__PAYMENT__', encodeURIComponent(id));
 
         function printVoucher(id) {
-            document.getElementById('printIframe').src = `${paymentVoucherBaseUrl}/${id}/print`;
+            document.getElementById('printIframe').src = paymentVoucherUrl(paymentVoucherPrintUrlTemplate, id);
             new bootstrap.Modal(document.getElementById('printModal')).show();
             document.getElementById('printIframe').onload = function() { setTimeout(function() { switchPrintLang('en'); }, 500); };
         }
@@ -606,7 +617,7 @@
 
         function searchVendors() {
             const search = document.getElementById('vendorSearchInput').value;
-            fetch(`${paymentVoucherBaseUrl}/search-vendors?q=${encodeURIComponent(search)}`)
+            fetch(`${paymentVoucherSearchVendorsUrl}?q=${encodeURIComponent(search)}`, { headers: { 'Accept': 'application/json' } })
                 .then(r => r.json())
                 .then(vendors => {
                     const tbody = document.getElementById('vendorSearchResults');
@@ -717,8 +728,8 @@
             const amount = parseFloat(document.getElementById('addAmount').value) || 0;
             const vatAmount = parseFloat(document.getElementById('addVatAmount').value) || 0;
 
-            fetch(paymentVoucherBaseUrl, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            fetch(paymentVoucherIndexUrl, {
+                method: 'POST', headers: paymentVoucherJsonHeaders,
                 body: JSON.stringify({
                     date: document.getElementById('addDate').value, time: document.getElementById('addTime').value,
                     cost_center_id: document.getElementById('addCostCenter').value || null, purpose: document.getElementById('addPurpose').value,
@@ -737,7 +748,7 @@
         });
 
         function editVoucher(id) {
-            fetch(`${paymentVoucherBaseUrl}/${id}`).then(r => r.json()).then(data => {
+            fetch(paymentVoucherUrl(paymentVoucherShowUrlTemplate, id), { headers: { 'Accept': 'application/json' } }).then(r => r.json()).then(data => {
                 const v = data.voucher;
                 const isRefund = v.voucher_type === 'refund';
 
@@ -809,8 +820,8 @@
             const amount = parseFloat(document.getElementById('editAmount').value) || 0;
             const vatAmount = parseFloat(document.getElementById('editVatAmount').value) || 0;
 
-            fetch(`${paymentVoucherBaseUrl}/${document.getElementById('editVoucherId').value}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            fetch(paymentVoucherUrl(paymentVoucherUpdateUrlTemplate, document.getElementById('editVoucherId').value), {
+                method: 'PUT', headers: paymentVoucherJsonHeaders,
                 body: JSON.stringify({
                     date: document.getElementById('editDate').value, time: document.getElementById('editTime').value,
                     cost_center_id: document.getElementById('editCostCenter').value || null, purpose: document.getElementById('editPurpose').value,
@@ -837,8 +848,8 @@
 
         document.getElementById('cancelVoucherForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            fetch(`${paymentVoucherBaseUrl}/${document.getElementById('cancelVoucherId').value}/cancel`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            fetch(paymentVoucherUrl(paymentVoucherCancelUrlTemplate, document.getElementById('cancelVoucherId').value), {
+                method: 'POST', headers: paymentVoucherJsonHeaders,
                 body: JSON.stringify({ cancel_reason: document.getElementById('cancelReason').value })
             }).then(r => r.json()).then(data => {
                 if (data.success) { bootstrap.Modal.getInstance(document.getElementById('cancelVoucherModal')).hide(); showToast('Voucher cancelled successfully!'); location.reload(); }
