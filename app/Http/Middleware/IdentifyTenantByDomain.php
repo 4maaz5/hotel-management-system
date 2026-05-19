@@ -28,6 +28,10 @@ class IdentifyTenantByDomain
         $tenant = Tenant::where('subdomain', $subdomain)->first();
 
         if (! $tenant) {
+            if ($this->isPublicBookingRequest($request)) {
+                return $next($request);
+            }
+
             abort(404, 'Tenant not found');
         }
 
@@ -79,5 +83,14 @@ class IdentifyTenantByDomain
         }
 
         return null;
+    }
+
+    protected function isPublicBookingRequest(Request $request): bool
+    {
+        return $request->is('/')
+            || $request->is('book')
+            || $request->is('book/*')
+            || $request->is('locale/*')
+            || $request->is('lang/*');
     }
 }

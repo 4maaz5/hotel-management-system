@@ -60,19 +60,13 @@ class BookingContextResolver
             }
         }
 
-        $host = strtolower((string) $request->getHost());
+        $host = $this->normalizeHost((string) $request->getHost());
 
         if ($host !== '') {
             $matchedByHost = $properties->first(function (Property $property) use ($host) {
-                $website = trim((string) $property->website);
+                $websiteHost = $this->normalizeHost((string) $property->website);
 
-                if ($website === '') {
-                    return false;
-                }
-
-                $websiteHost = strtolower((string) (parse_url($website, PHP_URL_HOST) ?: $website));
-
-                return $websiteHost !== '' && $websiteHost === $host;
+                return $websiteHost !== '' && in_array($host, $this->hostCandidates($websiteHost), true);
             });
 
             if ($matchedByHost) {
@@ -87,5 +81,32 @@ class BookingContextResolver
     {
         app(TenantContext::class)->forget();
         app(PropertyContext::class)->forget();
+    }
+
+    private function normalizeHost(string $hostOrUrl): string
+    {
+        $hostOrUrl = trim(strtolower($hostOrUrl));
+
+        if ($hostOrUrl === '') {
+            return '';
+        }
+
+        $host = parse_url($hostOrUrl, PHP_URL_HOST) ?: $hostOrUrl;
+        $host = preg_replace('/:\d+$/', '', trim((string) $host));
+
+        return preg_replace('/^www\./', '', $host) ?: '';
+    }
+
+    private function hostCandidates(string $host): array
+    {
+        $candidates = [$host];
+
+        if (str_ends_with($host, '.localhost')) {
+            $candidates[] = substr($host, 0, -strlen('.localhost'));
+        } elseif (! str_contains($host, '.')) {
+            $candidates[] = $host.'.localhost';
+        }
+
+        return array_values(array_unique(array_filter($candidates)));
     }
 }

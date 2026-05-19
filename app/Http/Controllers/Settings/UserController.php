@@ -20,7 +20,7 @@ class UserController extends Controller
         $user = auth()->user();
 
         $users = $this->scopeUsersForUser(User::with('branch'), $user)->get();
-        $branches = $this->scopeBranchesForUser(Branch::query(), $user)->get();
+        $branches = $this->scopeUserManagementBranchesForUser(Branch::query(), $user)->get();
         $roles = Role::query()
             ->visibleToUser($user)
             ->when(! $this->isSuperAdmin($user), fn ($query) => $query->where('name', '!=', 'super_admin'))
@@ -59,7 +59,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $authUser = auth()->user();
-        $branchIds = $this->accessibleBranchIds($authUser);
+        $branchIds = $this->userManagementBranchIds($authUser);
         $companyId = $this->companyIdForUserPayload($request, $authUser);
 
         $validated = $request->validate([
@@ -183,7 +183,7 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $authUser = auth()->user();
-        $branchIds = $this->accessibleBranchIds($authUser);
+        $branchIds = $this->userManagementBranchIds($authUser);
         $user = $this->scopeUsersForUser(User::query(), $authUser)->findOrFail($id);
         $companyId = $this->companyIdForUserPayload($request, $authUser, $user);
 
@@ -225,7 +225,7 @@ class UserController extends Controller
             'email' => $validated['email'],
             'company_id' => $branch->company_id,
             'branch_id' => $validated['branch'],
-            'password' => $validated['password'] ? bcrypt($validated['password']) : $user->password,
+            'password' => ! empty($validated['password']) ? bcrypt($validated['password']) : $user->password,
             'role' => $role->name,
         ]);
 
@@ -248,8 +248,28 @@ class UserController extends Controller
 
     public function destroy(Request $request)
     {
-        $request->validate(['id' => 'required|exists:users,id']);
-        $user = $this->scopeUsersForUser(User::query(), auth()->user())->findOrFail($request->id);
+        $authUser = auth()->user();
+
+        $request->validate([
+            'id' => [
+                'required',
+                'integer',
+                Rule::exists('users', 'id')->when(
+                    ! $this->isSuperAdmin($authUser),
+                    fn ($rule) => $rule->where(fn ($query) => $query->where('company_id', $authUser->company_id))
+                ),
+            ],
+        ]);
+
+        $user = $this->scopeUsersForUser(User::query(), $authUser)->findOrFail($request->id);
+
+        if (! $user->canBeDeletedFromTenantDashboard($authUser)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tenant owner users cannot be deleted from the dashboard.',
+            ], 403);
+        }
+
         $user->delete();
 
         return response()->json([
@@ -270,11 +290,29 @@ class UserController extends Controller
             return $query;
         }
 
-        if ($user->branch_id) {
-            return $query->where('branch_id', $user->branch_id);
+        return $query->where('company_id', $user->company_id);
+    }
+
+    private function scopeUserManagementBranchesForUser($query, $user)
+    {
+        if ($this->isSuperAdmin($user)) {
+            return $query;
         }
 
         return $query->where('company_id', $user->company_id);
+    }
+
+    private function userManagementBranchIds($user): ?\Illuminate\Support\Collection
+    {
+        if ($this->isSuperAdmin($user)) {
+            return null;
+        }
+
+        if (! $user?->company_id) {
+            return collect();
+        }
+
+        return Branch::where('company_id', $user->company_id)->pluck('id');
     }
 
     private function roleForUserByName(string $roleName, $user): Role

@@ -46,10 +46,12 @@
                                                             <i class="fas fa-edit"></i>
                                                         </a>
 
-                                                        <a href="#" class="text-danger delete-user-btn"
-                                                            data-id="{{ $user->id }}" data-name="{{ $user->name }}">
-                                                            <i class="fas fa-trash-alt"></i>
-                                                        </a>
+                                                        @if ($user->canBeDeletedFromTenantDashboard(auth()->user()))
+                                                            <a href="#" class="text-danger delete-user-btn"
+                                                                data-id="{{ $user->id }}" data-name="{{ $user->name }}">
+                                                                <i class="fas fa-trash-alt"></i>
+                                                            </a>
+                                                        @endif
 
                                                     </td>
                                                 </tr>
@@ -117,8 +119,7 @@
                                     <select class="form-select form-control" name="role" required>
                                         <option value="" disabled>-- {{ __('dashboard.choose_roll') }} --</option>
                                         @foreach ($roles as $role)
-                                            <option value="{{ $role->name }}"
-                                                {{ $user->getRoleNames()->first() == $role->name ? 'selected' : '' }}>
+                                            <option value="{{ $role->name }}">
                                                 {{ $role->name }}
                                             </option>
                                         @endforeach
@@ -191,8 +192,7 @@
                                     <select class="form-select form-control" id="edit_role" required>
                                         <option value="" disabled>-- {{ __('dashboard.choose_roll') }} --</option>
                                         @foreach ($roles as $role)
-                                            <option value="{{ $role->name }}"
-                                                {{ $user->getRoleNames()->first() == $role->name ? 'selected' : '' }}>
+                                            <option value="{{ $role->name }}">
                                                 {{ $role->name }}
                                             </option>
                                         @endforeach

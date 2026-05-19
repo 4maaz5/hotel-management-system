@@ -109,7 +109,18 @@ class User extends Authenticatable
 
     public function isTenantOwner(): bool
     {
-        return $this->role === 'owner' || $this->hasRole('owner');
+        return $this->role === 'owner'
+            || $this->user_type === 'owner'
+            || $this->hasRole('owner');
+    }
+
+    public function canBeDeletedFromTenantDashboard(?self $actor = null): bool
+    {
+        if ($actor && (int) $actor->id === (int) $this->id) {
+            return false;
+        }
+
+        return ! $this->isTenantOwner();
     }
 
     public function accessiblePropertiesQuery(): Builder
