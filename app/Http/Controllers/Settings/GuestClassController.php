@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\GuestClass;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 
 class GuestClassController extends Controller
@@ -36,6 +37,9 @@ class GuestClassController extends Controller
 
     public function store(Request $request)
     {
+        $companyId = app(TenantContext::class)->id() ?: $request->user()?->company_id;
+        abort_unless($companyId, 422, 'Tenant context is required to create guest classes.');
+
         $request->validate([
             'class_name' => 'required|string|max:255',
             'order_no' => 'required|integer|min:1|max:20',
@@ -46,6 +50,7 @@ class GuestClassController extends Controller
         ]);
 
         GuestClass::create([
+            'company_id' => $companyId,
             'blacklist' => $request->blacklist ? true : false,
             'class_name' => $request->class_name,
             'order_no' => $request->order_no,

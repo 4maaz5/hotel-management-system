@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->nullable()->index();
             $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete();
-            $table->string('voucher_number', 20)->unique();
+            $table->string('voucher_number', 20);
             $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('bank_id')->nullable();
             $table->dateTime('date_from');
@@ -32,6 +32,7 @@ return new class extends Migration
             $table->foreign('bank_id')->references('id')->on('banks')->onDelete('set null');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
             $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
+            $table->unique(['company_id', 'branch_id', 'voucher_number'], 'drop_cash_company_branch_number_unique');
         });
     }
 
@@ -43,4 +44,3 @@ return new class extends Migration
         Schema::dropIfExists('drop_cash_vouchers');
     }
 };
-

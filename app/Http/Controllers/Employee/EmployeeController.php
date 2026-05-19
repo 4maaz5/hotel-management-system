@@ -93,31 +93,30 @@ class EmployeeController extends Controller
                 ],
                 'brand_id' => [
                     'required',
-                    Rule::exists('brands', 'id')->when(
-                        ! $this->isSuperAdmin($authUser),
-                        fn ($rule) => $rule->where(fn ($query) => $query->where('company_id', $authUser->company_id))
-                    ),
+                    Rule::exists('brands', 'id')
+                        ->where(fn ($query) => $query->where('company_id', $requestedCompanyId)),
                 ],
                 'department_id' => [
                     'required',
-                    Rule::exists('departments', 'id')->when(
-                        $branchIds !== null,
-                        fn ($rule) => $rule->where(fn ($query) => $query->whereIn('branch_id', $branchIds))
-                    ),
+                    Rule::exists('departments', 'id')
+                        ->where(fn ($query) => $query
+                            ->where(fn ($departmentQuery) => $departmentQuery
+                                ->where('company_id', $requestedCompanyId)
+                                ->orWhereNull('company_id'))
+                            ->where('branch_id', $request->input('branch_id'))),
                 ],
                 'branch_id' => [
                     'required',
-                    Rule::exists('branches', 'id')->when(
-                        $branchIds !== null,
-                        fn ($rule) => $rule->where(fn ($query) => $query->whereIn('id', $branchIds))
-                    ),
+                    Rule::exists('branches', 'id')
+                        ->where(fn ($query) => $query
+                            ->where('company_id', $requestedCompanyId)
+                            ->where('brand_id', $request->input('brand_id'))
+                            ->when($branchIds !== null, fn ($branchQuery) => $branchQuery->whereIn('id', $branchIds))),
                 ],
                 'shift_id' => [
                     'nullable',
-                    Rule::exists('shifts', 'id')->when(
-                        $branchIds !== null,
-                        fn ($rule) => $rule->where(fn ($query) => $query->whereIn('branch_id', $branchIds))
-                    ),
+                    Rule::exists('shifts', 'id')
+                        ->where(fn ($query) => $query->where('branch_id', $request->input('branch_id'))),
                 ],
                 'join_date' => 'required|date',
                 'residence_expiry_date' => 'nullable|date',
@@ -203,7 +202,10 @@ class EmployeeController extends Controller
                 $validated['image'] = $imagePath;
             }
 
-            $user = User::where('email', $validated['email'])->first();
+            $user = User::withoutGlobalScopes()
+                ->where('company_id', $validated['company_id'])
+                ->where('email', $validated['email'])
+                ->first();
 
             if ($user) {
 
@@ -367,10 +369,11 @@ class EmployeeController extends Controller
             ],
             'branch_id' => [
                 'required',
-                Rule::exists('branches', 'id')->when(
-                    $branchIds !== null,
-                    fn ($rule) => $rule->where(fn ($query) => $query->whereIn('id', $branchIds))
-                ),
+                Rule::exists('branches', 'id')
+                    ->where(fn ($query) => $query
+                        ->where('company_id', $requestedCompanyId)
+                        ->where('brand_id', $request->input('brand_id'))
+                        ->when($branchIds !== null, fn ($branchQuery) => $branchQuery->whereIn('id', $branchIds))),
             ],
             'company_id' => [
                 'required',
@@ -380,24 +383,22 @@ class EmployeeController extends Controller
             ],
             'brand_id' => [
                 'required',
-                Rule::exists('brands', 'id')->when(
-                    ! $this->isSuperAdmin($authUser),
-                    fn ($rule) => $rule->where(fn ($query) => $query->where('company_id', $authUser->company_id))
-                ),
+                Rule::exists('brands', 'id')
+                    ->where(fn ($query) => $query->where('company_id', $requestedCompanyId)),
             ],
             'shift_id' => [
                 'required',
-                Rule::exists('shifts', 'id')->when(
-                    $branchIds !== null,
-                    fn ($rule) => $rule->where(fn ($query) => $query->whereIn('branch_id', $branchIds))
-                ),
+                Rule::exists('shifts', 'id')
+                    ->where(fn ($query) => $query->where('branch_id', $request->input('branch_id'))),
             ],
             'department_id' => [
                 'required',
-                Rule::exists('departments', 'id')->when(
-                    $branchIds !== null,
-                    fn ($rule) => $rule->where(fn ($query) => $query->whereIn('branch_id', $branchIds))
-                ),
+                Rule::exists('departments', 'id')
+                    ->where(fn ($query) => $query
+                        ->where(fn ($departmentQuery) => $departmentQuery
+                            ->where('company_id', $requestedCompanyId)
+                            ->orWhereNull('company_id'))
+                        ->where('branch_id', $request->input('branch_id'))),
             ],
             'image' => 'nullable|image|max:2048',
             'join_date' => 'required|date',
@@ -569,7 +570,12 @@ class EmployeeController extends Controller
         $email = $request->email;
 
         $existsInEmployees = $this->scopeEmployeeQuery(Employee::query())->where('email', $email)->exists();
-        $existsInUsers = User::where('email', $email)->exists();
+        $companyId = $this->companyIdFromEmployeeRequest($request, Auth::user());
+        $existsInUsers = User::withoutGlobalScopes()
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->when(! $companyId, fn ($query) => $query->whereNull('company_id'))
+            ->where('email', $email)
+            ->exists();
 
         return response()->json([
             'exists' => $existsInEmployees || $existsInUsers,

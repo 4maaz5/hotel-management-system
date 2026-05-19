@@ -10,8 +10,10 @@ use App\Models\UnitCustomRate;
 use App\Models\UnitTypeCustomization;
 use App\Models\UnitTypeRate;
 use App\Support\PropertyContext;
+use App\Support\TenantContext;
 use App\Support\UserActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 
 class BaseRateController extends Controller
@@ -43,7 +45,8 @@ class BaseRateController extends Controller
             ->values();
 
         $assignedUnitIds = UnitCustomRate::pluck('unit_id')->toArray();
-        $availableUnits = Unit::where('is_active', true)
+        $availableUnits = Unit::with('unitTypeCustomization')
+            ->where('is_active', true)
             ->whereNotIn('id', $assignedUnitIds)
             ->get();
         $assignedRates = UnitCustomRate::with('unit', 'unitType')->get();
@@ -57,13 +60,48 @@ class BaseRateController extends Controller
 
     public function store(Request $request)
     {
-        $unitTypeIds = array_keys($request->input('rates', []));
-        $before = $this->baseRatesSnapshot($unitTypeIds);
+        $request->validate([
+            'rates' => ['required', 'array'],
+            'rates.*.low_weekday_rate' => ['nullable', 'numeric', 'min:0'],
+            'rates.*.high_weekday_rate' => ['nullable', 'numeric', 'min:0'],
+            'rates.*.daily_min_rate' => ['nullable', 'numeric', 'min:0'],
+            'rates.*.monthly_rate' => ['nullable', 'numeric', 'min:0'],
+            'rates.*.monthly_min_rate' => ['nullable', 'numeric', 'min:0'],
+        ]);
 
-        foreach ($request->rates as $unitTypeId => $rateData) {
+        $companyId = $this->currentCompanyId($request);
+        abort_unless($companyId, 422, 'Tenant context is required to save base rates.');
+
+        $rates = $request->input('rates', []);
+        $unitTypeIds = collect(array_keys($rates))
+            ->map(fn ($unitTypeId) => (int) $unitTypeId)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $allowedUnitTypeIds = UnitTypeCustomization::query()
+            ->where('company_id', $companyId)
+            ->whereIn('unit_type_id', $unitTypeIds)
+            ->pluck('unit_type_id')
+            ->map(fn ($unitTypeId) => (int) $unitTypeId)
+            ->all();
+
+        if (count($allowedUnitTypeIds) !== count($unitTypeIds)) {
+            throw ValidationException::withMessages([
+                'rates' => __('validation.exists', ['attribute' => __('dashboard.unit_type')]),
+            ]);
+        }
+
+        $before = $this->baseRatesSnapshot($unitTypeIds, $companyId);
+
+        foreach ($rates as $unitTypeId => $rateData) {
 
             UnitTypeRate::updateOrCreate(
-                ['unit_type_id' => $unitTypeId],
+                [
+                    'company_id' => $companyId,
+                    'unit_type_id' => (int) $unitTypeId,
+                ],
                 [
                     'low_weekday_rate' => $rateData['low_weekday_rate'] ?? 0,
                     'high_weekday_rate' => $rateData['high_weekday_rate'] ?? 0,
@@ -81,7 +119,7 @@ class BaseRateController extends Controller
             null,
             'Updated base rates',
             $before,
-            $this->baseRatesSnapshot($unitTypeIds),
+            $this->baseRatesSnapshot($unitTypeIds, $companyId),
             ['area' => 'base_rates']
         );
 
@@ -90,12 +128,22 @@ class BaseRateController extends Controller
 
     public function saveHighWeekdays(Request $request)
     {
-        $before = HighWeekday::query()->pluck('day_name')->all();
-        HighWeekday::truncate();
+        $companyId = $this->currentCompanyId($request);
+        abort_unless($companyId, 422, 'Tenant context is required to save high weekdays.');
+
+        $before = HighWeekday::query()
+            ->where('company_id', $companyId)
+            ->pluck('day_name')
+            ->all();
+
+        HighWeekday::query()
+            ->where('company_id', $companyId)
+            ->delete();
 
         if ($request->days) {
             foreach ($request->days as $day) {
                 HighWeekday::create([
+                    'company_id' => $companyId,
                     'day_name' => $day,
                 ]);
             }
@@ -121,17 +169,31 @@ class BaseRateController extends Controller
                 'required',
                 Rule::exists('units', 'id')->where(fn ($query) => $this->scopeUnitsForRequest($query, $request)),
             ],
-            'unit_type_id' => 'required|exists:unit_types,id',
+            'unit_type_id' => [
+                'required',
+                Rule::exists('unit_type_customizations', 'unit_type_id')
+                    ->where(fn ($query) => $query->where('company_id', $this->currentCompanyId($request))),
+            ],
         ]);
 
-        $unit = $this->scopeUnitsForRequest(Unit::query(), $request)->findOrFail($request->integer('unit_id'));
-        abort_unless((int) $unit->unit_type_id === (int) $request->unit_type_id, 422);
+        $unit = $this->scopeUnitsForRequest(Unit::with('unitTypeCustomization'), $request)
+            ->findOrFail($request->integer('unit_id'));
+
+        if ((int) $unit->unitTypeCustomization?->unit_type_id !== (int) $request->unit_type_id) {
+            throw ValidationException::withMessages([
+                'unit_id' => __('validation.exists', ['attribute' => __('dashboard.unit')]),
+            ]);
+        }
 
         $existingRate = UnitCustomRate::where('unit_id', $request->unit_id)->first();
         $before = $existingRate ? $this->customRateActivityData($existingRate) : [];
+        $companyId = $this->currentCompanyId($request);
 
         $customRate = UnitCustomRate::updateOrCreate(
-            ['unit_id' => $request->unit_id],
+            [
+                'company_id' => $companyId,
+                'unit_id' => $request->unit_id,
+            ],
             [
                 'unit_type_id' => $request->unit_type_id,
                 'low_weekday_rate' => $request->low_weekday_rate,
@@ -201,15 +263,17 @@ class BaseRateController extends Controller
             ->with('danger', __('messages.custom_rate_deleted_successfully'));
     }
 
-    protected function baseRatesSnapshot(array $unitTypeIds): array
+    protected function baseRatesSnapshot(array $unitTypeIds, ?int $companyId = null): array
     {
         if ($unitTypeIds === []) {
             return [];
         }
 
-        return UnitTypeRate::query()
+        $query = UnitTypeRate::query()
             ->whereIn('unit_type_id', $unitTypeIds)
-            ->get()
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId));
+
+        return $query->get()
             ->mapWithKeys(fn (UnitTypeRate $rate) => [
                 $rate->unit_type_id => [
                     'low_weekday_rate' => (float) $rate->low_weekday_rate,
@@ -266,5 +330,10 @@ class BaseRateController extends Controller
         $property = app(PropertyContext::class)->property();
 
         return $property?->branch_id ? (int) $property->branch_id : null;
+    }
+
+    private function currentCompanyId(Request $request): ?int
+    {
+        return app(TenantContext::class)->id() ?: $request->user()?->company_id;
     }
 }

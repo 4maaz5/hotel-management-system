@@ -15,9 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->nullable()->index();
 
-            $table->string('day_name')->unique();
+            $table->string('day_name');
 
             $table->timestamps();
+
+            $table->unique(['company_id', 'day_name'], 'high_weekdays_company_day_unique');
         });
     }
 
@@ -29,4 +31,3 @@ return new class extends Migration
         Schema::dropIfExists('high_weekdays');
     }
 };
-

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Brand;
 use App\Models\Department;
+use App\Models\Shift;
 
 class DropDownController extends Controller
 {
@@ -36,5 +37,15 @@ class DropDownController extends Controller
         $employees = Department::where('branch_id', $branchId)->get();
 
         return response()->json($employees);
+    }
+
+    public function getShifts($branchId)
+    {
+        abort_unless($this->userCanAccessBranch((int) $branchId, auth()->user()), 403);
+
+        $shifts = Shift::where('branch_id', $branchId)
+            ->get(['id', 'name', 'start_time', 'end_time']);
+
+        return response()->json($shifts);
     }
 }

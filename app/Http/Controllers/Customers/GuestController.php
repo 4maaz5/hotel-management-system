@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Customers;
 use App\Http\Controllers\Controller;
 use App\Models\Guest;
 use App\Models\GuestClass;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class GuestController extends Controller
 {
@@ -42,7 +44,11 @@ class GuestController extends Controller
             'last_name' => 'required|string|max:100',
             'gender' => 'nullable|in:male,female',
             'date_of_birth' => 'nullable|date',
-            'guest_class_id' => 'nullable|exists:guest_classes,id',
+            'guest_class_id' => [
+                'nullable',
+                Rule::exists('guest_classes', 'id')
+                    ->where(fn ($query) => $query->where('company_id', $this->currentCompanyId($request))),
+            ],
             'nationality' => 'nullable|string|max:100',
             'nationality_code' => 'nullable|string|size:3|regex:/^[A-Za-z]{3}$/',
             'guest_type' => 'nullable|in:individual,family,corporate',
@@ -149,7 +155,11 @@ class GuestController extends Controller
             'last_name' => 'required|string|max:100',
             'gender' => 'nullable|in:male,female',
             'date_of_birth' => 'nullable|date',
-            'guest_class_id' => 'nullable|exists:guest_classes,id',
+            'guest_class_id' => [
+                'nullable',
+                Rule::exists('guest_classes', 'id')
+                    ->where(fn ($query) => $query->where('company_id', $this->currentCompanyId($request))),
+            ],
             'nationality' => 'nullable|string|max:100',
             'nationality_code' => 'nullable|string|size:3|regex:/^[A-Za-z]{3}$/',
             'guest_type' => 'nullable|in:individual,family,corporate',
@@ -229,5 +239,10 @@ class GuestController extends Controller
     protected function visibleGuests(Request $request): Builder
     {
         return Guest::query();
+    }
+
+    private function currentCompanyId(Request $request): ?int
+    {
+        return app(TenantContext::class)->id() ?: $request->user()?->company_id;
     }
 }

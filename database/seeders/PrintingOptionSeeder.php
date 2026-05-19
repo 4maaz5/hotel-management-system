@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\PrintingOption;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class PrintingOptionSeeder extends Seeder
 {
@@ -44,9 +45,17 @@ class PrintingOptionSeeder extends Seeder
             ['report_key' => 'others', 'report_name' => 'Others'],
         ];
 
+        $hasCompanyColumn = Schema::hasColumn('printing_options', 'company_id');
+
         foreach ($options as $option) {
+            $lookup = ['report_key' => $option['report_key']];
+
+            if ($hasCompanyColumn) {
+                $lookup['company_id'] = null;
+            }
+
             PrintingOption::updateOrCreate(
-                ['report_key' => $option['report_key']],
+                $lookup,
                 ['report_name' => $option['report_name']]
             );
         }

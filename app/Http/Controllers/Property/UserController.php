@@ -83,8 +83,14 @@ class UserController extends Controller
             'property_ids' => $propertySelection['property_ids'],
         ]);
 
+        $companyId = $this->companyIdForUserPayload($request);
+
         $validated = $request->validate([
-            'username' => 'required|unique:users,name|max:255',
+            'username' => [
+                'required',
+                'max:255',
+                $this->tenantScopedUsernameRule($companyId),
+            ],
             'password' => 'required|min:8|string|confirmed',
             'role_id' => ['required', 'integer', ...$this->roleRuleSet()],
             'first_name_en' => 'required|string|max:255',
@@ -100,7 +106,11 @@ class UserController extends Controller
             'department' => 'nullable|string',
             'position' => 'nullable|string',
             'description_en' => 'nullable|string',
-            'email' => 'nullable|email',
+            'email' => [
+                'nullable',
+                'email',
+                $this->tenantScopedUserEmailRule($companyId),
+            ],
             'mobile_number' => 'required|string',
             'business_phone' => 'nullable|string',
             'address' => 'nullable|string',
@@ -109,7 +119,7 @@ class UserController extends Controller
             'default_property_id' => ['nullable', 'integer', ...$this->propertyRuleSet()],
             'property_ids' => ['nullable', 'array'],
             'property_ids.*' => ['integer', ...$this->propertyRuleSet()],
-        ]);
+        ], $this->userValidationMessages());
 
         // Handle file uploads
         $photoPath = null;
@@ -209,8 +219,15 @@ class UserController extends Controller
         ]);
 
         // Validation
+        $companyId = $this->companyIdForUserPayload($request, $user);
+
         $validated = $request->validate([
-            'username' => 'required|string|max:255|unique:users,name,'.$user->id,
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+                $this->tenantScopedUsernameRule($companyId, $user->id),
+            ],
             'password' => 'nullable|min:8|string|confirmed',
             'role_id' => ['required', 'integer', ...$this->roleRuleSet()],
             'first_name_en' => 'required|string|max:255',
@@ -226,7 +243,11 @@ class UserController extends Controller
             'department' => 'nullable|string',
             'position' => 'nullable|string',
             'description_en' => 'nullable|string',
-            'email' => 'nullable|email',
+            'email' => [
+                'nullable',
+                'email',
+                $this->tenantScopedUserEmailRule($companyId, $user->id),
+            ],
             'mobile_number' => 'required|string',
             'business_phone' => 'nullable|string',
             'address' => 'nullable|string',
@@ -235,7 +256,7 @@ class UserController extends Controller
             'default_property_id' => ['nullable', 'integer', ...$this->propertyRuleSet()],
             'property_ids' => ['nullable', 'array'],
             'property_ids.*' => ['integer', ...$this->propertyRuleSet()],
-        ]);
+        ], $this->userValidationMessages());
 
         // Update password if provided
         if (! empty($validated['password'])) {
@@ -506,5 +527,62 @@ class UserController extends Controller
             ->unique()
             ->values()
             ->all();
+    }
+
+    protected function tenantScopedUserEmailRule(?int $companyId, ?int $ignoreUserId = null)
+    {
+        $rule = Rule::unique('users', 'email')
+            ->where(fn ($query) => $companyId
+                ? $query->where('company_id', $companyId)
+                : $query->whereNull('company_id'));
+
+        if ($ignoreUserId) {
+            $rule->ignore($ignoreUserId);
+        }
+
+        return $rule;
+    }
+
+    protected function tenantScopedUsernameRule(?int $companyId, ?int $ignoreUserId = null)
+    {
+        $rule = Rule::unique('users', 'name')
+            ->where(fn ($query) => $companyId
+                ? $query->where('company_id', $companyId)
+                : $query->whereNull('company_id'));
+
+        if ($ignoreUserId) {
+            $rule->ignore($ignoreUserId);
+        }
+
+        return $rule;
+    }
+
+    protected function companyIdForUserPayload(Request $request, ?User $user = null): ?int
+    {
+        $propertyId = $request->input('default_property_id')
+            ?: $request->input('company')
+            ?: $this->branchIdToPropertyId($user?->branch_id)
+            ?: app(PropertyContext::class)->id();
+
+        if ($propertyId) {
+            $companyId = Property::query()
+                ->whereKey((int) $propertyId)
+                ->value('company_id');
+
+            if ($companyId) {
+                return (int) $companyId;
+            }
+        }
+
+        return $user?->company_id ?: auth()->user()?->company_id;
+    }
+
+    protected function userValidationMessages(): array
+    {
+        return [
+            'email.unique' => 'This email is already used by another user in this tenant.',
+            'email.email' => 'Please enter a valid email address.',
+            'username.unique' => 'This username is already used by another user in this tenant.',
+        ];
     }
 }

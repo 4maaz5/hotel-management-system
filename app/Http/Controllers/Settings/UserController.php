@@ -60,10 +60,15 @@ class UserController extends Controller
     {
         $authUser = auth()->user();
         $branchIds = $this->accessibleBranchIds($authUser);
+        $companyId = $this->companyIdForUserPayload($request, $authUser);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => [
+                'required',
+                'email',
+                $this->tenantScopedUserEmailRule($companyId),
+            ],
             'password' => 'required|min:6|confirmed',
             'role' => [
                 'required',
@@ -83,7 +88,7 @@ class UserController extends Controller
                     fn ($rule) => $rule->where(fn ($query) => $query->whereIn('id', $branchIds))
                 ),
             ],
-        ]);
+        ], $this->userValidationMessages());
 
         $branch = Branch::findOrFail($validated['branch']);
 
@@ -180,10 +185,15 @@ class UserController extends Controller
         $authUser = auth()->user();
         $branchIds = $this->accessibleBranchIds($authUser);
         $user = $this->scopeUsersForUser(User::query(), $authUser)->findOrFail($id);
+        $companyId = $this->companyIdForUserPayload($request, $authUser, $user);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,'.$user->id,
+            'email' => [
+                'required',
+                'email',
+                $this->tenantScopedUserEmailRule($companyId, $user->id),
+            ],
             'password' => 'nullable|min:6|confirmed',
             'role' => [
                 'required',
@@ -203,7 +213,7 @@ class UserController extends Controller
                     fn ($rule) => $rule->where(fn ($query) => $query->whereIn('id', $branchIds))
                 ),
             ],
-        ]);
+        ], $this->userValidationMessages());
 
         $branch = Branch::findOrFail($validated['branch']);
 
@@ -275,5 +285,43 @@ class UserController extends Controller
             ->where('name', $roleName)
             ->orderByRaw('CASE WHEN company_id IS NULL THEN 1 ELSE 0 END')
             ->firstOrFail();
+    }
+
+    private function tenantScopedUserEmailRule(?int $companyId, ?int $ignoreUserId = null)
+    {
+        $rule = Rule::unique('users', 'email')
+            ->where(fn ($query) => $companyId
+                ? $query->where('company_id', $companyId)
+                : $query->whereNull('company_id'));
+
+        if ($ignoreUserId) {
+            $rule->ignore($ignoreUserId);
+        }
+
+        return $rule;
+    }
+
+    private function companyIdForUserPayload(Request $request, $authUser, ?User $user = null): ?int
+    {
+        if ($request->filled('branch')) {
+            $companyId = Branch::query()
+                ->whereKey($request->integer('branch'))
+                ->value('company_id');
+
+            if ($companyId) {
+                return (int) $companyId;
+            }
+        }
+
+        return $user?->company_id ?: $authUser?->company_id;
+    }
+
+    private function userValidationMessages(): array
+    {
+        return [
+            'email.unique' => 'This email is already used by another user in this tenant.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.required' => 'Email address is required.',
+        ];
     }
 }

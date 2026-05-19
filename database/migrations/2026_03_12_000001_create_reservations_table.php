@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('reservations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->nullable()->index();
-            $table->string('reservation_number')->unique();
+            $table->string('reservation_number');
             $table->foreignId('branch_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('guest_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('corporate_id')->nullable()->constrained()->nullOnDelete();
@@ -61,6 +61,8 @@ return new class extends Migration
             $table->timestamp('ntmp_reported_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['company_id', 'reservation_number'], 'reservations_company_number_unique');
         });
     }
 

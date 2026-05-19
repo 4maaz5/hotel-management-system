@@ -19,12 +19,15 @@ return new class extends Migration
                 ->constrained()
                 ->cascadeOnDelete();
 
-            $table->string('registration_number')->unique();
+            $table->string('registration_number');
             $table->string('activity_license_number')->nullable();
             $table->string('vat_registration_number')->nullable();
             $table->string('registration_file_path')->nullable();
 
             $table->timestamps();
+
+            $table->unique(['company_id', 'registration_number'], 'pcd_company_registration_unique');
+            $table->unique(['company_id', 'branch_id'], 'pcd_company_branch_unique');
         });
     }
 
@@ -36,4 +39,3 @@ return new class extends Migration
         Schema::dropIfExists('property_commercial_details');
     }
 };
-

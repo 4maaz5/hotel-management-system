@@ -21,7 +21,6 @@ class DatabaseSeeder extends Seeder
         $this->call(UnitTypeSeeder::class);
         $this->call(UnitClassSeeder::class);
         $this->call(HallTypeSeeder::class);
-        $this->call(GuestClassSeeder::class);
         $this->call(FacilityCategorySeeder::class);
         $this->call(FacilitySeeder::class);
         $this->call(ReportSettingSeeder::class);

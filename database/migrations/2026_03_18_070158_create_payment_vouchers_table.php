@@ -41,6 +41,7 @@ return new class extends Migration
             $table->timestamp('cancelled_at')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
+            $table->unique(['company_id', 'branch_id', 'voucher_number'], 'payment_vouchers_company_branch_number_unique');
         });
     }
 
@@ -52,4 +53,3 @@ return new class extends Migration
         Schema::dropIfExists('payment_vouchers');
     }
 };
-

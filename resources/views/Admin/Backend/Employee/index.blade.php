@@ -407,15 +407,11 @@
                                                 <select class="form-control" name="documents[0][type]" required>
                                                     <option value="Iqama">{{ __('dashboard.iqama') }}</option>
                                                     <option value="Passport">{{ __('dashboard.passport') }}</option>
-                                                    <option value="Driving License">{{ __('dashboard.driving_license') }}
-                                                    </option>
+                                                    <option value="Driving License">{{ __('dashboard.driving_license') }}</option>
                                                     <option value="Visa">{{ __('dashboard.visa') }}</option>
-                                                    <option value="Work Permit">{{ __('dashboard.work_permit') }}
-                                                    </option>
-                                                    <option value="National Identity">
-                                                        {{ __('dashboard.national_identity') }}</option>
-                                                    <option value="Academic Qualification">
-                                                        {{ __('dashboard.academic_qualification') }}</option>
+                                                    <option value="Work Permit">{{ __('dashboard.work_permit') }}</option>
+                                                    <option value="National Identity">{{ __('dashboard.national_identity') }}</option>
+                                                    <option value="Academic Qualification">{{ __('dashboard.academic_qualification') }}</option>
                                                     <option value="Experience">{{ __('dashboard.experience') }}</option>
                                                     <option value="Other">{{ __('dashboard.other') }}</option>
                                                 </select>
@@ -1162,11 +1158,9 @@
                             <option value="Driving License">{{ __('dashboard.driving_license') }}</option>
                             <option value="Visa">{{ __('dashboard.visa') }}</option>
                             <option value="Work Permit">{{ __('dashboard.work_permit') }}</option>
-                             <option value="National Identity">
-                                                        {{ __('dashboard.national_identity') }}</option>
-                                                    <option value="Academic Qualification">
-                                                        {{ __('dashboard.academic_qualification') }}</option>
-                                                    <option value="Experience">{{ __('dashboard.experience') }}</option>
+                            <option value="National Identity">{{ __('dashboard.national_identity') }}</option>
+                            <option value="Academic Qualification">{{ __('dashboard.academic_qualification') }}</option>
+                            <option value="Experience">{{ __('dashboard.experience') }}</option>
                             <option value="Other">{{ __('dashboard.other') }}</option>
                         </select>
                         <span class="text-danger error-text"></span>
@@ -1405,35 +1399,10 @@
             }
         });
 
-        function loadEditEmployeeDepartments(branchId, selectedDepartmentId = null) {
-            const modal = $('#editEmployeeModal');
-            const departmentSelect = modal.find('select[name="department_id"]');
-
-            departmentSelect.html('<option selected disabled>Loading...</option>');
-
-            if (!branchId) {
-                departmentSelect.html('<option selected disabled>Select Departments</option>');
-                return;
-            }
-
-            $.ajax({
-                url: '/branches/' + branchId + '/departments',
-                type: 'GET',
-                dataType: 'json',
-                success: function(data) {
-                    let options = '<option selected disabled>Select Departments</option>';
-
-                    $.each(data, function(index, department) {
-                        const selected = String(department.id) === String(selectedDepartmentId) ? 'selected' : '';
-                        options += `<option value="${department.id}" ${selected}>${department.name}</option>`;
-                    });
-
-                    departmentSelect.html(options);
-                },
-                error: function() {
-                    departmentSelect.html('<option selected disabled>Select Departments</option>');
-                }
-            });
+        function loadEditEmployeeDepartments(branchId, selectedDepartmentId = null, selectedShiftId = null) {
+            const form = $('#editEmployeeForm');
+            loadEmployeeDepartments(form, branchId, selectedDepartmentId);
+            loadEmployeeShifts(form, branchId, selectedShiftId);
         }
 
         $(document).on('click', '.edit-employee-btn', function(e) {
@@ -1459,10 +1428,7 @@
                         modal.find('select[name="branch_id"]').val(emp.branch_id);
                         modal.find('select[name="company_id"]').val(emp.company_id);
                         modal.find('select[name="brand_id"]').val(emp.brand_id);
-                        loadEditEmployeeDepartments(emp.branch_id, emp.department_id);
-
-                        //  NEW: Set Shift Selected
-                        modal.find('select[name="shift_id"]').val(emp.shift_id);
+                        loadEditEmployeeDepartments(emp.branch_id, emp.department_id, emp.shift_id);
 
                         modal.find('input[name="join_date"]').val(
                             emp.join_date ? emp.join_date.replace(' ', 'T') : ''
@@ -1493,13 +1459,6 @@
                 }
             });
         });
-
-        $(document).on('change', '#editEmployeeModal select[name="branch_id"]', function() {
-            loadEditEmployeeDepartments($(this).val());
-        });
-
-
-
 
         $('#editEmployeeForm').on('submit', function(e) {
             e.preventDefault();
@@ -1706,66 +1665,105 @@
 
         });
 
-        //employee dropdowns loading
+        const employeeFormSelector = '#createEmployeeForm, #editEmployeeForm';
+
+        function employeeOption(label) {
+            return `<option value="" selected disabled>${label}</option>`;
+        }
+
+        function loadEmployeeDepartments($form, branchId, selectedDepartmentId = null) {
+            const departmentSelect = $form.find('select[name="department_id"]');
+            departmentSelect.html(employeeOption('Loading...'));
+
+            if (!branchId) {
+                departmentSelect.html(employeeOption('Select Department'));
+                return;
+            }
+
+            $.get('/dashboard/employees/' + branchId, function(data) {
+                let options = employeeOption('Select Department');
+                $.each(data, function(key, department) {
+                    const selected = String(department.id) === String(selectedDepartmentId) ? 'selected' : '';
+                    options += `<option value="${department.id}" ${selected}>${department.name}</option>`;
+                });
+                departmentSelect.html(options);
+            }).fail(function(xhr) {
+                console.error('Failed to load departments', xhr);
+                departmentSelect.html(employeeOption('Select Department'));
+            });
+        }
+
+        function loadEmployeeShifts($form, branchId, selectedShiftId = null) {
+            const shiftSelect = $form.find('select[name="shift_id"]');
+            shiftSelect.html('<option value="">Select Shift</option>');
+
+            if (!branchId) {
+                return;
+            }
+
+            $.get('/dashboard/branches/' + branchId + '/shifts', function(data) {
+                let options = '<option value="">Select Shift</option>';
+                $.each(data, function(key, shift) {
+                    const selected = String(shift.id) === String(selectedShiftId) ? 'selected' : '';
+                    options += `<option value="${shift.id}" ${selected}>${shift.name} (${shift.start_time} - ${shift.end_time})</option>`;
+                });
+                shiftSelect.html(options);
+            }).fail(function(xhr) {
+                console.error('Failed to load shifts', xhr);
+                shiftSelect.html('<option value="">Select Shift</option>');
+            });
+        }
+
         $(document).ready(function() {
-            // When Company changes, load Brands
-            $('select[name="company_id"]').on('change', function() {
-                let companyId = $(this).val();
-                let brandSelect = $('select[name="brand_id"]');
-                brandSelect.html('<option value="" selected disabled>Loading...</option>');
-                $('select[name="branch_id"]').html(
-                    '<option value="" selected disabled>Select Branch</option>');
-                $('select[name="employee_id"]').html(
-                    '<option value="" selected disabled>Select Employee</option>');
+            $(employeeFormSelector).on('change', 'select[name="company_id"]', function() {
+                const $form = $(this).closest('form');
+                const companyId = $(this).val();
+                const brandSelect = $form.find('select[name="brand_id"]');
+
+                brandSelect.html(employeeOption('Loading...'));
+                $form.find('select[name="branch_id"]').html(employeeOption('Select Branch'));
+                $form.find('select[name="department_id"]').html(employeeOption('Select Department'));
 
                 if (companyId) {
                     $.get('/dashboard/brands/' + companyId, function(data) {
-                        let options = '<option value="" selected disabled>Select Brand</option>';
+                        let options = employeeOption('Select Brand');
                         $.each(data, function(key, brand) {
                             options += `<option value="${brand.id}">${brand.name}</option>`;
                         });
                         brandSelect.html(options);
+                    }).fail(function() {
+                        brandSelect.html(employeeOption('Select Brand'));
                     });
                 }
             });
 
-            // When Brand changes, load Branches
-            $('select[name="brand_id"]').on('change', function() {
-                let brandId = $(this).val();
-                let branchSelect = $('select[name="branch_id"]');
-                branchSelect.html('<option value="" selected disabled>Loading...</option>');
-                $('select[name="employee_id"]').html(
-                    '<option value="" selected disabled>Select Employee</option>');
+            $(employeeFormSelector).on('change', 'select[name="brand_id"]', function() {
+                const $form = $(this).closest('form');
+                const brandId = $(this).val();
+                const branchSelect = $form.find('select[name="branch_id"]');
+
+                branchSelect.html(employeeOption('Loading...'));
+                $form.find('select[name="department_id"]').html(employeeOption('Select Department'));
 
                 if (brandId) {
                     $.get('/dashboard/branches/' + brandId, function(data) {
-                        let options = '<option value="" selected disabled>Select Branch</option>';
+                        let options = employeeOption('Select Branch');
                         $.each(data, function(key, branch) {
-                            options +=
-                                `<option value="${branch.id}">${branch.name}</option>`;
+                            options += `<option value="${branch.id}">${branch.name}</option>`;
                         });
                         branchSelect.html(options);
+                    }).fail(function() {
+                        branchSelect.html(employeeOption('Select Branch'));
                     });
                 }
             });
 
-            // When Branch changes, load Employees
-            $('select[name="branch_id"]').on('change', function() {
-                let branchId = $(this).val();
-                let employeeSelect = $('select[name="department_id"]');
-                employeeSelect.html('<option value="" selected disabled>Loading...</option>');
+            $(employeeFormSelector).on('change', 'select[name="branch_id"]', function() {
+                const $form = $(this).closest('form');
+                const branchId = $(this).val();
 
-                if (branchId) {
-                    $.get('/dashboard/employees/' + branchId, function(data) {
-                        let options =
-                            '<option value="" selected disabled>Select Department</option>';
-                        $.each(data, function(key, emp) {
-                            options +=
-                                `<option value="${emp.id}">${emp.name}</option>`;
-                        });
-                        employeeSelect.html(options);
-                    });
-                }
+                loadEmployeeDepartments($form, branchId);
+                loadEmployeeShifts($form, branchId);
             });
         });
 
@@ -1791,31 +1789,6 @@
                         $('#departmentSelect').html(options);
                     }
                 });
-            });
-        });
-
-        $(document).ready(function() {
-            $('#branch_id').on('change', function() {
-                var branchId = $(this).val();
-                if (branchId) {
-                    $.ajax({
-                        url: '/branches/' + branchId + '/departments',
-                        type: 'GET',
-                        dataType: 'json',
-                        success: function(data) {
-                            $('#department_id').empty().append(
-                                '<option selected disabled>Select Department</option>');
-                            $.each(data, function(index, department) {
-                                $('#department_id').append('<option value="' +
-                                    department.id + '">' + department.name +
-                                    '</option>');
-                            });
-                        }
-                    });
-                } else {
-                    $('#department_id').empty().append(
-                        '<option selected disabled>Select Department</option>');
-                }
             });
         });
 

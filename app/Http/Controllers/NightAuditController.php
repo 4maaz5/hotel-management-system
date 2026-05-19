@@ -6,6 +6,8 @@ use App\Http\Controllers\Concerns\ScopesTenantAccess;
 use App\Models\NightAudit;
 use App\Models\NightAuditSetting;
 use App\Models\User;
+use App\Support\PropertyContext;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -41,6 +43,7 @@ class NightAuditController extends Controller
     public function start(Request $request)
     {
         $settings = NightAuditSetting::getSettings();
+        [$companyId, $branchId] = $this->currentTenantAndBranch($request);
 
         if (! $settings->is_active) {
             return redirect()->back()
@@ -74,7 +77,8 @@ class NightAuditController extends Controller
             'period_date_from' => $periodFrom,
             'period_date_to' => Carbon::today(),
             'status' => 'pending',
-            'company_id' => $request->user()->company_id,
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
             'user_id' => auth()->id(),
             'night_count' => Carbon::parse($periodFrom)->diffInDays(Carbon::today()) + 1,
         ]);
@@ -94,7 +98,9 @@ class NightAuditController extends Controller
 
         $financialSummary = NightAudit::calculateFinancialSummary(
             $audit->period_date_from,
-            $audit->period_date_to
+            $audit->period_date_to,
+            $audit->company_id,
+            $audit->branch_id
         );
 
         $audit->update([
@@ -157,7 +163,11 @@ class NightAuditController extends Controller
             return $query;
         }
 
-        return $query->where('company_id', $user->company_id);
+        [$companyId, $branchId] = $this->currentTenantAndBranch(request());
+
+        return $query
+            ->where('company_id', $companyId)
+            ->when($branchId, fn ($scopedQuery) => $scopedQuery->where('branch_id', $branchId));
     }
 
     private function scopeUsersForUser($query, $user)
@@ -166,10 +176,20 @@ class NightAuditController extends Controller
             return $query;
         }
 
-        if ($user->branch_id) {
-            return $query->where('branch_id', $user->branch_id);
-        }
+        [$companyId, $branchId] = $this->currentTenantAndBranch(request());
 
-        return $query->where('company_id', $user->company_id);
+        return $query
+            ->where('company_id', $companyId)
+            ->when($branchId, fn ($scopedQuery) => $scopedQuery->where('branch_id', $branchId));
+    }
+
+    private function currentTenantAndBranch(Request $request): array
+    {
+        $companyId = app(TenantContext::class)->id() ?: $request->user()?->company_id;
+        $branchId = app(PropertyContext::class)->branchId() ?: $request->user()?->branch_id;
+
+        abort_unless($companyId, 403);
+
+        return [(int) $companyId, $branchId ? (int) $branchId : null];
     }
 }

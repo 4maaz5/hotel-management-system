@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('night_audits', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->nullable()->index();
+            $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete();
             $table->dateTime('start_date_time');
             $table->dateTime('end_date_time')->nullable();
             $table->enum('status', ['pending', 'completed', 'failed'])->default('pending');

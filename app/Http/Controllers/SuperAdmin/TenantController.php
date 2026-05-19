@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Permission;
 
 class TenantController extends Controller
@@ -163,7 +164,16 @@ class TenantController extends Controller
             'status' => ['required', 'in:active,inactive,suspended'],
             'subscription_plan_id' => ['nullable', 'integer', 'exists:subscription_plans,id'],
             'owner_name' => ['required', 'string', 'max:255'],
-            'owner_email' => ['required', 'email', 'max:255', 'unique:users,email,'.($ownerUserId ?? 'NULL').',id'],
+            'owner_email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')
+                    ->where(fn ($query) => $tenant?->id
+                        ? $query->where('company_id', $tenant->id)
+                        : $query->whereRaw('1 = 0'))
+                    ->ignore($ownerUserId),
+            ],
             'owner_password' => $passwordRules,
         ]);
     }

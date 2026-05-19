@@ -13,13 +13,17 @@ return new class extends Migration
     {
         Schema::create('printing_options', function (Blueprint $table) {
             $table->id();
-            $table->string('report_key')->unique();
+            $table->foreignId('company_id')->nullable()->index();
+            $table->string('report_key');
             $table->string('report_name');
+            $table->boolean('enabled')->default(true);
             $table->boolean('letter_head')->default(false);
             $table->boolean('blank_paper')->default(false);
             $table->boolean('cashier_paper')->default(false);
             $table->string('contract_template_type')->default('double');
             $table->timestamps();
+
+            $table->unique(['company_id', 'report_key'], 'printing_options_company_report_unique');
         });
     }
 
@@ -31,4 +35,3 @@ return new class extends Migration
         Schema::dropIfExists('printing_options');
     }
 };
-

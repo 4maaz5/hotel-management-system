@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('company_id')->nullable()->index();
             $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete();
 
-            $table->string('unit_number')->unique();
+            $table->string('unit_number');
 
             $table->foreignId('unit_class_id')
                 ->constrained('unit_classes')
@@ -61,6 +61,8 @@ return new class extends Migration
                 ->default('clean');
 
             $table->timestamps();
+
+            $table->unique(['company_id', 'branch_id', 'unit_number'], 'units_company_branch_number_unique');
         });
     }
 

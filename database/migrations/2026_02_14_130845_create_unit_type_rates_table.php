@@ -32,7 +32,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->unique('unit_type_id'); // one rate per unit type
+            $table->unique(['company_id', 'unit_type_id'], 'unit_type_rates_company_type_unique');
         });
 
     }
@@ -45,4 +45,3 @@ return new class extends Migration
         Schema::dropIfExists('unit_type_rates');
     }
 };
-
