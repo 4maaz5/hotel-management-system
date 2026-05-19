@@ -564,11 +564,13 @@
                                                      @if (Auth::user()->hasRole('Administrator'))
                                                      @else
                                                     @can('user.delete')
-                                                        <a href="#" class="dropdown-item" data-bs-toggle="modal"
-                                                            data-bs-target="#deactivateUserModal{{ $user->id }}">
-                                                            <i class="bi bi-person-x text-danger">
-                                                                {{ __('dashboard.deactivate') }}</i>
-                                                        </a>
+                                                        @if ($user->canBeDeletedFromTenantDashboard(auth()->user()))
+                                                            <a href="#" class="dropdown-item" data-bs-toggle="modal"
+                                                                data-bs-target="#deactivateUserModal{{ $user->id }}">
+                                                                <i class="bi bi-person-x text-danger">
+                                                                    {{ __('dashboard.deactivate') }}</i>
+                                                            </a>
+                                                        @endif
                                                     @endcan
                                                     @endif
 
@@ -607,6 +609,7 @@
     </div>
 @endsection
 @foreach ($users as $user)
+    @if ($user->canBeDeletedFromTenantDashboard(auth()->user()))
     <!-- Deactivate Modal -->
     <div class="modal fade" id="deactivateUserModal{{ $user->id }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -652,6 +655,7 @@
             </div>
         </div>
     </div>
+    @endif
 
 
     <!-- Assign Property & Outlet Modal -->

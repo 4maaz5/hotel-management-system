@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Outlet;
 use App\Models\Property;
 use App\Models\Role;
+use App\Models\Scopes\CurrentPropertyScope;
 use App\Models\User;
 use App\Support\PropertyContext;
 use Illuminate\Http\Request;
@@ -46,7 +47,7 @@ class UserController extends Controller
 
         $users = $query->latest()->paginate(10);
         $properties = $this->availableProperties();
-        $outlets = Outlet::all();
+        $outlets = $this->availableOutlets();
 
         return view('admin.user.index', compact('users', 'properties', 'outlets'));
     }
@@ -350,6 +351,11 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
+        if (! $user->canBeDeletedFromTenantDashboard(auth()->user())) {
+            return redirect()->route('setup-sidebar.property-user.index')
+                ->with('danger', 'Tenant owner users cannot be deactivated from the dashboard.');
+        }
+
         // Delete uploaded files if they exist
         if (! empty($user->profile_data['photo_path'])) {
             Storage::disk('public')->delete($user->profile_data['photo_path']);
@@ -366,21 +372,40 @@ class UserController extends Controller
             ->with('danger', __('messages.user_deactivated_successfully'));
     }
 
-    public function assignOutlet(Request $request, User $user)
+    public function assignOutlet(Request $request, $user)
     {
-        $propertyId = app(PropertyContext::class)->id();
+        $user = $user instanceof User ? $user : User::findOrFail($user);
+        $authUser = $request->user();
+        $tenantId = $authUser?->isSuperAdmin() ? null : $authUser?->company_id;
+        $selectedProperty = Property::query()
+            ->when($tenantId, fn ($query) => $query->where('company_id', $tenantId))
+            ->find($request->integer('property_id'));
+        $selectedBranchId = $selectedProperty?->branch_id;
 
         $validated = $request->validate([
             'property_id' => [
                 'required',
-                Rule::exists('properties', 'id')->where(fn ($query) => $query->where('company_id', auth()->user()->company_id)),
+                Rule::exists('properties', 'id')->where(function ($query) use ($tenantId) {
+                    if ($tenantId) {
+                        $query->where('company_id', $tenantId);
+                    }
+                }),
             ],
-            'outlet_id' => ['required', 'exists:outlets,id'],
+            'outlet_id' => [
+                'required',
+                Rule::exists('outlets', 'id')->where(function ($query) use ($tenantId, $selectedBranchId) {
+                    if ($tenantId) {
+                        $query->where('company_id', $tenantId);
+                    }
+
+                    if ($selectedBranchId) {
+                        $query->where('branch_id', $selectedBranchId);
+                    }
+                }),
+            ],
         ]);
 
-        abort_if($propertyId && (int) $validated['property_id'] !== (int) $propertyId, 403);
-
-        $branchId = $this->propertyIdToBranchId($validated['property_id']);
+        $branchId = $selectedBranchId ?: $this->propertyIdToBranchId($validated['property_id']);
         abort_unless($branchId, 422, 'Selected property is not linked to a branch.');
 
         $user->update([
@@ -397,13 +422,25 @@ class UserController extends Controller
     {
         $user = auth()->user();
 
-        if ($user && method_exists($user, 'accessiblePropertiesQuery') && ! $user->isSuperAdmin()) {
-            return $user->accessiblePropertiesQuery()
+        if ($user && ! $user->isSuperAdmin()) {
+            return Property::query()
+                ->where('company_id', $user->company_id)
                 ->orderBy('property_name_en')
                 ->get();
         }
 
         return Property::query()->orderBy('property_name_en')->get();
+    }
+
+    protected function availableOutlets()
+    {
+        $user = auth()->user();
+
+        return Outlet::query()
+            ->withoutGlobalScope(CurrentPropertyScope::class)
+            ->when($user && ! $user->isSuperAdmin(), fn ($query) => $query->where('company_id', $user->company_id))
+            ->orderBy('name')
+            ->get();
     }
 
     protected function availableRoles()
