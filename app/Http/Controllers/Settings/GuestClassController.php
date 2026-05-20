@@ -43,22 +43,18 @@ class GuestClassController extends Controller
         $request->validate([
             'class_name' => 'required|string|max:255',
             'order_no' => 'required|integer|min:1|max:20',
-            'icon' => 'nullable|string',
-            'discount_method' => 'nullable|string',
-            'discount_amount' => 'nullable|numeric',
             'description' => 'nullable|string',
         ]);
 
         GuestClass::create([
             'company_id' => $companyId,
-            'blacklist' => $request->blacklist ? true : false,
+            'blacklist' => false,
             'class_name' => $request->class_name,
             'order_no' => $request->order_no,
-            'icon' => $request->icon,
-            'discount_method' => $request->discount_method,
-            'discount_amount' => $request->discount_amount,
+            'icon' => null,
+            'discount_method' => null,
+            'discount_amount' => null,
             'description' => $request->description,
-
         ]);
 
         return redirect()
@@ -78,20 +74,16 @@ class GuestClassController extends Controller
         $request->validate([
             'class_name' => 'required|string|max:255',
             'order_no' => 'required|integer|min:1|max:20',
-            'discount_amount' => 'nullable|numeric',
         ]);
 
         $guestClass->update([
-            'blacklist' => $request->has('blacklist'),
             'is_active' => $request->has('is_active'),
-
             'class_name' => $request->class_name,
-
             'order_no' => $request->order_no,
-            'icon' => $request->icon,
-            'discount_method' => $request->discount_method,
-            'discount_amount' => $request->discount_amount,
-
+            'blacklist' => false,
+            'icon' => null,
+            'discount_method' => null,
+            'discount_amount' => null,
             'description' => $request->description,
         ]);
 

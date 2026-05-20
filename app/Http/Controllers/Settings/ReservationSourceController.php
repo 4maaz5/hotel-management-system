@@ -22,10 +22,6 @@ class ReservationSourceController extends Controller
         $request->validate([
             'master_channel_id' => 'required|exists:reservation_source_masters,id',
             'report_name' => 'nullable|string|max:255',
-            'url' => 'nullable|url',
-            'commission_rate' => 'nullable|numeric|min:0|max:100',
-            'tax_mode' => 'required|in:auto,manual',
-            'tax_calculation_type' => 'nullable|in:inclusive,exclusive',
             'description' => 'nullable|string',
             'status' => 'nullable|boolean',
         ]);
@@ -37,12 +33,10 @@ class ReservationSourceController extends Controller
             [
                 'status' => $request->status ?? 0,
                 'report_name' => $request->report_name,
-                'url' => $request->url,
-                'commission_rate' => $request->commission_rate,
-                'tax_mode' => $request->tax_mode,
-                'tax_calculation_type' => $request->tax_mode === 'manual'
-                        ? $request->tax_calculation_type
-                        : null,
+                'url' => null,
+                'commission_rate' => null,
+                'tax_mode' => 'auto',
+                'tax_calculation_type' => null,
                 'description' => $request->description,
             ]
         );
@@ -57,10 +51,6 @@ class ReservationSourceController extends Controller
     {
         $request->validate([
             'report_name' => 'nullable|string|max:255',
-            'url' => 'nullable|url',
-            'commission_rate' => 'nullable|numeric|min:0|max:100',
-            'tax_mode' => 'required|in:auto,manual',
-            'tax_calculation_type' => 'nullable|in:inclusive,exclusive',
             'description' => 'nullable|string',
         ]);
 
@@ -69,12 +59,10 @@ class ReservationSourceController extends Controller
         $setting->update([
             'status' => $request->has('status') ? 1 : 0,
             'report_name' => $request->report_name,
-            'url' => $request->url,
-            'commission_rate' => $request->commission_rate,
-            'tax_mode' => $request->tax_mode,
-            'tax_calculation_type' => $request->tax_mode === 'manual'
-                    ? $request->tax_calculation_type
-                    : null,
+            'url' => null,
+            'commission_rate' => null,
+            'tax_mode' => 'auto',
+            'tax_calculation_type' => null,
             'description' => $request->description,
         ]);
 

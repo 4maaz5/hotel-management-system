@@ -10,7 +10,7 @@
                 <h2 class="mb-1">Pricing Plans</h2>
                 <p class="text-muted mb-0">Manage subscription tiers, feature sets, and usage limits.</p>
             </div>
-            <a href="{{ route('super-admin.plans.create') }}" class="btn btn-primary">
+            <a href="{{ route('super-admin.plans.create') }}" class="btn btn-primary rounded-pill px-3">
                 <i class="fas fa-plus me-1"></i>New Plan
             </a>
         </div>
@@ -23,7 +23,7 @@
                 <div class="col-sm-6 col-xl-3">
                     <div class="card border-0 shadow-sm h-100 position-relative" style="border-radius: 16px;">
                         @if ($isPopular)
-                            <div class="position-absolute top-0 start-50 translate-middle">
+                            <div class="position-absolute top-0 start-50 translate-middle" style="z-index: 2;">
                                 <span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm">
                                     <i class="fas fa-star me-1"></i>Most Popular
                                 </span>
@@ -44,8 +44,8 @@
                             </div>
 
                             <div class="text-center my-4">
-                                <span class="display-5 fw-bold">SAR {{ $plan->formattedPrice() }}</span>
-                                <span class="text-muted" style="font-size: 0.9rem;">/ {{ $plan->billing_period }}</span>
+                                <span class="h2 fw-bold">SAR {{ $plan->formattedPrice() }}</span>
+                                <span class="text-muted" style="font-size: 0.85rem;">/ {{ $plan->billing_period }}</span>
                             </div>
 
                             <div class="mb-3">
