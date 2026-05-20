@@ -31,7 +31,9 @@ class ToolExecutorService
         return match ($toolName) {
             'checkAvailability' => $this->availabilityService->checkAvailability($parameters),
             'createBooking' => ($parameters['confirmation'] ?? false)
-                ? $this->bookingService->confirmBooking($session)
+                ? (data_get($session->context ?? [], 'booking_proposal')
+                    ? $this->bookingService->confirmBooking($session)
+                    : $this->bookingService->prepareBooking($session, $parameters))
                 : $this->bookingService->prepareBooking($session, $parameters),
             'cancelBooking' => $isWebsiteGuest
                 ? $this->publicCancellationUnavailable()
