@@ -1,6 +1,6 @@
 @extends('layout.master')
 
-@section('title', 'HR Support Ticket')
+@section('title', __('support.hr_title'))
 
 @section('main')
     <div class="main-content">
@@ -12,11 +12,11 @@
                         <div>
                             <span class="badge badge-{{ str_replace(' text-dark', '', $ticket->statusBadgeClass()) }}">{{ ucfirst($ticket->status) }}</span>
                             <span class="badge badge-{{ str_replace(' text-dark', '', $ticket->priorityBadgeClass()) }}">{{ ucfirst($ticket->priority) }}</span>
-                            <span class="badge badge-light">{{ $ticket->category ?: 'General support' }}</span>
+                            <span class="badge badge-light">{{ $ticket->category ?: __('support.general_support') }}</span>
                         </div>
                     </div>
                     <a href="{{ route('dashboard.support.tickets.index') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left mr-1"></i>Back
+                        <i class="fas fa-arrow-left mr-1"></i>{{ __('support.back') }}
                     </a>
                 </div>
 
@@ -29,8 +29,8 @@
                             <div class="support-message {{ $isAdmin ? 'support-message--admin' : 'support-message--tenant' }}">
                                 <div class="d-flex justify-content-between mb-2">
                                     <div>
-                                        <div class="font-weight-bold">{{ $message->user?->name ?: ($isAdmin ? 'SaaS Support' : 'Tenant User') }}</div>
-                                        <small class="text-muted">{{ $isAdmin ? 'SaaS Support' : 'Your HR team' }}</small>
+                                        <div class="font-weight-bold">{{ $message->user?->name ?: ($isAdmin ? __('support.saas_support') : __('support.saas_support')) }}</div>
+                                        <small class="text-muted">{{ $isAdmin ? __('support.saas_support') : __('support.hr_your_team') }}</small>
                                     </div>
                                     <small class="text-muted">{{ $message->created_at->format('Y-m-d H:i') }}</small>
                                 </div>
@@ -61,7 +61,7 @@
                 <form method="POST" action="{{ route('dashboard.support.tickets.reply', $ticket) }}" enctype="multipart/form-data" class="card">
                     @csrf
                     <div class="card-header">
-                        <h4>Reply</h4>
+                        <h4>{{ __('support.reply_title') }}</h4>
                     </div>
                     <div class="card-body">
                         @if ($errors->any())
@@ -73,14 +73,14 @@
                         @include('support.partials.rich-editor', ['editorId' => 'hr-support-reply-editor'])
 
                         <div class="form-group mt-3 mb-0">
-                            <label>Attachments</label>
+                            <label>{{ __('support.attachments_label') }}</label>
                             <input type="file" name="attachments[]" class="form-control" multiple accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv">
-                            <small class="text-muted">Up to 5 files, 5 MB each.</small>
+                            <small class="text-muted">{{ __('support.attachments_limit') }}</small>
                         </div>
                     </div>
                     <div class="card-footer text-right">
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-paper-plane mr-1"></i>Send Reply
+                            <i class="fas fa-paper-plane mr-1"></i>{{ __('support.send_reply') }}
                         </button>
                     </div>
                 </form>
