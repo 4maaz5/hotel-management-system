@@ -180,7 +180,9 @@ Route::middleware([
     Route::get('dashboard/employee/create', [EmployeeController::class, 'create'])->name('dashboard.employee.create');
     Route::get('dashboard/profile/{id}', [ProfileController::class, 'index'])->name('dashboard.employee.profile.index');
     Route::delete('dashboard/profile/delete/', [ProfileController::class, 'destroy'])->name('dashboard.employee.profile.destroy');
-    Route::post('dashboard/employee/store', [EmployeeController::class, 'store'])->name('dashboard.employee.profile.store');
+    Route::post('dashboard/employee/store', [EmployeeController::class, 'store'])
+        ->middleware('plan.limit:max_users')
+        ->name('dashboard.employee.profile.store');
     Route::get('/dashboard/employee/{id}/edit', [EmployeeController::class, 'edit'])->name('dashboard.employee.edit');
     Route::put('/dashboard/employee/{id}', [EmployeeController::class, 'update'])->name('dashboard.employee.update');
     Route::delete('/dashboard/employee/destroy', [EmployeeController::class, 'destroy'])->name('dashboard.employee.destroy');

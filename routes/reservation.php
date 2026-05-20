@@ -671,10 +671,10 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::get('setup-sidebar/theme-customization', [ThemeCustomizationController::class, 'index'])
-        ->middleware(['permission:theme_customization.edit'])
+        ->middleware(['permission:theme_customization.edit', 'plan.feature:custom_branding'])
         ->name('setup-sidebar.theme_customization.index');
 
-    Route::middleware(['permission:theme_customization.edit'])->group(function () {
+    Route::middleware(['permission:theme_customization.edit', 'plan.feature:custom_branding'])->group(function () {
         Route::post('setup-sidebar/theme-customization/update', [ThemeCustomizationController::class, 'update'])
             ->name('setup-sidebar.theme_customization.update');
     });

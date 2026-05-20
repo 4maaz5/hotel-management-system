@@ -181,9 +181,7 @@
                 <h2 class="page-header__title">{{ __('dashboard.penalties') }}</h2>
             </div>
             <div class="n-table__top-btns">
-                <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#penaltySettingModal">
-                    <i class="bi bi-gear"></i> {{ __('dashboard.settings') }}
-                </button>
+
                 <button class="n-button n-button--primary" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
                     {{ __('dashboard.filter') }}
                 </button>
@@ -409,82 +407,7 @@
     </main>
 
 
-    <div class="modal fade" id="penaltySettingModal">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark">
 
-                <form action="{{ route('setup-sidebar.penalty.update-setting') }}" method="POST">
-                    @csrf
-
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            {{ __('dashboard.penalty_settings') }}
-                        </h5>
-
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <div class="modal-body">
-
-                        @php
-                            $setting = \App\Models\PenaltySetting::first();
-                        @endphp
-
-                        {{-- Early Checkin --}}
-                        <div class="form-check form-switch mb-3">
-
-                            <input type="hidden" name="early_checkin_detection" value="0">
-
-                            <input class="form-check-input" type="checkbox" name="early_checkin_detection"
-                                value="1" {{ optional($setting)->early_checkin_detection ? 'checked' : '' }}>
-
-                            <label class="form-check-label">
-                                {{ __('dashboard.activate_early_checkin_detection') }}
-                            </label>
-
-                        </div>
-
-                        {{-- Late Checkout --}}
-                        <div class="form-check form-switch mb-3">
-
-                            <input type="hidden" name="late_checkout_detection" value="0">
-
-                            <input class="form-check-input" type="checkbox" name="late_checkout_detection"
-                                value="1" {{ optional($setting)->late_checkout_detection ? 'checked' : '' }}>
-
-                            <label class="form-check-label">
-                                {{ __('dashboard.activate_late_checkout_detection') }}
-                            </label>
-
-                        </div>
-
-                        {{-- Skip Cancel --}}
-                        <div class="form-check form-switch">
-
-                            <input type="hidden" name="skip_cancel_no_show_penalty" value="0">
-
-                            <input class="form-check-input" type="checkbox" name="skip_cancel_no_show_penalty"
-                                value="1" {{ optional($setting)->skip_cancel_no_show_penalty ? 'checked' : '' }}>
-
-                            <label class="form-check-label">
-                                {{ __('dashboard.skip_cancel_no_show_penalties') }}
-                            </label>
-
-                        </div>
-
-                    </div>
-
-                    <div class="modal-footer">
-                        <button class="btn btn-primary">
-                            {{ __('dashboard.save') }}
-                        </button>
-                    </div>
-
-                </form>
-
-            </div>
-        </div>
-    </div>
     @foreach ($penalties as $penalty)
         <div class="modal fade" id="deleteCustomRateModal{{ $penalty->id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">

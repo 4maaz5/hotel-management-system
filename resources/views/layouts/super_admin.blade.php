@@ -170,6 +170,12 @@
             padding: 28px;
         }
 
+        .super-admin-main .container {
+            max-width: 100%;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
         .super-admin-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);

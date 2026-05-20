@@ -194,15 +194,7 @@
                             </a>
                         </li>
                         @endcan
-                        @can('merge_setting.view')
-                        <li class="nav-item">
-                            <a class="nav-link ps-3 py-2 {{ request()->routeIs('setup-sidebar.merge_setting.index') ? 'active' : '' }}"
-                                href="{{ route('setup-sidebar.merge_setting.index') }}">
-                                <i class="fas fa-object-group me-2"></i>
-                                {{ __('dashboard.merge_settings') }}
-                            </a>
-                        </li>
-                        @endcan
+                       
                         @can('base_rate.edit')
                         <li class="nav-item">
                             <a class="nav-link ps-3 py-2 {{ request()->routeIs('setup-sidebar.base_rate.index') ? 'active' : '' }}"

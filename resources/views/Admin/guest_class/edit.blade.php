@@ -21,18 +21,6 @@
                 @csrf
                 @method('PUT')
 
-                <!-- Blacklist Switch -->
-                <div class="mb-4">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" name="blacklist" id="blacklist"
-                            {{ $guestClass->blacklist ? 'checked' : '' }}>
-
-                        <label class="form-check-label ms-2" for="blacklist">
-                            {{ __('dashboard.set_as_blacklist') }}
-                        </label>
-                    </div>
-                </div>
-
                 <!-- Status Toggle -->
                 <div class="mb-4">
                     <div class="form-check form-switch">
@@ -60,81 +48,22 @@
                     </div>
                 </div>
 
-                <!-- Order + Icon -->
+                <!-- Order -->
                 <div class="row mb-3">
                     <div class="col-md-3">
-                        <div class="row">
+                        <label class="form-label fw-semibold">
+                            {{ __('dashboard.order') }}
+                            <span class="text-danger">*</span>
+                        </label>
 
-                            <!-- Order -->
-                            <div class="col-6">
-                                <label class="form-label fw-semibold">
-                                    {{ __('dashboard.order') }}
-                                    <span class="text-danger">*</span>
-                                </label>
-
-                                <select class="form-select" name="order_no">
-                                    @for ($i = 1; $i <= 20; $i++)
-                                        <option value="{{ $i }}"
-                                            {{ $guestClass->order_no == $i ? 'selected' : '' }}>
-                                            {{ $i }}
-                                        </option>
-                                    @endfor
-                                </select>
-                            </div>
-
-                            <!-- Icon -->
-                            <div class="col-6">
-                                <label class="form-label fw-semibold">
-                                    {{ __('dashboard.icon') }}
-                                </label>
-
-                                <select class="form-select" name="icon">
-                                    <option value="gold" {{ $guestClass->icon == 'gold' ? 'selected' : '' }}>⭐</option>
-                                    <option value="blue" {{ $guestClass->icon == 'blue' ? 'selected' : '' }}>⭐</option>
-                                    <option value="red" {{ $guestClass->icon == 'red' ? 'selected' : '' }}>⭐</option>
-                                    <option value="green" {{ $guestClass->icon == 'green' ? 'selected' : '' }}>⭐</option>
-                                    <option value="purple" {{ $guestClass->icon == 'purple' ? 'selected' : '' }}>⭐</option>
-                                    <option value="silver" {{ $guestClass->icon == 'silver' ? 'selected' : '' }}>⭐</option>
-                                </select>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Discount -->
-                <div class="row mb-3">
-                    <div class="col-md-3">
-                        <div class="row">
-
-                            <div class="col-6">
-                                <label class="form-label">
-                                    {{ __('dashboard.discount_method') }}
-                                </label>
-
-                                <select class="form-select" name="discount_method">
-                                    <option value="amount"
-                                        {{ $guestClass->discount_method == 'amount' ? 'selected' : '' }}>
-                                        {{ __('dashboard.amount') }}
-                                    </option>
-
-                                    <option value="percentage"
-                                        {{ $guestClass->discount_method == 'percentage' ? 'selected' : '' }}>
-                                        {{ __('dashboard.percentage') }}
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div class="col-6">
-                                <label class="form-label">
-                                    {{ __('dashboard.discount') }}
-                                </label>
-
-                                <input type="number" class="form-control" name="discount_amount"
-                                    value="{{ $guestClass->discount_amount }}">
-                            </div>
-
-                        </div>
+                        <select class="form-select" name="order_no">
+                            @for ($i = 1; $i <= 20; $i++)
+                                <option value="{{ $i }}"
+                                    {{ $guestClass->order_no == $i ? 'selected' : '' }}>
+                                    {{ $i }}
+                                </option>
+                            @endfor
+                        </select>
                     </div>
                 </div>
 

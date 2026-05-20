@@ -8,11 +8,6 @@
         </div>
 
         <div class="d-flex align-items-center gap-3">
-            <a href="{{ route('super-admin.support.index') }}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-headset me-1"></i>
-                Support
-            </a>
-
             <a href="{{ route('super-admin.tenants.create') }}" class="btn btn-outline-secondary btn-sm">
                 <i class="fas fa-plus me-1"></i>
                 New Tenant

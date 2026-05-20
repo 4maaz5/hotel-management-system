@@ -266,8 +266,6 @@
                                 <th style="width:120px;">{{ __('dashboard.order') }}</th>
                                 <th style="width:250px;">{{ __('dashboard.name') }}</th>
                                 <th style="width:100px;">{{ __('dashboard.status') }}</th>
-                                <th>{{ __('dashboard.settings') }}</th>
-                                <th style="width:200px;">{{ __('dashboard.discount') }}</th>
                                 <th>{{ __('dashboard.description') }}</th>
                                 <th style="width:123px;">{{ __('dashboard.actions') }}</th>
                             </tr>
@@ -280,12 +278,9 @@
                                     <!-- Order -->
                                     <td>{{ $class->order_no }}</td>
 
-                                    <!-- Name + Icon -->
+                                    <!-- Name -->
                                     <td>
-                                        <i class="bi bi-star-fill text-warning me-1"></i>
-
                                         {{ $class->class_name }}
-
                                     </td>
 
                                     <!-- Status -->
@@ -298,22 +293,6 @@
                                             <span class="badge bg-danger">
                                                 {{ __('dashboard.inactive') }}
                                             </span>
-                                        @endif
-                                    </td>
-
-                                    <!-- Settings Icon -->
-                                    <td>
-                                        {{ $class->icon ?? '-' }}
-                                    </td>
-
-                                    <!-- Discount -->
-                                    <td>
-                                        @if ($class->discount_amount)
-                                            {{ $class->discount_amount }}
-
-                                            {{ $class->discount_method == 'percentage' ? '%' : '' }}
-                                        @else
-                                            -
                                         @endif
                                     </td>
 
@@ -350,7 +329,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">
+                                    <td colspan="5" class="text-center text-muted py-4">
                                         {{ __('dashboard.no_guest_class_found') }}
                                     </td>
                                 </tr>

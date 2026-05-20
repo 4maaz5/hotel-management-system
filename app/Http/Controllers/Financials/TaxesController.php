@@ -83,7 +83,7 @@ class TaxesController extends Controller
             'max_length' => $request->has_max_length ? $request->max_length : null,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
-            'charged_on_fees' => $request->has('charged_on_fees'),
+            'charged_on_fees' => false,
         ]);
 
         return redirect()->route('setup-sidebar.taxes.index')->with('success', __('messages.customization_created_successfully'));
@@ -111,7 +111,6 @@ class TaxesController extends Controller
         ]);
 
         $isExpenses = $request->has('is_expenses');
-        $chargedOnFees = $request->has('charged_on_fees');
 
         $appliedOn = $request->applied_on;
 
@@ -130,7 +129,7 @@ class TaxesController extends Controller
             'max_length' => $request->max_length,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
-            'charged_on_fees' => $chargedOnFees,
+            'charged_on_fees' => false,
         ]);
 
         return redirect()

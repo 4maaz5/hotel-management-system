@@ -249,47 +249,6 @@
                                     placeholder="{{ __('dashboard.enter_report_name') }}">
                             </div>
 
-                            <!-- URL -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">URL</label>
-                                <input type="text" name="url" class="form-control"
-                                    placeholder="{{ __('dashboard.enter_source_url') }}">
-                            </div>
-
-                            <!-- Commission Rate -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">
-                                    {{ __('dashboard.commission_rate') }} (%)
-                                </label>
-
-                                <input type="number" step="0.01" name="commission_rate" class="form-control"
-                                    placeholder="{{ __('dashboard.enter_commission_rate') }}">
-                            </div>
-
-                            <!-- Tax Mode -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold">
-                                    {{ __('dashboard.tax_mode') }}
-                                </label>
-
-                                <select name="tax_mode" class="form-select" id="taxModeSelect">
-                                    <option value="auto">{{ __('dashboard.auto') }}</option>
-                                    <option value="manual">{{ __('dashboard.manual') }}</option>
-                                </select>
-                            </div>
-
-                            <!-- Tax Calculation Type -->
-                            <div class="col-md-6 mb-3" id="taxCalculationBox">
-                                <label class="form-label fw-semibold">
-                                    {{ __('dashboard.consider_taxes_as') }}
-                                </label>
-
-                                <select name="tax_calculation_type" class="form-select">
-                                    <option value="inclusive">{{ __('dashboard.inclusive') }}</option>
-                                    <option value="exclusive">{{ __('dashboard.exclusive') }}</option>
-                                </select>
-                            </div>
-
                             <!-- Description -->
                             <div class="col-12 mb-3">
                                 <label class="form-label fw-semibold">
@@ -351,66 +310,6 @@
 
                                     <input type="text" name="report_name" class="form-control"
                                         value="{{ $setting->report_name }}">
-                                </div>
-
-                                <!-- URL -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        URL
-                                    </label>
-
-                                    <input type="text" name="url" class="form-control"
-                                        value="{{ $setting->url }}">
-                                </div>
-
-                                <!-- Commission Rate -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        {{ __('dashboard.commission_rate') }}
-                                    </label>
-
-                                    <input type="number" step="0.01" name="commission_rate" class="form-control"
-                                        value="{{ $setting->commission_rate }}">
-                                </div>
-
-                                <!-- Tax Mode -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        {{ __('dashboard.tax_mode') }}
-                                    </label>
-
-                                    <select name="tax_mode" class="form-select">
-
-                                        <option value="auto" {{ $setting->tax_mode == 'auto' ? 'selected' : '' }}>
-                                            {{ __('dashboard.auto') }}
-                                        </option>
-
-                                        <option value="manual" {{ $setting->tax_mode == 'manual' ? 'selected' : '' }}>
-                                            {{ __('dashboard.manual') }}
-                                        </option>
-
-                                    </select>
-                                </div>
-
-                                <!-- Consider Taxes As -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        {{ __('dashboard.consider_taxes_as') }}
-                                    </label>
-
-                                    <select name="tax_calculation_type" class="form-select">
-                                        <option value="">{{ __('dashboard.select_tax_mode') }}</option>
-                                        <option value="inclusive"
-                                            {{ $setting->tax_calculation_type == 'inclusive' ? 'selected' : '' }}>
-                                            {{ __('dashboard.inclusive') }}
-                                        </option>
-
-                                        <option value="exclusive"
-                                            {{ $setting->tax_calculation_type == 'exclusive' ? 'selected' : '' }}>
-                                            {{ __('dashboard.exclusive') }}
-                                        </option>
-
-                                    </select>
                                 </div>
 
                                 <!-- Status Toggle -->
@@ -497,66 +396,6 @@
                                         value="{{ $setting->report_name }}" disabled>
                                 </div>
 
-                                <!-- URL -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        URL
-                                    </label>
-
-                                    <input type="text" name="url" class="form-control"
-                                        value="{{ $setting->url }}" disabled>
-                                </div>
-
-                                <!-- Commission Rate -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        {{ __('dashboard.commission_rate') }}
-                                    </label>
-
-                                    <input type="number" step="0.01" name="commission_rate" class="form-control"
-                                        value="{{ $setting->commission_rate }}" disabled>
-                                </div>
-
-                                <!-- Tax Mode -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        {{ __('dashboard.tax_mode') }}
-                                    </label>
-
-                                    <select name="tax_mode" class="form-select" disabled>
-
-                                        <option value="auto" {{ $setting->tax_mode == 'auto' ? 'selected' : '' }}>
-                                            {{ __('dashboard.auto') }}
-                                        </option>
-
-                                        <option value="manual" {{ $setting->tax_mode == 'manual' ? 'selected' : '' }}>
-                                            {{ __('dashboard.manual') }}
-                                        </option>
-
-                                    </select>
-                                </div>
-
-                                <!-- Consider Taxes As -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        {{ __('dashboard.consider_taxes_as') }}
-                                    </label>
-
-                                    <select name="tax_calculation_type" class="form-select" disabled>
-                                        <option>{{ __('dashboard.select_tax_mode') }}</option>
-                                        <option value="inclusive"
-                                            {{ $setting->tax_calculation_type == 'inclusive' ? 'selected' : '' }}>
-                                            {{ __('dashboard.inclusive') }}
-                                        </option>
-
-                                        <option value="exclusive"
-                                            {{ $setting->tax_calculation_type == 'exclusive' ? 'selected' : '' }}>
-                                            {{ __('dashboard.exclusive') }}
-                                        </option>
-
-                                    </select>
-                                </div>
-
                                 <!-- Status Toggle -->
                                 <div class="col-md-6 mb-3">
 
@@ -638,29 +477,6 @@
 @endsection
 @push('scripts')
     <script>
-        function handleTaxBoxVisibility() {
-            let taxMode = document.getElementById('taxModeSelect').value;
-            let box = document.getElementById('taxCalculationBox');
-
-            if (taxMode === 'manual') {
-                box.style.display = 'block';
-            } else {
-                box.style.display = 'none';
-            }
-        }
-
-        // When dropdown changes
-        document.getElementById('taxModeSelect').addEventListener('change', function() {
-            handleTaxBoxVisibility();
-        });
-
-        // When modal opens → reset state
-        document.getElementById('addChannelSettingModal')
-            .addEventListener('shown.bs.modal', function() {
-
-                document.getElementById('taxModeSelect').value = 'auto';
-                handleTaxBoxVisibility();
-
-            });
+    
     </script>
 @endpush

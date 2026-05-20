@@ -167,19 +167,6 @@
                     </div>
                 </div>
 
-                <!-- Charged on Fees -->
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" name="charged_on_fees"
-                                {{ $tax->charged_on_fees ? 'checked' : '' }}>
-                            <label class="form-check-label ms-2">
-                                {{ __('dashboard.charged_on_fee') }}
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Buttons -->
                 <div class="d-flex justify-content-end">
                     <a href="{{ route('setup-sidebar.taxes.index') }}" class="btn btn-outline-danger me-3">

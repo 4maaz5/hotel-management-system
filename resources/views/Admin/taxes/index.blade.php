@@ -315,7 +315,6 @@
                         <th>{{ __('dashboard.applied_on') }}</th>
                         <th>{{ __('dashboard.method') }}</th>
                         <th>{{ __('dashboard.amount') }}</th>
-                        <th>{{ __('dashboard.charged_on') }}</th>
                         <th>{{ __('dashboard.start_date') }}</th>
                         <th>{{ __('dashboard.end_date') }}</th>
                         <th>{{ __('dashboard.actions') }}</th>
@@ -362,11 +361,6 @@
                                 @endif
                             </td>
 
-                            <!-- Charged On -->
-                            <td>
-                                {{ $item->charged_on_fees ? 'Yes' : '-' }}
-                            </td>
-
                             <!-- Start Date -->
                             <td>
                                 {{ \Carbon\Carbon::parse($item->start_date)->format(system_date_format()) }}
@@ -402,7 +396,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="text-center text-muted">
+                            <td colspan="9" class="text-center text-muted">
                                 {{ __('dashboard.no_customization_found') }}
                             </td>
                         </tr>
