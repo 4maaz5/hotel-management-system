@@ -79,6 +79,11 @@ class DashboardController extends Controller
         $emailNotifications = $notificationsByType->get('email', 0);
         $smsNotifications = $notificationsByType->get('sms', 0);
 
+        $departments = $this->scopeDepartmentsForUser(Department::with('branch'), $user)
+            ->orderBy('branch_id')
+            ->orderBy('name')
+            ->get();
+
         return view('Admin.Backend.Notifications.dashboard', compact(
             'notifications',
             'notificationCards',
@@ -86,7 +91,8 @@ class DashboardController extends Controller
             'failedNotifications',
             'notificationsByType',
             'emailNotifications',
-            'smsNotifications'
+            'smsNotifications',
+            'departments'
         ));
     }
 
@@ -137,6 +143,7 @@ class DashboardController extends Controller
 
             // 1. Insert into DB
             $notificationId = DB::table('system_notifications')->insertGetId([
+                'company_id' => $this->tenantIdForUser($user),
                 'type' => $request->type,
                 'message' => $request->message,
                 'recipient_type' => 'department',
@@ -223,41 +230,6 @@ class DashboardController extends Controller
             ->get();
     }
 
-    // protected function fetchForUser($user)
-    // {
-    //     return \App\Models\SystemNotification::whereIn('type', ['System', 'email'])
-    //         ->where(function ($q) use ($user) {
-
-    //             // Employee-specific notifications
-    //             $q->where('recipient_type', 'employee')
-    //                 ->where('recipient_id', $user->id)
-
-    //             // Manager-specific notifications
-    //                 ->orWhere(function ($q2) use ($user) {
-    //                     if ($user->hasRole('manager')) {
-    //                         $q2->where('recipient_type', 'manager')
-    //                             ->where(function ($q3) use ($user) {
-    //                                 $q3->whereNull('recipient_id') // all managers
-    //                                     ->orWhere('recipient_id', $user->id); // specific manager
-    //                             });
-    //                     }
-    //                 })
-
-    //             // Super Admin-specific notifications
-    //                 ->orWhere(function ($q4) use ($user) {
-    //                     if ($user->hasRole('super_admin')) {
-    //                         $q4->where('recipient_type', 'super_admin')
-    //                             ->where(function ($q5) use ($user) {
-    //                                 $q5->whereNull('recipient_id') // all super admins
-    //                                     ->orWhere('recipient_id', $user->id); // specific super admin
-    //                             });
-    //                     }
-    //                 });
-
-    //         })
-    //         ->orderBy('created_at', 'desc');
-    // }
-
     public function markAllRead(Request $request)
     {
         $user = $request->user();
@@ -280,40 +252,6 @@ class DashboardController extends Controller
 
         return response()->json(['success' => true]);
     }
-
-    // public function update(Request $request, $id)
-    // {
-    //     $request->validate([
-    //         'type' => 'required|in:SMS,Email,System',
-    //         'message' => 'required|string',
-    //         'recipient_type' => 'nullable|string',
-    //         'status' => 'required|in:pending,sent,failed',
-    //         'scheduled_date' => 'nullable|date',
-    //         'scheduled_time' => 'nullable',
-    //     ]);
-
-    //     // $scheduled_at = null;
-    //     // if ($request->scheduled_date && $request->scheduled_time) {
-    //     //     $scheduled_at = Carbon::parse($request->scheduled_date.' '.$request->scheduled_time);
-    //     // }
-
-    //     $notification = \DB::table('system_notifications')->where('id', $id)->first();
-    //     \DB::table('system_notifications')->where('id', $id)->update([
-    //         'type' => $request->type,
-    //         'message' => $request->message,
-    //         'status' => $request->status,
-    //         'scheduled_at' => '2025-11-12 05:53:38', // $scheduled_at,
-    //         'updated_at' => now(),
-    //     ]);
-
-    //     $updatedNotification = \DB::table('system_notifications')->where('id', $id)->first();
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => __('messages.notification_updated_successfully'),
-    //         'notification' => $updatedNotification,
-    //     ]);
-    // }
 
     public function destroy($id)
     {
@@ -455,7 +393,8 @@ class DashboardController extends Controller
         $departmentIds = $this->scopeDepartmentsForUser(Department::query(), $user)->pluck('id');
 
         return $query->where(function ($query) use ($tenantId, $departmentIds) {
-            $query->whereIn('department_id', $departmentIds)
+            $query->where('company_id', $tenantId)
+                ->orWhereIn('department_id', $departmentIds)
                 ->orWhereIn('created_by', User::query()
                     ->where('company_id', $tenantId)
                     ->select('id'));

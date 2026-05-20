@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('company_id')->nullable()->index();
             $table->enum('type', ['sms', 'email', 'system'])->default('system');
             $table->text('message');
             $table->string('recipient_type')->default('manager');

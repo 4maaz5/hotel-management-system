@@ -2,15 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class SystemNotification extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'system_notifications';
 
     protected $fillable = [
-        'type', 'message', 'recipient_type', 'recipient_id', 'status',
+        'company_id', 'type', 'message', 'recipient_type', 'recipient_id', 'status',
         'scheduled_at', 'sent_at', 'created_by', 'parent_id', 'department_id',
     ];
 
