@@ -168,9 +168,12 @@ class RoleController extends Controller
             ->orderBy('name')
             ->get()
             ->groupBy(function (Permission $permission): string {
-                return str_contains($permission->name, '.')
-                    ? explode('.', $permission->name, 2)[0]
-                    : 'general';
+                $name = $permission->name;
+                if (str_contains($name, '.')) {
+                    return explode('.', $name, 2)[0];
+                }
+                $parts = explode('_', $name);
+                return lcfirst($parts[1] ?? 'other');
             });
     }
 

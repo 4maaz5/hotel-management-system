@@ -104,7 +104,8 @@ class CustomNotificationController extends Controller
         $departmentIds = $this->scopeDepartmentsForUser(Department::query(), $user)->pluck('id');
 
         $query->where(function ($query) use ($tenantId, $departmentIds) {
-            $query->whereIn('department_id', $departmentIds)
+            $query->where('company_id', $tenantId)
+                ->orWhereIn('department_id', $departmentIds)
                 ->orWhereIn('created_by', User::query()
                     ->where('company_id', $tenantId)
                     ->select('id'));

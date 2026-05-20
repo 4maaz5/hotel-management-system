@@ -136,9 +136,9 @@
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h4>{{ __('dashboard.all_notifications') }}</h4>
-                            {{-- <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addAlertModal">
+                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addAlertModal">
                                 Send Notification
-                            </button> --}}
+                            </button>
                         </div>
 
                         <div class="card-body">
@@ -243,15 +243,26 @@
                                     <label class="form-label">Type</label>
                                     <select name="type" class="form-control" required>
                                         <option selected disabled>{{ __('dashboard.select_type') }}</option>
-                                        {{-- <option value="SMS">SMS</option>
-                                        <option value="Email">Email</option> --}}
-                                        <option value="System">{{ __('dashboard.system') }}</option>
+                                        <option value="system">{{ __('dashboard.system') }}</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div class="row">
-
+                                <div class="form-group col-md-12 mb-3">
+                                    <label class="form-label">{{ __('dashboard.select_departments') }}</label>
+                                    <select name="department_ids[]" class="form-control" id="departmentSelect" multiple size="5">
+                                        @foreach ($departments as $dept)
+                                            <option value="{{ $dept->id }}">
+                                                {{ $dept->name }}
+                                                @if ($dept->branch)
+                                                    ({{ $dept->branch->name }})
+                                                @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <small class="form-text text-muted">{{ __('dashboard.hold_control') }}</small>
+                                </div>
                             </div>
 
                             <div class="mb-3">
@@ -317,7 +328,7 @@
                                     <select class="form-control" name="type" id="editType">
                                         {{-- <option value="SMS">SMS</option>
                                         <option value="Email">Email</option> --}}
-                                        <option value="System">{{ __('dashboard.system') }}</option>
+                                        <option value="system">{{ __('dashboard.system') }}</option>
                                     </select>
                                 </div>
                             </div>
@@ -325,10 +336,6 @@
                             <div class="mb-3">
                                 <label class="form-label">{{ __('dashboard.message') }}</label>
                                 <textarea name="message" id="editMessage" class="form-control" rows="3" required></textarea>
-                            </div>
-
-                            <div class="row mb-3">
-
                             </div>
 
                             <div class="mb-3">
@@ -415,8 +422,15 @@
                 },
 
                 error: function(err) {
-                    console.error(err.responseJSON);
-                    alert('Error sending notification');
+                    let message = 'Error sending notification';
+                    if (err.responseJSON?.message) {
+                        message = err.responseJSON.message;
+                    }
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Attention',
+                        text: message
+                    });
                 }
             });
         });
@@ -432,10 +446,7 @@
             const recipient_type = row.find('td:nth-child(2)').text().trim().toLowerCase();
             const typeText = row.find('td:nth-child(3)').text().trim().toLowerCase();
 
-            let type = '';
-            if (typeText === 'sms') type = 'SMS';
-            else if (typeText === 'email') type = 'Email';
-            else if (typeText === 'system') type = 'System';
+            let type = typeText;
 
             $('#editType').val(type);
 
