@@ -59,8 +59,10 @@ class ChatController extends Controller
         ], 202);
     }
 
-    public function messages(Request $request, ChatSession $chatSession): JsonResponse
+    public function messages(Request $request, int $session): JsonResponse
     {
+        $chatSession = ChatSession::withoutGlobalScopes()->findOrFail($session);
+
         abort_unless($chatSession->user_id === $request->user()->id, 404);
 
         $query = $chatSession->messages()->orderBy('id');

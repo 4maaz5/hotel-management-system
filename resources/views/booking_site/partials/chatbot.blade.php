@@ -304,7 +304,7 @@
     class="booking-chatbot"
     data-session-route="{{ route('booking.chat.session.current', $bookingPropertyQuery ?? []) }}"
     data-send-route="{{ route('booking.chat.store', $bookingPropertyQuery ?? []) }}"
-    data-messages-route-template="{{ route('booking.chat.messages', array_merge(['chatSession' => '__SESSION__'], $bookingPropertyQuery ?? [])) }}"
+    data-messages-route-template="{{ route('booking.chat.messages', array_merge(['session' => '__SESSION__'], $bookingPropertyQuery ?? [])) }}"
     data-poll-interval="{{ (int) config('chatbot.poll_interval_ms', 1800) }}"
 >
     <button type="button" class="booking-chatbot__launcher" id="bookingChatLauncher">

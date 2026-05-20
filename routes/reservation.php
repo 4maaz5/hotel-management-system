@@ -81,7 +81,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 Route::middleware(['auth'])->group(function () {
     Route::get('/api/chat/session', [ChatController::class, 'current'])
         ->name('api.chat.session.current');
-    Route::get('/api/chat/sessions/{chatSession}/messages', [ChatController::class, 'messages'])
+    Route::get('/api/chat/sessions/{session}/messages', [ChatController::class, 'messages'])
         ->name('api.chat.messages');
     Route::post('/api/chat', [ChatController::class, 'store'])
         ->middleware('throttle:chatbot')

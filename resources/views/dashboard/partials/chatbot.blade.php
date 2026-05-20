@@ -304,7 +304,7 @@
     class="dashboard-chatbot"
     data-session-route="{{ route('api.chat.session.current') }}"
     data-send-route="{{ route('api.chat.store') }}"
-    data-messages-route-template="{{ route('api.chat.messages', ['chatSession' => '__SESSION__']) }}"
+    data-messages-route-template="{{ route('api.chat.messages', ['session' => '__SESSION__']) }}"
     data-poll-interval="{{ (int) config('chatbot.poll_interval_ms', 1800) }}"
     data-user-id="{{ auth()->id() }}"
 >

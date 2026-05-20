@@ -17,7 +17,7 @@ Route::middleware('booking.tenant')->group(function () {
         Route::get('confirmation/{reservationNumber}', [BookingEngineController::class, 'confirmation'])->name('confirmation');
         Route::get('api/chat/session', [BookingSiteChatController::class, 'current'])
             ->name('chat.session.current');
-        Route::get('api/chat/sessions/{chatSession}/messages', [BookingSiteChatController::class, 'messages'])
+        Route::get('api/chat/sessions/{session}/messages', [BookingSiteChatController::class, 'messages'])
             ->name('chat.messages');
         Route::post('api/chat', [BookingSiteChatController::class, 'store'])
             ->middleware('throttle:chatbot')
