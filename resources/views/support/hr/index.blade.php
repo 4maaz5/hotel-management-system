@@ -1,6 +1,6 @@
 @extends('layout.master')
 
-@section('title', 'HR Support Tickets')
+@section('title', __('support.hr_title'))
 
 @push('styles')
     <style>
@@ -80,10 +80,10 @@
             <div class="section-body">
                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="section-title mb-1">HR Support Tickets</h2>
+                        <h2 class="section-title mb-1">{{ __('support.hr_title') }}</h2>
                     </div>
                     <a href="{{ route('dashboard.support.tickets.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus mr-1"></i>Create Ticket
+                        <i class="fas fa-plus mr-1"></i>{{ __('support.create') }}
                     </a>
                 </div>
 
@@ -92,9 +92,9 @@
                         <form method="GET" class="support-filter-bar">
                             <div class="support-filter-bar__controls">
                                 <div class="support-filter-field">
-                                    <label for="hr-support-status-filter">Status</label>
+                                    <label for="hr-support-status-filter">{{ __('support.th_status') }}</label>
                                     <select id="hr-support-status-filter" name="status" class="form-control">
-                                        <option value="">All statuses</option>
+                                        <option value="">{{ __('support.all_statuses') }}</option>
                                         @foreach (\App\Models\SupportTicket::STATUSES as $status)
                                             <option value="{{ $status }}" @selected(request('status') === $status)>{{ ucfirst($status) }}</option>
                                         @endforeach
@@ -102,11 +102,11 @@
                                 </div>
                                 <div class="support-filter-actions">
                                     <button class="btn btn-outline-primary" type="submit">
-                                        <i class="fas fa-filter"></i>Filter
+                                        <i class="fas fa-filter"></i>{{ __('support.filter') }}
                                     </button>
                                     @if (request()->has('status'))
                                         <a href="{{ route('dashboard.support.tickets.index') }}" class="btn btn-link">
-                                            <i class="fas fa-rotate-left"></i>Reset
+                                            <i class="fas fa-rotate-left"></i>{{ __('support.reset') }}
                                         </a>
                                     @endif
                                 </div>
@@ -118,12 +118,12 @@
                         <table class="table table-striped mb-0">
                             <thead>
                                 <tr>
-                                    <th>Ticket</th>
-                                    <th>Priority</th>
-                                    <th>Status</th>
-                                    <th>Messages</th>
-                                    <th>Last Update</th>
-                                    <th class="text-right">Action</th>
+                                    <th>{{ __('support.th_ticket') }}</th>
+                                    <th>{{ __('support.th_priority') }}</th>
+                                    <th>{{ __('support.th_status') }}</th>
+                                    <th>{{ __('support.th_messages') }}</th>
+                                    <th>{{ __('support.th_last_update') }}</th>
+                                    <th class="text-right">{{ __('support.th_action') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -131,7 +131,7 @@
                                     <tr>
                                         <td>
                                             <div class="font-weight-bold">{{ $ticket->subject }}</div>
-                                            <small class="text-muted">{{ $ticket->category ?: 'General support' }}</small>
+                                            <small class="text-muted">{{ $ticket->category ?: __('support.general_support') }}</small>
                                         </td>
                                         <td>
                                             <span class="badge badge-{{ str_replace(' text-dark', '', $ticket->priorityBadgeClass()) }}">{{ ucfirst($ticket->priority) }}</span>
@@ -142,12 +142,12 @@
                                         <td>{{ $ticket->messages_count }}</td>
                                         <td>{{ optional($ticket->last_message_at ?? $ticket->updated_at)->diffForHumans() }}</td>
                                         <td class="text-right">
-                                            <a href="{{ route('dashboard.support.tickets.show', $ticket) }}" class="btn btn-sm btn-outline-primary">Open</a>
+                                            <a href="{{ route('dashboard.support.tickets.show', $ticket) }}" class="btn btn-sm btn-outline-primary">{{ __('support.open') }}</a>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-5">No support tickets yet.</td>
+                                        <td colspan="6" class="text-center text-muted py-5">{{ __('support.no_tickets') }}</td>
                                     </tr>
                                 @endforelse
                             </tbody>

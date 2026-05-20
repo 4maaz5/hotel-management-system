@@ -47,7 +47,7 @@
                 </div> --}}
 
                 <!-- Compact Tabs (Icons Only on Mobile) -->
-                <div class="app-header__tabs d-flex align-items-center gap-2">
+                <div class="app-header__tabs d-flex align-items-center gap-2" style="{{ app()->getLocale() == 'ar' ? 'margin-right:120px;' : 'margin-left:70px;' }}">
                     @if($canSwitchProperty && isset($accessibleProperties) && $accessibleProperties->isNotEmpty())
                         <form method="POST" action="{{ route('current-property.update') }}" class="property-switcher d-flex align-items-center gap-2">
                             @csrf
@@ -57,6 +57,12 @@
                                         {{ $accessibleProperty->property_name_en ?? $accessibleProperty->property_name_ar }}
                                     </option>
                                 @endforeach
+                            </select>
+                        </form>
+                    @else
+                        <form class="property-switcher d-flex align-items-center gap-2">
+                            <select class="property-switcher__select form-select form-select-sm" disabled>
+                                <option>{{ __('dashboard.properties') }}</option>
                             </select>
                         </form>
                     @endif

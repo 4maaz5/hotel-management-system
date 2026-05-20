@@ -8,7 +8,7 @@
     id="{{ $editorId }}"
     name="{{ $fieldName }}"
     class="form-control js-support-summernote"
-    data-placeholder="Write your message..."
+    data-placeholder="{{ __('support.placeholder_write_message') }}"
 >{!! $editorValue !!}</textarea>
 
 @once

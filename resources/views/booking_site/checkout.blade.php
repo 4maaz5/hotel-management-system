@@ -32,7 +32,7 @@
             font-weight: 700;
         }
 
-        .checkout-form input,
+        .checkout-form input:not([type="checkbox"]):not([type="radio"]),
         .checkout-form select,
         .checkout-form textarea {
             width: 100%;

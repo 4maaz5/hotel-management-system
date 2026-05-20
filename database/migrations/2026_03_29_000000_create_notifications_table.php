@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->nullable()->index();
+            $table->foreignId('company_id')->nullable()->index('notifications_company_id_idx');
             $table->string('type');
             $table->string('title');
             $table->string('title_ar');
@@ -28,4 +28,3 @@ return new class extends Migration
         Schema::dropIfExists('notifications');
     }
 };
-

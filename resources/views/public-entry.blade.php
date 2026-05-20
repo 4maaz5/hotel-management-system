@@ -299,7 +299,7 @@
             <div class="brand-content">
                 <div class="brand-logo">
                     <div class="brand-logo-icon">B</div>
-                    <span class="brand-logo-text">Booking IT</span>
+                    <span class="brand-logo-text">BI Technology</span>
                 </div>
                 <h1 class="brand-title">Your all-in-one<br>property workspace</h1>
                 <p class="brand-subtitle">HR, reservations, reports, and property management — all in one platform.</p>

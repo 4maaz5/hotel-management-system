@@ -52,6 +52,8 @@
             z-index: 1030;
             padding: 24px 16px;
             box-shadow: 18px 0 45px rgba(15, 23, 42, 0.15);
+            display: flex;
+            flex-direction: column;
         }
 
         html[dir="rtl"] .super-admin-sidebar {
@@ -117,6 +119,37 @@
             background: var(--sidebar-active);
             color: #fff;
             box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        }
+
+        .super-admin-sidebar__logout {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .super-admin-sidebar__logout form {
+            margin: 0;
+        }
+
+        .super-admin-sidebar__logout button {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 14px;
+            border: none;
+            border-radius: 14px;
+            background: transparent;
+            color: var(--sidebar-text);
+            font-size: inherit;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.18s ease, transform 0.18s ease;
+        }
+
+        .super-admin-sidebar__logout button:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(2px);
         }
 
         .super-admin-content {

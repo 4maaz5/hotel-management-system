@@ -47,4 +47,14 @@
             <span>Activity</span>
         </a>
     </nav>
+
+    <div class="super-admin-sidebar__logout">
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </button>
+        </form>
+    </div>
 </aside>
